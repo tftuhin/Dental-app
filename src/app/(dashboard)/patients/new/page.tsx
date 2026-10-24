@@ -18,6 +18,7 @@ import {
 import { UserPlus, Sparkles, AlertTriangle, ShieldCheck, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { createPatient, calculateAgeFromDob } from "@/lib/patients-store";
 
 export default function NewPatientPage() {
   const router = useRouter();
@@ -40,12 +41,34 @@ export default function NewPatientPage() {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate atomic sequence generation and DB insert
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    const newPat = createPatient({
+      name: fullName,
+      dob,
+      age: calculateAgeFromDob(dob) || 30,
+      gender,
+      phone: phone.trim(),
+      email: email.trim(),
+      address: address.trim(),
+      bloodGroup,
+      allergies: medicalAlerts
+        ? medicalAlerts.split(",").map((s) => s.trim()).filter(Boolean)
+        : [],
+      medicalConditions: [],
+      emergencyContact: emergencyName
+        ? `${emergencyName.trim()} · ${emergencyPhone.trim()}`
+        : "",
+      status: "new",
+      lastVisit: "First Visit",
+      outstandingBalance: "৳0.00",
+      tags: ["New Registration"],
+    });
+
     setTimeout(() => {
       setLoading(false);
-      toast.success("Patient registered with Atomic ID DENT-2026-00043!");
-      router.push("/patients/pat-1");
-    }, 800);
+      toast.success(`Patient registered with Atomic ID ${newPat.customId}!`);
+      router.push(`/patients/${newPat.id}`);
+    }, 600);
   };
 
   return (

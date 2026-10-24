@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,7 @@ import {
   downloadCertificatePdf,
 } from "@/lib/certificate-pdf-generator";
 import { logPatientActivity } from "@/lib/clinical-flow-store";
+import { getAllPatients } from "@/lib/patients-store";
 
 interface PresetPatient {
   id: string;
@@ -224,8 +225,41 @@ export default function MedicalCertificatePage() {
   // Letterhead Mode
   const [letterheadMode, setLetterheadMode] = useState<"full_blank_a4" | "preprinted_pad">("full_blank_a4");
 
+  // Patient List synced with patients-store
+  const [patientList, setPatientList] = useState<PresetPatient[]>(() => {
+    const fromStore = getAllPatients();
+    return fromStore.map((p) => ({
+      id: p.id,
+      name: p.name,
+      customId: p.customId,
+      age: p.age,
+      gender: p.gender,
+      phone: p.phone,
+      address: p.address,
+    }));
+  });
+
+  useEffect(() => {
+    const handleSync = () => {
+      const fromStore = getAllPatients();
+      setPatientList(
+        fromStore.map((p) => ({
+          id: p.id,
+          name: p.name,
+          customId: p.customId,
+          age: p.age,
+          gender: p.gender,
+          phone: p.phone,
+          address: p.address,
+        }))
+      );
+    };
+    window.addEventListener("dentalos1-patients-updated", handleSync);
+    return () => window.removeEventListener("dentalos1-patients-updated", handleSync);
+  }, []);
+
   // Selected Patient in Dropdown
-  const [selectedPatientId, setSelectedPatientId] = useState<string>("p-42");
+  const [selectedPatientId, setSelectedPatientId] = useState<string>("pat-1");
 
   // Handle Dropdown / Preset Patient Selection
   const handleSelectPatientById = (val: string) => {
@@ -234,7 +268,7 @@ export default function MedicalCertificatePage() {
       toast.info("Switched to manual patient data entry.");
       return;
     }
-    const found = PRESET_PATIENTS.find((p) => p.id === val);
+    const found = patientList.find((p) => p.id === val || p.customId === val);
     if (found) {
       setPatientName(found.name);
       setCustomId(found.customId);
@@ -431,7 +465,7 @@ export default function MedicalCertificatePage() {
                   <span className="text-[10px] text-primary font-normal">Recent Queue</span>
                 </Label>
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {PRESET_PATIENTS.slice(0, 4).map((p) => (
+                  {patientList.slice(0, 4).map((p) => (
                     <button
                       key={p.id}
                       type="button"
@@ -503,7 +537,7 @@ export default function MedicalCertificatePage() {
                     <SelectValue placeholder="Choose a patient from clinical directory..." />
                   </SelectTrigger>
                   <SelectContent className="max-h-72">
-                    {PRESET_PATIENTS.map((p) => (
+                    {patientList.map((p) => (
                       <SelectItem key={p.id} value={p.id} className="text-xs py-2 cursor-pointer">
                         <div className="flex flex-col gap-0.5 text-left">
                           <div className="flex items-center gap-2">
