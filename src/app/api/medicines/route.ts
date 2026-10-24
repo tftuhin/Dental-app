@@ -22,7 +22,7 @@ export async function GET(request: Request) {
               ilike(medicinesCatalog.category, `%${query}%`)
             )
           )
-          .limit(30);
+          .limit(100);
 
         if (results && results.length > 0) {
           return NextResponse.json({ medicines: results });
@@ -37,19 +37,20 @@ export async function GET(request: Request) {
         (m) =>
           m.brandName.toLowerCase().includes(q) ||
           m.genericName?.toLowerCase().includes(q) ||
-          m.category?.toLowerCase().includes(q)
+          m.category?.toLowerCase().includes(q) ||
+          m.manufacturer?.toLowerCase().includes(q)
       );
-      return NextResponse.json({ medicines: filtered });
+      return NextResponse.json({ medicines: filtered.slice(0, 100) });
     }
 
-    // Default top medicines
+    // Default medicines list
     try {
       const results = await db
         .select()
         .from(medicinesCatalog)
         .where(eq(medicinesCatalog.isActive, true))
         .orderBy(desc(medicinesCatalog.createdAt))
-        .limit(50);
+        .limit(2000);
 
       if (results && results.length > 0) {
         return NextResponse.json({ medicines: results });
@@ -89,23 +90,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Normalize dosageForm to allowed enum values
-    const validDosageForms = [
-      "tablet",
-      "capsule",
-      "syrup",
-      "oral_rinse",
-      "topical_gel",
-      "injection",
-      "drops",
-      "inhaler",
-      "powder",
-      "other",
-    ];
-    const normalizedForm = (dosageForm || "tablet").toLowerCase().replace(/\s+/g, "_");
-    const safeDosageForm = validDosageForms.includes(normalizedForm)
-      ? (normalizedForm as any)
-      : "tablet";
+    const safeDosageForm = dosageForm ? dosageForm.trim() : "Tablet";
 
     try {
       const [newMedicine] = await db
@@ -116,6 +101,7 @@ export async function POST(request: Request) {
           genericName: genericName ? genericName.trim() : null,
           strength: strength ? strength.trim() : null,
           dosageForm: safeDosageForm,
+          manufacturer: body.manufacturer ? body.manufacturer.trim() : null,
           defaultFrequency: defaultFrequency || "1+0+1",
           defaultDuration: defaultDuration || "5 days",
           defaultTiming: defaultTiming || "After food",
@@ -135,6 +121,7 @@ export async function POST(request: Request) {
         genericName: genericName ? genericName.trim() : null,
         strength: strength ? strength.trim() : null,
         dosageForm: safeDosageForm,
+        manufacturer: body.manufacturer ? body.manufacturer.trim() : null,
         defaultFrequency: defaultFrequency || "1+0+1",
         defaultDuration: defaultDuration || "5 days",
         defaultTiming: defaultTiming || "After food",

@@ -103,138 +103,58 @@ async function seed() {
     ON CONFLICT (clinic_id, prefix, current_year, current_month) DO NOTHING
   `, [clinicId]);
 
-  // 4. Seed Popular Bangladeshi Dental Medicines Catalog
-  const bdMedicines = [
-    {
-      brand: "Napa Extra",
-      generic: "Paracetamol + Caffeine",
-      strength: "500 mg + 65 mg",
-      form: "tablet",
-      freq: "1+0+1",
-      dur: "3 days",
-      timing: "After food",
-      cat: "Analgesic & Antipyretic",
-    },
-    {
-      brand: "Torax",
-      generic: "Ketorolac Tromethamine",
-      strength: "10 mg",
-      form: "tablet",
-      freq: "1+0+1",
-      dur: "3 days",
-      timing: "After food",
-      cat: "Severe Dental Pain (NSAID)",
-    },
-    {
-      brand: "Moxacil",
-      generic: "Amoxicillin Trihydrate",
-      strength: "500 mg",
-      form: "capsule",
-      freq: "1+1+1",
-      dur: "5 days",
-      timing: "After food",
-      cat: "Antibacterial (Penicillin)",
-    },
-    {
-      brand: "Amodis",
-      generic: "Metronidazole",
-      strength: "400 mg",
-      form: "tablet",
-      freq: "1+1+1",
-      dur: "5 days",
-      timing: "After food",
-      cat: "Anaerobic Infection / Perio",
-    },
-    {
-      brand: "Cef-3",
-      generic: "Cefixime Trihydrate",
-      strength: "200 mg",
-      form: "capsule",
-      freq: "1+0+1",
-      dur: "5 days",
-      timing: "After food",
-      cat: "Broad-Spectrum Antibiotic",
-    },
-    {
-      brand: "Maxpro",
-      generic: "Esomeprazole Magnesium",
-      strength: "20 mg",
-      form: "capsule",
-      freq: "1+0+1",
-      dur: "5 days",
-      timing: "30 mins before food",
-      cat: "Gastric Antisecretory (PPI)",
-    },
-    {
-      brand: "Clohex",
-      generic: "Chlorhexidine Gluconate",
-      strength: "0.2% w/v (100 ml)",
-      form: "oral_rinse",
-      freq: "1+0+1",
-      dur: "7 days",
-      timing: "After brushing (rinse 60s)",
-      cat: "Antiseptic Mouthwash",
-    },
-    {
-      brand: "Flamyd",
-      generic: "Tinidazole",
-      strength: "500 mg",
-      form: "tablet",
-      freq: "1+0+1",
-      dur: "3 days",
-      timing: "After food",
-      cat: "Anti-protozoal / Perio Abscess",
-    },
-    {
-      brand: "Kenalog in Orabase",
-      generic: "Triamcinolone Acetonide",
-      strength: "0.1% Paste",
-      form: "topical_gel",
-      freq: "0+0+1",
-      dur: "5 days",
-      timing: "Apply at bedtime after food",
-      cat: "Aphthous Ulcer / Stomatitis",
-    },
-    {
-      brand: "D-Clogen",
-      generic: "Diclofenac Potassium",
-      strength: "50 mg",
-      form: "tablet",
-      freq: "1+0+1",
-      dur: "3 days",
-      timing: "After food",
-      cat: "Post-op Pain & Swelling",
-    },
-    {
-      brand: "Ace Plus",
-      generic: "Paracetamol + Caffeine",
-      strength: "500 mg + 65 mg",
-      form: "tablet",
-      freq: "1+1+1",
-      dur: "3 days",
-      timing: "After food",
-      cat: "Analgesic",
-    },
-    {
-      brand: "Sensodyne Rapid Relief",
-      generic: "Strontium Acetate",
-      strength: "100 g Tube",
-      form: "other",
-      freq: "1+0+1",
-      dur: "30 days",
-      timing: "Brush gently twice daily",
-      cat: "Dentine Hypersensitivity",
-    },
-  ];
+  // 4. Seed Real Bangladeshi Dental Medicines Catalog
+  const bdMedicines = require("../lib/medicines-data.json");
+  console.log(`Seeding ${bdMedicines.length} real Bangladeshi Dental Medicines into medicines_catalog...`);
+  await sql.query(`DELETE FROM medicines_catalog WHERE is_custom_added = false OR is_custom_added IS NULL;`);
 
-  for (const m of bdMedicines) {
-    await sql.query(`
-      INSERT INTO medicines_catalog (clinic_id, brand_name, generic_name, strength, dosage_form, default_frequency, default_duration, default_timing, category, is_active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
-      ON CONFLICT DO NOTHING
-    `, [clinicId, m.brand, m.generic, m.strength, m.form, m.freq, m.dur, m.timing, m.cat]);
+  const batchSize = 100;
+  for (let i = 0; i < bdMedicines.length; i += batchSize) {
+    const chunk = bdMedicines.slice(i, i + batchSize);
+    const valuePlaceholders = [];
+    const values = [];
+
+    chunk.forEach((m, idx) => {
+      const offset = idx * 11;
+      valuePlaceholders.push(
+        `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, true, $${offset + 11})`
+      );
+      values.push(
+        clinicId,
+        m.brand_name,
+        m.generic_name || null,
+        m.strength || null,
+        m.dosage_form || "Tablet",
+        m.company_name || null,
+        m.default_frequency || null,
+        m.default_duration || null,
+        m.default_timing || null,
+        m.category || "General",
+        m.notes || null
+      );
+    });
+
+    const query = `
+      INSERT INTO medicines_catalog (
+        clinic_id,
+        brand_name,
+        generic_name,
+        strength,
+        dosage_form,
+        manufacturer,
+        default_frequency,
+        default_duration,
+        default_timing,
+        category,
+        is_active,
+        notes
+      )
+      VALUES ${valuePlaceholders.join(", ")}
+      ON CONFLICT DO NOTHING;
+    `;
+    await sql.query(query, values);
   }
-  console.log(`✓ Seeded ${bdMedicines.length} Bangladeshi Dental Medicines into medicines_catalog`);
+  console.log(`✓ Seeded ${bdMedicines.length} real Bangladeshi Dental Medicines into medicines_catalog`);
 
   // 5. Seed Bangladeshi Dental Procedure Catalog in BDT (৳)
   const bdtProcedures = [

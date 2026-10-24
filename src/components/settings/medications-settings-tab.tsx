@@ -51,44 +51,49 @@ import {
 import { toast } from "sonner";
 
 const COMMON_CATEGORIES = [
-  "Analgesic & Antipyretic",
-  "NSAID Analgesic",
-  "Penicillin Antibiotic",
-  "Anaerobic Antimicrobial",
-  "Cephalosporin Antibiotic",
-  "Lincosamide Antibiotic",
-  "Antiseptic Mouthwash",
-  "Periodontal Topical Gel",
-  "Corticosteroid Gel",
-  "Proton Pump Inhibitor (PPI)",
-  "Muscle Relaxant",
-  "Antifungal Oral Suspension",
-  "Desensitizing Agent",
+  "Analgesic / NSAID",
+  "Antibiotic",
+  "Antifungal (Oral)",
+  "Dental / Oral care",
+  "Gastroprotective",
+  "Haemostatic",
+  "Local Anaesthetic",
   "Other",
 ];
 
 const COMMON_MANUFACTURERS = [
-  "Square Pharmaceuticals",
-  "Beximco Pharmaceuticals",
-  "Renata Limited",
-  "Incepta Pharmaceuticals",
-  "Eskayef Pharmaceuticals (SK+F)",
-  "Popular Pharmaceuticals",
-  "ACME Laboratories",
-  "Aristopharma",
-  "Opsonin Pharma",
+  "Square Pharmaceuticals PLC",
+  "Incepta Pharmaceuticals Ltd.",
+  "Beximco Pharmaceuticals Ltd.",
+  "Renata PLC",
+  "Eskayef Pharmaceuticals Ltd.",
+  "Opsonin Pharma Ltd.",
+  "Healthcare Pharmaceuticals Ltd.",
+  "ACME Laboratories Ltd.",
+  "Aristopharma Ltd.",
+  "Advanced Chemical Industries PLC",
+  "Drug International Ltd.",
+  "Popular Pharmaceuticals PLC",
+  "The IBN SINA Pharmaceutical PLC",
+  "Radiant Pharmaceuticals Ltd.",
+  "UniMed UniHealth Pharmaceuticals Ltd.",
   "Other",
 ];
 
 const COMMON_DOSAGE_FORMS = [
   "Tablet",
   "Capsule",
-  "Oral Rinse",
-  "Topical Gel",
+  "Oral Suspension",
+  "Powder for Suspension",
   "Syrup",
-  "Injection",
-  "Drops",
-  "Powder",
+  "Mouthwash",
+  "Oral Gel",
+  "Oral Paste",
+  "Topical Spray",
+  "IM/IV Injection",
+  "IV Infusion",
+  "Suppository",
+  "Pediatric Drops",
   "Other",
 ];
 
@@ -125,9 +130,9 @@ export function MedicationsSettingsTab() {
   const [brandName, setBrandName] = useState("");
   const [genericName, setGenericName] = useState("");
   const [strength, setStrength] = useState("");
-  const [manufacturer, setManufacturer] = useState("Square Pharmaceuticals");
+  const [manufacturer, setManufacturer] = useState("Square Pharmaceuticals PLC");
   const [dosageForm, setDosageForm] = useState("Tablet");
-  const [category, setCategory] = useState("NSAID Analgesic");
+  const [category, setCategory] = useState("Analgesic / NSAID");
   const [defaultFrequency, setDefaultFrequency] = useState("1+0+1");
   const [defaultDuration, setDefaultDuration] = useState("3 days");
   const [defaultTiming, setDefaultTiming] = useState("After food");
@@ -178,9 +183,9 @@ export function MedicationsSettingsTab() {
     setBrandName("");
     setGenericName("");
     setStrength("");
-    setManufacturer("Square Pharmaceuticals");
+    setManufacturer("Square Pharmaceuticals PLC");
     setDosageForm("Tablet");
-    setCategory("NSAID Analgesic");
+    setCategory("Analgesic / NSAID");
     setDefaultFrequency("1+0+1");
     setDefaultDuration("3 days");
     setDefaultTiming("After food");
@@ -195,9 +200,9 @@ export function MedicationsSettingsTab() {
     setBrandName(med.brandName);
     setGenericName(med.genericName || "");
     setStrength(med.strength || "");
-    setManufacturer(med.manufacturer || "Square Pharmaceuticals");
+    setManufacturer(med.manufacturer || "Square Pharmaceuticals PLC");
     setDosageForm(med.dosageForm || "Tablet");
-    setCategory(med.category || "NSAID Analgesic");
+    setCategory(med.category || "Analgesic / NSAID");
     setDefaultFrequency(med.defaultFrequency || "1+0+1");
     setDefaultDuration(med.defaultDuration || "3 days");
     setDefaultTiming(med.defaultTiming || "After food");

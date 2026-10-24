@@ -501,7 +501,8 @@ export const medicinesCatalog = pgTable(
     brandName: varchar("brand_name", { length: 255 }).notNull(),
     genericName: varchar("generic_name", { length: 255 }),
     strength: varchar("strength", { length: 100 }),
-    dosageForm: dosageFormEnum("dosage_form"),
+    dosageForm: varchar("dosage_form", { length: 100 }),
+    manufacturer: varchar("manufacturer", { length: 255 }),
     defaultFrequency: varchar("default_frequency", { length: 100 }),
     defaultDuration: varchar("default_duration", { length: 100 }),
     defaultTiming: varchar("default_timing", { length: 100 }),
@@ -556,7 +557,7 @@ export const prescriptionItems = pgTable("prescription_items", {
   brandName: varchar("brand_name", { length: 255 }).notNull(),
   genericName: varchar("generic_name", { length: 255 }),
   strength: varchar("strength", { length: 100 }),
-  dosageForm: dosageFormEnum("dosage_form"),
+  dosageForm: varchar("dosage_form", { length: 100 }),
   frequency: varchar("frequency", { length: 100 }), // "1+0+1", "1+1+1", "PRN"
   duration: varchar("duration", { length: 100 }),
   timing: varchar("timing", { length: 100 }), // "After meal", "Before meal"
