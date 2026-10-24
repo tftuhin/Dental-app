@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
   Award,
@@ -49,8 +56,53 @@ const PRESET_PATIENTS: PresetPatient[] = [
     customId: "DENT-2026-00042",
     age: 34,
     gender: "Female",
-    phone: "+880 1712-345678",
-    address: "House 42, Road 7A, Dhanmondi, Dhaka",
+    phone: "+880 1711-234891",
+    address: "House 42, Road 7A, Dhanmondi R/A, Dhaka-1209",
+  },
+  {
+    id: "p-89",
+    name: "Nusrat Parveen",
+    customId: "DENT-2026-00089",
+    age: 28,
+    gender: "Female",
+    phone: "+880 1819-872334",
+    address: "Flat 4B, Plot 12, Banani DOHS, Dhaka",
+  },
+  {
+    id: "p-104",
+    name: "Mohammad Tariqul Islam",
+    customId: "DENT-2026-00104",
+    age: 45,
+    gender: "Male",
+    phone: "+880 1912-439019",
+    address: "House 18, Road 3, Uttara Sector 4, Dhaka",
+  },
+  {
+    id: "p-122",
+    name: "Tanvir Ahmed",
+    customId: "DENT-2026-00122",
+    age: 39,
+    gender: "Male",
+    phone: "+880 1675-901443",
+    address: "Road 11, Block C, Mirpur-2, Dhaka",
+  },
+  {
+    id: "p-812",
+    name: "Kazi Nazrul Haque",
+    customId: "DENT-2025-00812",
+    age: 62,
+    gender: "Male",
+    phone: "+880 1722-312778",
+    address: "Plot 88, Gulshan-2, Dhaka",
+  },
+  {
+    id: "p-95",
+    name: "Farhana Chowdhury",
+    customId: "DENT-2026-00095",
+    age: 31,
+    gender: "Female",
+    phone: "+880 1733-892120",
+    address: "56 Shantinagar Road, Kakrail, Dhaka",
   },
   {
     id: "p-88",
@@ -59,7 +111,7 @@ const PRESET_PATIENTS: PresetPatient[] = [
     age: 28,
     gender: "Male",
     phone: "+880 1819-876543",
-    address: "Flat 4B, Plot 12, Banani DOHS, Dhaka",
+    address: "House 12, Road 5, Sector 7, Uttara, Dhaka",
   },
   {
     id: "p-105",
@@ -68,7 +120,7 @@ const PRESET_PATIENTS: PresetPatient[] = [
     age: 45,
     gender: "Female",
     phone: "+880 1911-223344",
-    address: "House 18, Road 3, Uttara Sector 4, Dhaka",
+    address: "Apt 5A, Green Road, Farmgate, Dhaka",
   },
 ];
 
@@ -172,15 +224,31 @@ export default function MedicalCertificatePage() {
   // Letterhead Mode
   const [letterheadMode, setLetterheadMode] = useState<"full_blank_a4" | "preprinted_pad">("full_blank_a4");
 
-  // Handle Preset Patient Selection
+  // Selected Patient in Dropdown
+  const [selectedPatientId, setSelectedPatientId] = useState<string>("p-42");
+
+  // Handle Dropdown / Preset Patient Selection
+  const handleSelectPatientById = (val: string) => {
+    setSelectedPatientId(val);
+    if (val === "custom") {
+      toast.info("Switched to manual patient data entry.");
+      return;
+    }
+    const found = PRESET_PATIENTS.find((p) => p.id === val);
+    if (found) {
+      setPatientName(found.name);
+      setCustomId(found.customId);
+      setAge(found.age);
+      setGender(found.gender);
+      setPhone(found.phone);
+      setAddress(found.address);
+      setCertNumber(`CERT-2026-${found.customId.slice(-5)}`);
+      toast.success(`Selected patient: ${found.name} (${found.customId})`);
+    }
+  };
+
   const handleSelectPresetPatient = (p: PresetPatient) => {
-    setPatientName(p.name);
-    setCustomId(p.customId);
-    setAge(p.age);
-    setGender(p.gender);
-    setPhone(p.phone);
-    setAddress(p.address);
-    toast.info(`Loaded patient profile: ${p.name} (${p.customId})`);
+    handleSelectPatientById(p.id);
   };
 
   // Apply Template
@@ -359,18 +427,18 @@ export default function MedicalCertificatePage() {
               {/* Patient Quick Selector */}
               <div>
                 <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center justify-between">
-                  <span>Preload Patient Record</span>
-                  <span className="text-[10px] text-primary font-normal">Recent Clinical Queue</span>
+                  <span>Quick Patient Chips</span>
+                  <span className="text-[10px] text-primary font-normal">Recent Queue</span>
                 </Label>
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {PRESET_PATIENTS.map((p) => (
+                  {PRESET_PATIENTS.slice(0, 4).map((p) => (
                     <button
                       key={p.id}
                       type="button"
                       onClick={() => handleSelectPresetPatient(p)}
                       className={`text-xs px-2.5 py-1 rounded-md border font-medium transition-all ${
-                        customId === p.customId
-                          ? "bg-primary/10 border-primary text-primary font-bold"
+                        selectedPatientId === p.id
+                          ? "bg-primary/10 border-primary text-primary font-bold shadow-xs"
                           : "bg-background hover:bg-muted/40 border-border text-foreground"
                       }`}
                     >
@@ -407,18 +475,62 @@ export default function MedicalCertificatePage() {
           {/* 2. Patient Demographics Form */}
           <Card className="border shadow-sm">
             <CardHeader className="pb-3 border-b bg-muted/20">
-              <CardTitle className="text-xs font-bold text-foreground flex items-center gap-2">
-                <User className="h-4 w-4 text-primary" />
-                2. Patient Demographics & Reference
+              <CardTitle className="text-xs font-bold text-foreground flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-primary" />
+                  2. Patient Demographics & Reference
+                </span>
+                <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground">
+                  {selectedPatientId === "custom" ? "Custom Patient" : "Registered Patient"}
+                </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 space-y-3 text-xs">
+            <CardContent className="p-4 space-y-3.5 text-xs">
+              {/* Patient Selection Dropdown */}
+              <div>
+                <Label className="text-xs font-semibold text-foreground flex items-center justify-between mb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-primary" />
+                    Select Patient from Dropdown
+                  </span>
+                  <span className="text-[10px] text-primary font-normal">Auto-populates fields</span>
+                </Label>
+                <Select
+                  value={selectedPatientId}
+                  onValueChange={handleSelectPatientById}
+                >
+                  <SelectTrigger className="h-9 text-xs bg-background border-primary/40 focus:ring-1 focus:ring-primary">
+                    <SelectValue placeholder="Choose a patient from clinical directory..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {PRESET_PATIENTS.map((p) => (
+                      <SelectItem key={p.id} value={p.id} className="text-xs py-2 cursor-pointer">
+                        <div className="flex flex-col gap-0.5 text-left">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground">{p.name}</span>
+                            <span className="text-[10px] font-mono text-primary font-bold">[{p.customId}]</span>
+                            <span className="text-[10px] text-muted-foreground font-normal">({p.age}Y, {p.gender})</span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">{p.phone} · {p.address}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom" className="text-xs py-2 font-medium text-muted-foreground border-t">
+                      ✍️ Custom / Unregistered Patient (Enter manually below)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Patient Full Name</Label>
                   <Input
                     value={patientName}
-                    onChange={(e) => setPatientName(e.target.value)}
+                    onChange={(e) => {
+                      setPatientName(e.target.value);
+                      setSelectedPatientId("custom");
+                    }}
                     className="h-8 text-xs mt-1"
                   />
                 </div>
@@ -426,7 +538,10 @@ export default function MedicalCertificatePage() {
                   <Label className="text-xs">Patient ID</Label>
                   <Input
                     value={customId}
-                    onChange={(e) => setCustomId(e.target.value)}
+                    onChange={(e) => {
+                      setCustomId(e.target.value);
+                      setSelectedPatientId("custom");
+                    }}
                     className="h-8 text-xs mt-1 font-mono"
                   />
                 </div>
