@@ -118,9 +118,9 @@ export function Sidebar({ clinicName, clinicId }: SidebarProps) {
       className="relative flex h-full flex-col overflow-hidden border-r border-sidebar-border bg-sidebar"
     >
       {/* Header */}
-      <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+      <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-3.5">
         <AnimatePresence mode="wait">
-          {!collapsed && (
+          {!collapsed ? (
             <motion.div
               key="brand"
               initial={{ opacity: 0, x: -10 }}
@@ -129,11 +129,11 @@ export function Sidebar({ clinicName, clinicId }: SidebarProps) {
               transition={{ duration: 0.15 }}
               className="flex items-center gap-2.5"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary shadow-sm shrink-0">
                 <ToothIcon className="h-4 w-4 text-white" strokeWidth={2.5} />
               </div>
               <div>
-                <p className="text-sm font-bold leading-none text-sidebar-primary-foreground">
+                <p className="text-sm font-bold leading-none text-sidebar-primary-foreground tracking-tight">
                   DentalOS1
                 </p>
                 <p className="text-[10px] leading-tight text-sidebar-foreground/60">
@@ -141,11 +141,23 @@ export function Sidebar({ clinicName, clinicId }: SidebarProps) {
                 </p>
               </div>
             </motion.div>
+          ) : (
+            <motion.div
+              key="brand-collapsed"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary shadow-sm shrink-0"
+              title="DentalOS1"
+            >
+              <ToothIcon className="h-4 w-4 text-white" strokeWidth={2.5} />
+            </motion.div>
           )}
         </AnimatePresence>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="flex h-7 w-7 items-center justify-center rounded-md text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
         >
           {collapsed ? (
             <ChevronRight className="h-4 w-4" />

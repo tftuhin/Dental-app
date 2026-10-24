@@ -59,12 +59,14 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-            <ToothIcon className="h-6 w-6" strokeWidth={2.5} />
+          <div className="inline-flex items-center justify-center gap-3">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 shrink-0">
+              <ToothIcon className="h-6 w-6 text-white" strokeWidth={2.5} />
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+              DentalOS1
+            </h1>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            DentalOS1
-          </h1>
           <p className="text-sm text-muted-foreground">
             Enterprise AI Dental Practice Management & Clinical EHR
           </p>

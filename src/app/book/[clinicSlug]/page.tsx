@@ -91,6 +91,17 @@ export default function PublicBookingPortal() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-teal-50/20 to-slate-100 dark:from-slate-950 dark:via-teal-950/10 dark:to-slate-900 py-10 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
+        {/* Platform Badge */}
+        <div className="flex items-center justify-center">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary shadow-xs">
+            <div className="flex h-4 w-4 items-center justify-center rounded bg-primary text-white">
+              <ToothIcon className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />
+            </div>
+            <span>DentalOS1</span>
+            <span className="text-muted-foreground font-normal">· Patient Appointment Portal</span>
+          </div>
+        </div>
+
         {/* Clinic Public Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
