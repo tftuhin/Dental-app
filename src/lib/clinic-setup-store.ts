@@ -257,12 +257,24 @@ export function getClinicSetup(): ClinicSetupData {
     return {
       ...DEFAULT_CLINIC_SETUP,
       ...parsed,
-      doctors: parsed.doctors && parsed.doctors.length > 0 ? parsed.doctors : DEFAULT_DOCTORS,
-      chairs: parsed.chairs && parsed.chairs.length > 0 ? parsed.chairs : DEFAULT_CHAIRS,
+      doctors: Array.isArray(parsed.doctors) ? parsed.doctors : DEFAULT_DOCTORS,
+      chairs: Array.isArray(parsed.chairs) ? parsed.chairs : DEFAULT_CHAIRS,
     };
   } catch {
     return DEFAULT_CLINIC_SETUP;
   }
+}
+
+// Utility to robustly match chair names like "Chair 01" vs "Chair 1" vs "Chair 1 (RCT)"
+export function isChairMatch(chairA?: string, chairB?: string): boolean {
+  if (!chairA || !chairB) return false;
+  const cleanA = chairA.toLowerCase().replace(/[\s\-_()]/g, "");
+  const cleanB = chairB.toLowerCase().replace(/[\s\-_()]/g, "");
+  if (cleanA === cleanB) return true;
+  const numA = cleanA.replace(/\D/g, "");
+  const numB = cleanB.replace(/\D/g, "");
+  if (numA && numB && parseInt(numA, 10) === parseInt(numB, 10)) return true;
+  return cleanA.includes(cleanB) || cleanB.includes(cleanA);
 }
 
 export function saveClinicSetup(updates: Partial<ClinicSetupData>): ClinicSetupData {

@@ -75,6 +75,11 @@ import {
   getStoredAppointments,
   saveStoredAppointments,
 } from "@/lib/clinical-flow-store";
+import {
+  getClinicSetup,
+  DentalChair,
+  isChairMatch,
+} from "@/lib/clinic-setup-store";
 import { formatBDT } from "@/lib/currency";
 import { toast } from "sonner";
 
@@ -137,6 +142,7 @@ export default function AppointmentsPage() {
   const router = useRouter();
   const [appointments, setAppointments] = useState<ClinicalQueuePatient[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const [clinicChairs, setClinicChairs] = useState<DentalChair[]>([]);
   const [filterChair, setFilterChair] = useState<string>("all");
   const [statusTab, setStatusTab] = useState<"active" | "completed" | "no_show" | "all">("active");
 
@@ -282,10 +288,24 @@ export default function AppointmentsPage() {
     const initialList = getStoredAppointments();
     setAppointments(initialList);
 
+    const initialSetup = getClinicSetup();
+    const loadedChairs = initialSetup.chairs || [];
+    setClinicChairs(loadedChairs);
+    if (loadedChairs.length > 0) {
+      setNewChair(loadedChairs[0].name);
+    }
+
     const handleSync = () => {
       setAppointments(getStoredAppointments());
     };
+
+    const handleSetupSync = () => {
+      const updated = getClinicSetup();
+      setClinicChairs(updated.chairs || []);
+    };
+
     window.addEventListener("dentai-appointments-updated", handleSync);
+    window.addEventListener("dentai-clinic-setup-updated", handleSetupSync);
 
     // Auto-open session modal if redirected from Clinical Briefing or with active query param
     if (typeof window !== "undefined") {
@@ -313,7 +333,10 @@ export default function AppointmentsPage() {
       }
     }
 
-    return () => window.removeEventListener("dentai-appointments-updated", handleSync);
+    return () => {
+      window.removeEventListener("dentai-appointments-updated", handleSync);
+      window.removeEventListener("dentai-clinic-setup-updated", handleSetupSync);
+    };
   }, []);
 
   // Sorted active queue: strictly sorted by serial (lowest first)
@@ -569,7 +592,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
 
   // Filter based on operatory & status tab
   const filteredList = appointments
-    .filter((a) => filterChair === "all" || a.chair === filterChair)
+    .filter((a) => filterChair === "all" || isChairMatch(a.chair, filterChair))
     .filter((a) => {
       if (statusTab === "active") return a.status === "in_progress" || a.status === "checked_in" || a.status === "scheduled";
       if (statusTab === "completed") return a.status === "completed";
@@ -751,13 +774,13 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
         </div>
 
         {/* Chair Filter */}
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          {["all", "Chair 1", "Chair 2", "Chair 3"].map((c) => (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          {["all", ...clinicChairs.map((c) => c.name)].map((c) => (
             <Button
               key={c}
               size="sm"
               variant={filterChair === c ? "default" : "outline"}
-              className="text-xs h-7 px-2.5"
+              className="text-xs h-7 px-2.5 whitespace-nowrap"
               onClick={() => setFilterChair(c)}
             >
               {c === "all" ? "All Chairs" : c}
@@ -1905,13 +1928,15 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                   <div className="flex items-center gap-1.5">
                     <span className="text-[11px] text-muted-foreground font-medium">Operatory:</span>
                     <Select value={sessionChair} onValueChange={setSessionChair}>
-                      <SelectTrigger className="h-8 text-xs w-[130px] bg-background">
-                        <SelectValue />
+                      <SelectTrigger className="h-8 text-xs w-[140px] bg-background">
+                        <SelectValue placeholder="Select chair" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Chair 1">Chair 1 (RCT)</SelectItem>
-                        <SelectItem value="Chair 2">Chair 2 (Crown)</SelectItem>
-                        <SelectItem value="Chair 3">Chair 3 (Scaling)</SelectItem>
+                        {clinicChairs.map((c) => (
+                          <SelectItem key={c.id} value={c.name}>
+                            {c.name} {c.label ? `(${c.label})` : ""}
+                          </SelectItem>
+                        ))}
                         <SelectItem value="Consultation">Consult Room</SelectItem>
                       </SelectContent>
                     </Select>
@@ -2073,12 +2098,14 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                 <Label className="text-xs font-semibold">Initial Operatory Chair</Label>
                 <Select value={newChair} onValueChange={setNewChair}>
                   <SelectTrigger className="h-8 text-xs mt-1">
-                    <SelectValue />
+                    <SelectValue placeholder="Select chair" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Chair 1">Chair 1</SelectItem>
-                    <SelectItem value="Chair 2">Chair 2</SelectItem>
-                    <SelectItem value="Chair 3">Chair 3</SelectItem>
+                    {clinicChairs.map((c) => (
+                      <SelectItem key={c.id} value={c.name}>
+                        {c.name} {c.label ? `(${c.label})` : ""}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
