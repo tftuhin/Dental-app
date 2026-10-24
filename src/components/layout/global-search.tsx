@@ -75,14 +75,15 @@ export function GlobalSearch() {
     <>
       <Button
         variant="outline"
-        className="relative h-8 w-64 justify-start rounded-lg bg-background/50 text-sm text-muted-foreground shadow-none"
+        className="relative h-8 w-8 sm:w-44 md:w-60 p-0 sm:px-2.5 sm:justify-start rounded-lg bg-background/50 text-xs text-muted-foreground shadow-none"
         onClick={() => setOpen(true)}
         id="global-search-trigger"
+        title="Search patients (⌘K)"
       >
-        <Search className="mr-2 h-3.5 w-3.5" />
-        <span className="flex-1 text-left">Search patients…</span>
-        <kbd className="pointer-events-none ml-auto inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-          <span className="text-xs">⌘</span>K
+        <Search className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
+        <span className="hidden sm:inline-flex flex-1 text-left truncate">Search patients…</span>
+        <kbd className="pointer-events-none ml-auto hidden md:inline-flex h-4 select-none items-center gap-0.5 rounded border bg-muted px-1 font-mono text-[9px] font-medium text-muted-foreground">
+          <span className="text-[10px]">⌘</span>K
         </kbd>
       </Button>
 

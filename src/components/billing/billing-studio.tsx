@@ -908,12 +908,12 @@ export function BillingStudio() {
             Collect consultation & procedure fees in Bangladeshi Taka (৳) via bKash, Nagad, POS Card, and Cash with instant SMS dispatch
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowReceiptModal(true)}
-            className="gap-1.5 text-xs"
+            className="gap-1.5 text-xs flex-1 sm:flex-initial"
           >
             <FileText className="h-3.5 w-3.5" />
             Preview Receipt
@@ -922,7 +922,7 @@ export function BillingStudio() {
             variant="outline"
             size="sm"
             onClick={handlePrintMoneyReceipt}
-            className="gap-1.5 text-xs bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 font-medium"
+            className="gap-1.5 text-xs bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 font-medium flex-1 sm:flex-initial"
           >
             <Printer className="h-3.5 w-3.5" />
             Print 2-Copy A4 Receipt
@@ -930,7 +930,7 @@ export function BillingStudio() {
           <Button
             size="sm"
             onClick={handleFinalizeInvoice}
-            className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"
+            className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm w-full sm:w-auto"
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
             Finalize Invoice & Dispatch SMS

@@ -1,9 +1,8 @@
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { clinics, clinicSettings } from "@/db/schema";
+import { clinics } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { Sidebar } from "@/components/layout/sidebar";
-import { TopBar } from "@/components/layout/top-bar";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { redirect } from "next/navigation";
 
 export default async function DashboardLayout({
@@ -27,16 +26,8 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar clinicName={clinicName} clinicId={clinicId} />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <TopBar clinicName={clinicName} />
-        <main className="flex-1 overflow-auto">
-          <div className="h-full px-6 py-6">
-            {children}
-          </div>
-        </main>
-      </div>
-    </div>
+    <DashboardShell clinicName={clinicName} clinicId={clinicId}>
+      {children}
+    </DashboardShell>
   );
 }

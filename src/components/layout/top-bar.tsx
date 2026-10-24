@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus, Bell, Calendar, UserPlus, Stethoscope, Sparkles } from "lucide-react";
+import { Plus, Bell, Calendar, UserPlus, Stethoscope, Sparkles, Menu } from "lucide-react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +19,10 @@ import {
 
 interface TopBarProps {
   clinicName: string;
+  onToggleMobile?: () => void;
 }
 
-export function TopBar({ clinicName }: TopBarProps) {
+export function TopBar({ clinicName, onToggleMobile }: TopBarProps) {
   const pathname = usePathname();
 
   // Generate breadcrumb from pathname
@@ -33,17 +34,28 @@ export function TopBar({ clinicName }: TopBarProps) {
     : "Dashboard";
 
   return (
-    <header className="flex h-16 w-full items-center justify-between border-b bg-card/60 px-6 backdrop-blur-md">
-      {/* Left: Top Logo, Application Name & Breadcrumbs */}
-      <div className="flex items-center gap-3.5">
+    <header className="flex h-14 sm:h-16 w-full items-center justify-between border-b bg-card/60 px-3 sm:px-6 backdrop-blur-md shrink-0">
+      {/* Left: Mobile Toggle + Top Logo, Application Name & Breadcrumbs */}
+      <div className="flex items-center gap-2 sm:gap-3.5 min-w-0">
+        {/* Mobile Hamburger Toggle (hidden on lg and above) */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggleMobile}
+          className="lg:hidden h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 -ml-1"
+          aria-label="Toggle navigation menu"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+
         {/* Application Top Logo & Name */}
         <Link
           href="/dashboard"
-          className="flex items-center gap-2.5 rounded-lg py-1 px-1.5 -ml-1.5 transition-all hover:bg-muted/60 group"
+          className="flex items-center gap-2 sm:gap-2.5 rounded-lg py-1 px-1 -ml-1 transition-all hover:bg-muted/60 group shrink-0"
           title="DentalOS1 Clinical Platform"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm group-hover:scale-105 transition-transform">
-            <ToothIcon className="h-4 w-4 text-white" strokeWidth={2.5} />
+          <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm group-hover:scale-105 transition-transform shrink-0">
+            <ToothIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" strokeWidth={2.5} />
           </div>
           <div className="flex items-baseline gap-1.5">
             <span className="text-sm font-bold tracking-tight text-foreground">
@@ -59,16 +71,16 @@ export function TopBar({ clinicName }: TopBarProps) {
         </Link>
 
         {/* Subtle Separator */}
-        <span className="h-4 w-[1px] bg-border/80 hidden sm:inline-block" />
+        <span className="h-4 w-[1px] bg-border/80 hidden md:inline-block shrink-0" />
 
-        {/* Clinic & Page Breadcrumbs */}
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground truncate max-w-[120px] sm:max-w-[200px]">
+        {/* Clinic & Page Breadcrumbs (hidden on mobile to prevent squishing) */}
+        <div className="hidden md:flex flex-col min-w-0">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="font-medium text-muted-foreground truncate max-w-[120px] lg:max-w-[180px]">
               {clinicName}
             </span>
             <span className="text-muted-foreground/40">/</span>
-            <span className="text-sm font-semibold tracking-tight text-foreground">
+            <span className="font-semibold tracking-tight text-foreground truncate">
               {currentTitle}
             </span>
           </div>
@@ -76,18 +88,18 @@ export function TopBar({ clinicName }: TopBarProps) {
       </div>
 
       {/* Middle: Global Cmd+K Search */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 shrink-0 mx-1 sm:mx-2">
         <GlobalSearch />
       </div>
 
       {/* Right: Quick Actions, Notifications & User */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         {/* Quick Add Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="sm" className="gap-1.5 shadow-sm">
+            <Button size="sm" className="h-8 px-2 sm:px-3 gap-1.5 shadow-sm text-xs">
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline font-medium">Quick Action</span>
+              <span className="hidden md:inline font-medium">Quick Action</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
@@ -117,9 +129,9 @@ export function TopBar({ clinicName }: TopBarProps) {
         </DropdownMenu>
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative h-9 w-9 text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" size="icon" className="relative h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground">
           <Bell className="h-4 w-4" />
-          <span className="absolute top-2 right-2 flex h-2 w-2">
+          <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
           </span>

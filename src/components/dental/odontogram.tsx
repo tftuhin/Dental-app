@@ -416,7 +416,7 @@ export function Odontogram({
             <span className="uppercase tracking-wider font-bold">Maxilla (Upper Arch)</span>
             <span>Maxillary Left (Q2)</span>
           </div>
-          <div className="flex items-center justify-center gap-0.5 sm:gap-1.5 overflow-x-auto py-2 bg-slate-50/50 dark:bg-slate-900/40 rounded-xl border">
+          <div className="flex items-center justify-start md:justify-center gap-1 sm:gap-1.5 overflow-x-auto px-2 py-2 bg-slate-50/50 dark:bg-slate-900/40 rounded-xl border scrollbar-thin">
             {upperTeeth.map((num) => renderToothSVG(num))}
           </div>
         </div>
@@ -431,7 +431,7 @@ export function Odontogram({
 
         {/* Lower Mandibular Arch */}
         <div className="space-y-1">
-          <div className="flex items-center justify-center gap-0.5 sm:gap-1.5 overflow-x-auto py-2 bg-slate-50/50 dark:bg-slate-900/40 rounded-xl border">
+          <div className="flex items-center justify-start md:justify-center gap-1 sm:gap-1.5 overflow-x-auto px-2 py-2 bg-slate-50/50 dark:bg-slate-900/40 rounded-xl border scrollbar-thin">
             {lowerTeeth.map((num) => renderToothSVG(num))}
           </div>
           <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground px-2">

@@ -97,8 +97,8 @@ export default function LabOrdersPage() {
             Track crown, bridge, denture, and aligner fabrication, shade guides, and expected return dates
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" onClick={() => toast.info("New Dental Lab Order form opened")} className="gap-1.5 text-xs">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button size="sm" onClick={() => toast.info("New Dental Lab Order form opened")} className="gap-1.5 text-xs w-full sm:w-auto">
             <Plus className="h-3.5 w-3.5" />
             New Lab Order
           </Button>

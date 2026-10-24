@@ -36,8 +36,8 @@ export default function AnalyticsPage() {
             Key clinical performance indicators, procedure revenue distributions, and recall retention rates
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs w-full sm:w-auto">
             <Download className="h-3.5 w-3.5" />
             Export Monthly Report
           </Button>

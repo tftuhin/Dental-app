@@ -906,11 +906,11 @@ export function PrescriptionStudio() {
         </div>
 
         {/* Tab switch between Write Rx & Search Past Rx */}
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border p-1 bg-muted/40 text-xs font-semibold">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="flex rounded-lg border p-1 bg-muted/40 text-xs font-semibold w-full sm:w-auto">
             <button
               onClick={() => setActiveTab("write")}
-              className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all ${
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-all ${
                 activeTab === "write" ? "bg-background text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -919,7 +919,7 @@ export function PrescriptionStudio() {
             </button>
             <button
               onClick={() => setActiveTab("search")}
-              className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all ${
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-all ${
                 activeTab === "search" ? "bg-background text-foreground shadow-xs font-bold text-primary" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -929,15 +929,15 @@ export function PrescriptionStudio() {
           </div>
 
           {activeTab === "write" && (
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5 text-xs">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5 text-xs flex-1 sm:flex-initial">
                 <Printer className="h-3.5 w-3.5" />
                 Print Rx
               </Button>
               <Button
                 size="sm"
                 onClick={handleSignAndFinalizeRx}
-                className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex-1 sm:flex-initial"
               >
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Sign & Finalize Rx

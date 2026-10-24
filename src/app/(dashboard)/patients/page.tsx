@@ -126,7 +126,7 @@ export default function PatientsDirectoryPage() {
             Manage comprehensive clinical records, medical alerts, treatment timelines, and recall schedules
           </p>
         </div>
-        <Button size="sm" asChild className="gap-1.5 text-xs">
+        <Button size="sm" asChild className="gap-1.5 text-xs w-full sm:w-auto">
           <Link href="/patients/new">
             <Plus className="h-3.5 w-3.5" />
             Register New Patient
@@ -148,7 +148,7 @@ export default function PatientsDirectoryPage() {
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="flex rounded-lg border p-0.5 bg-muted/40 text-xs w-full sm:w-auto overflow-x-auto">
+            <div className="flex flex-wrap sm:flex-nowrap rounded-lg border p-0.5 bg-muted/40 text-xs w-full sm:w-auto">
               {[
                 { label: "All Patients", val: "all" },
                 { label: "Active", val: "active" },
@@ -158,9 +158,9 @@ export default function PatientsDirectoryPage() {
                 <button
                   key={tab.val}
                   onClick={() => setStatusFilter(tab.val)}
-                  className={`px-3 py-1 rounded font-medium transition-colors whitespace-nowrap ${
+                  className={`flex-1 sm:flex-initial text-center px-3 py-1 rounded font-medium transition-colors whitespace-nowrap ${
                     statusFilter === tab.val
-                      ? "bg-background text-foreground shadow-sm"
+                      ? "bg-background text-foreground shadow-sm font-bold"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >

@@ -349,13 +349,13 @@ export default function MedicalCertificatePage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleDownload}
-            className="gap-1.5 text-xs font-semibold"
+            className="gap-1.5 text-xs font-semibold flex-1 sm:flex-initial"
           >
             <Download className="h-3.5 w-3.5" />
             Download HTML / PDF
@@ -365,7 +365,7 @@ export default function MedicalCertificatePage() {
             type="button"
             size="sm"
             onClick={handlePrintCertificate}
-            className="gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
+            className="gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex-1 sm:flex-initial"
           >
             <Printer className="h-3.5 w-3.5" />
             Print Letterhead Certificate
@@ -376,7 +376,7 @@ export default function MedicalCertificatePage() {
             size="sm"
             variant="default"
             onClick={handleIssueCertificate}
-            className="gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+            className="gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs w-full sm:w-auto"
           >
             <ShieldCheck className="h-3.5 w-3.5" />
             Issue & Log Certificate

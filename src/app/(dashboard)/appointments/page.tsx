@@ -738,10 +738,10 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
       {/* Queue View Tabs & Operatory Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
         {/* Status Tabs */}
-        <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-lg text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 bg-muted/50 p-1 rounded-lg text-xs w-full sm:w-auto">
           <button
             onClick={() => setStatusTab("active")}
-            className={`px-3 py-1 rounded-md font-medium transition-colors ${
+            className={`flex-1 sm:flex-initial px-3 py-1 rounded-md font-medium transition-colors text-center whitespace-nowrap ${
               statusTab === "active" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -749,7 +749,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
           </button>
           <button
             onClick={() => setStatusTab("completed")}
-            className={`px-3 py-1 rounded-md font-medium transition-colors ${
+            className={`flex-1 sm:flex-initial px-3 py-1 rounded-md font-medium transition-colors text-center whitespace-nowrap ${
               statusTab === "completed" ? "bg-background text-foreground shadow-sm font-bold text-emerald-600" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -757,7 +757,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
           </button>
           <button
             onClick={() => setStatusTab("no_show")}
-            className={`px-3 py-1 rounded-md font-medium transition-colors ${
+            className={`flex-1 sm:flex-initial px-3 py-1 rounded-md font-medium transition-colors text-center whitespace-nowrap ${
               statusTab === "no_show" ? "bg-background text-foreground shadow-sm font-bold text-red-600" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -765,7 +765,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
           </button>
           <button
             onClick={() => setStatusTab("all")}
-            className={`px-3 py-1 rounded-md font-medium transition-colors ${
+            className={`flex-1 sm:flex-initial px-3 py-1 rounded-md font-medium transition-colors text-center whitespace-nowrap ${
               statusTab === "all" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
           >

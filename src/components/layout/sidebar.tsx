@@ -24,6 +24,7 @@ import {
   FlaskConical,
   Globe,
   Menu,
+  X,
 } from "lucide-react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import { cn } from "@/lib/utils";
@@ -105,70 +106,68 @@ const bottomNavItems = [
 interface SidebarProps {
   clinicName?: string;
   clinicId?: string;
+  className?: string;
+  isMobile?: boolean;
+  onClose?: () => void;
 }
 
-export function Sidebar({ clinicName, clinicId }: SidebarProps) {
+export function Sidebar({
+  clinicName,
+  clinicId,
+  className,
+  isMobile = false,
+  onClose,
+}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
 
-  return (
-    <motion.aside
-      animate={{ width: collapsed ? 72 : 260 }}
-      transition={{ duration: 0.25, ease: "easeInOut" }}
-      className="relative flex h-full flex-col overflow-hidden border-r border-sidebar-border bg-sidebar"
-    >
+  const effectiveCollapsed = isMobile ? false : collapsed;
+
+  const asideContent = (
+    <>
       {/* Header */}
-      <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-3.5">
-        <AnimatePresence mode="wait">
-          {!collapsed ? (
-            <motion.div
-              key="brand"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-center gap-2.5"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary shadow-sm shrink-0">
-                <ToothIcon className="h-4 w-4 text-white" strokeWidth={2.5} />
-              </div>
-              <div>
-                <p className="text-sm font-bold leading-none text-sidebar-primary-foreground tracking-tight">
-                  DentalOS1
-                </p>
-                <p className="text-[10px] leading-tight text-sidebar-foreground/60">
-                  Clinical Platform
-                </p>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="brand-collapsed"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary shadow-sm shrink-0"
-              title="DentalOS1"
-            >
-              <ToothIcon className="h-4 w-4 text-white" strokeWidth={2.5} />
-            </motion.div>
+      <div className="flex h-14 sm:h-16 items-center justify-between border-b border-sidebar-border px-3.5">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary shadow-sm shrink-0">
+            <ToothIcon className="h-4 w-4 text-white" strokeWidth={2.5} />
+          </div>
+          {!effectiveCollapsed && (
+            <div>
+              <p className="text-sm font-bold leading-none text-sidebar-primary-foreground tracking-tight">
+                DentalOS1
+              </p>
+              <p className="text-[10px] leading-tight text-sidebar-foreground/60">
+                Clinical Platform
+              </p>
+            </div>
           )}
-        </AnimatePresence>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex h-7 w-7 items-center justify-center rounded-md text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-          title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </button>
+        </div>
+
+        {isMobile ? (
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-md text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            title="Close Menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Clinic Switcher */}
-      {!collapsed && (
+      {!effectiveCollapsed && (
         <div className="border-b border-sidebar-border p-2">
           <ClinicSwitcher clinicName={clinicName || "My Clinic"} />
         </div>
@@ -180,34 +179,21 @@ export function Sidebar({ clinicName, clinicId }: SidebarProps) {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} onClick={isMobile ? onClose : undefined}>
               <div
                 className={cn(
                   "sidebar-nav-item group",
                   isActive && "active"
                 )}
-                title={collapsed ? item.title : undefined}
+                title={effectiveCollapsed ? item.title : undefined}
               >
                 <item.icon className="h-4 w-4 flex-shrink-0" />
-                <AnimatePresence mode="wait">
-                  {!collapsed && (
-                    <motion.span
-                      key="label"
-                      initial={{ opacity: 0, x: -4 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -4 }}
-                      transition={{ duration: 0.12 }}
-                      className="truncate"
-                    >
-                      {item.title}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+                {!effectiveCollapsed && (
+                  <span className="truncate">{item.title}</span>
+                )}
                 {isActive && (
-                  <motion.div
-                    layoutId="sidebar-active-indicator"
+                  <div
                     className="absolute right-1 h-5 w-1 rounded-full bg-sidebar-primary-foreground/40"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
               </div>
@@ -221,16 +207,16 @@ export function Sidebar({ clinicName, clinicId }: SidebarProps) {
         {bottomNavItems.map((item) => {
           const isActive = pathname === item.href;
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} onClick={isMobile ? onClose : undefined}>
               <div
                 className={cn(
                   "sidebar-nav-item",
                   isActive && "active"
                 )}
-                title={collapsed ? item.title : undefined}
+                title={effectiveCollapsed ? item.title : undefined}
               >
                 <item.icon className="h-4 w-4 flex-shrink-0" />
-                {!collapsed && (
+                {!effectiveCollapsed && (
                   <span className="truncate text-sm">{item.title}</span>
                 )}
               </div>
@@ -238,6 +224,24 @@ export function Sidebar({ clinicName, clinicId }: SidebarProps) {
           );
         })}
       </div>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <aside className={cn("relative flex h-full w-full flex-col overflow-hidden bg-sidebar", className)}>
+        {asideContent}
+      </aside>
+    );
+  }
+
+  return (
+    <motion.aside
+      animate={{ width: collapsed ? 72 : 260 }}
+      transition={{ duration: 0.25, ease: "easeInOut" }}
+      className={cn("relative flex h-full flex-col overflow-hidden border-r border-sidebar-border bg-sidebar", className)}
+    >
+      {asideContent}
     </motion.aside>
   );
 }
