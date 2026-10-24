@@ -34,7 +34,7 @@ function SettingsContent() {
           Clinic & Practice Settings
         </h1>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Configure clinic profile, operating hours, brand colors, doctors, operatories, pharmacotherapy, diagnostic investigations, and integrations
+          Configure clinic profile, operating hours, brand colors, doctors, operatories, pharmacotherapy, diagnostic investigations, and cloud services
         </p>
       </div>
 
@@ -58,10 +58,10 @@ function SettingsContent() {
             Investigations
           </TabsTrigger>
 
-          {/* Tab 4: Merged Integrations (Patient ID, AI Assistant, SMS Gateway) */}
+          {/* Tab 4: Cloud Services & Patient ID */}
           <TabsTrigger value="integrations" className="text-xs gap-1.5 py-1.5 font-semibold">
             <Layers className="h-3.5 w-3.5 text-primary" />
-            Integrations & Patient ID
+            Services & Patient ID
           </TabsTrigger>
         </TabsList>
 

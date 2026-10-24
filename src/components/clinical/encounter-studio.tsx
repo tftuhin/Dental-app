@@ -28,6 +28,7 @@ import {
   Copy,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getServicesSettings } from "@/lib/services-store";
 
 interface PatientContext {
   id: string;
@@ -98,6 +99,11 @@ export function EncounterStudio({ patient }: { patient: PatientContext }) {
   });
 
   const handleGenerateAiSuggestions = async () => {
+    const services = getServicesSettings();
+    if (!services.aiEnabled) {
+      toast.warning("Dental AI Clinical Copilot is disabled in Clinic Settings. Go to Settings > Services & Patient ID to activate.");
+      return;
+    }
     toast.info("Consulting DentAI Clinical Copilot...");
     await complete("", {
       body: {

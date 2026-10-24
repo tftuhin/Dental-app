@@ -21,6 +21,7 @@ import {
   Plus,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getServicesSettings } from "@/lib/services-store";
 
 interface SmsLog {
   id: string;
@@ -78,6 +79,11 @@ export default function SmsPage() {
 
   const handleSendQuickSms = (e: React.FormEvent) => {
     e.preventDefault();
+    const services = getServicesSettings();
+    if (!services.smsEnabled) {
+      toast.warning("SMS Messaging Service is currently disabled in Clinic Settings. Go to Settings > Services & Patient ID to activate.");
+      return;
+    }
     const newLog: SmsLog = {
       id: "log-" + Date.now(),
       recipient: patientName,
@@ -91,6 +97,8 @@ export default function SmsPage() {
     setLogs([newLog, ...logs]);
     toast.success(`SMS successfully dispatched to ${patientName}!`);
   };
+
+  const isSmsActive = typeof window !== "undefined" ? getServicesSettings().smsEnabled : true;
 
   return (
     <div className="space-y-6">
@@ -106,8 +114,15 @@ export default function SmsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
-            SMS Gateway: Connected (SSL Wireless / Twilio)
+          <Badge
+            variant="outline"
+            className={`text-xs ${
+              isSmsActive
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40"
+                : "bg-slate-100 text-slate-500 border-slate-300 dark:bg-slate-900"
+            }`}
+          >
+            {isSmsActive ? "SMS Service: Active · DentalOS1 Cloud Managed" : "SMS Service: Disabled in Clinic Settings"}
           </Badge>
         </div>
       </div>
