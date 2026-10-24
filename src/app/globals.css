@@ -1,0 +1,338 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─── DentAI OS Clinical Design System ───────────────────────────────────── */
+:root {
+  /* Clinical Teal-Slate-Emerald Palette */
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+
+  /* Clinical Teal Primary */
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+
+  /* Emerald Secondary */
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+
+  /* Clinical Alert Red */
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.98 0.01 25);
+
+  /* Clinical Warning Amber */
+  --warning: oklch(0.7 0.18 75);
+  --warning-foreground: oklch(0.18 0.05 75);
+
+  /* Clinical Success Green */
+  --success: oklch(0.55 0.16 145);
+  --success-foreground: oklch(0.98 0.01 145);
+
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+
+  --radius: 0.625rem;
+
+  /* Sidebar */
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+
+  /* Chart colors */
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.98 0.01 25);
+
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sans);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+* {
+  border-color: var(--color-border);
+  outline-color: color-mix(in oklch, var(--color-ring) 50%, transparent);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: "Inter", "Geist", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.65 0.01 240);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.52 0.15 196);
+}
+
+/* ─── Clinical Alert Banner ───────────────────────────────────────────────── */
+.medical-alert-banner {
+  background: linear-gradient(135deg, oklch(0.55 0.2 25 / 0.12), oklch(0.7 0.18 75 / 0.08));
+  border-left: 4px solid oklch(0.55 0.2 25);
+  animation: pulse-alert 2s ease-in-out infinite;
+}
+
+@keyframes pulse-alert {
+  0%, 100% { border-color: oklch(0.55 0.2 25); }
+  50% { border-color: oklch(0.7 0.18 75); }
+}
+
+/* ─── Odontogram Tooth Surfaces ───────────────────────────────────────────── */
+.tooth-surface {
+  transition: fill 0.15s ease, opacity 0.15s ease;
+  cursor: pointer;
+}
+.tooth-surface:hover {
+  opacity: 0.7;
+}
+.tooth-surface.sound { fill: #f8fafc; }
+.tooth-surface.caries { fill: #ef4444; }
+.tooth-surface.filling { fill: #3b82f6; }
+.tooth-surface.planned { fill: #f59e0b; }
+.tooth-surface.selected { fill: oklch(0.52 0.15 196); }
+
+.tooth-root { stroke: #64748b; stroke-width: 1.5; fill: none; }
+.tooth-root.rct { stroke: #8b5cf6; stroke-width: 2; stroke-dasharray: 4 2; }
+.tooth-missing { opacity: 0.2; }
+.tooth-implant { fill: #0ea5e9; }
+
+/* ─── Sidebar ─────────────────────────────────────────────────────────────── */
+.sidebar-nav-item {
+  @apply relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground transition-all duration-200;
+}
+.sidebar-nav-item:hover {
+  @apply bg-sidebar-accent text-sidebar-accent-foreground;
+}
+.sidebar-nav-item.active {
+  @apply bg-sidebar-primary text-sidebar-primary-foreground;
+}
+
+/* ─── Clinical Card ───────────────────────────────────────────────────────── */
+.clinical-card {
+  @apply rounded-xl border bg-card shadow-sm transition-shadow duration-200;
+}
+.clinical-card:hover {
+  @apply shadow-md;
+}
+
+/* ─── AI Copilot Streaming ────────────────────────────────────────────────── */
+.ai-streaming-text::after {
+  content: "▋";
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* ─── Status Badges ───────────────────────────────────────────────────────── */
+.status-active { @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300; }
+.status-warning { @apply bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300; }
+.status-danger { @apply bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300; }
+.status-neutral { @apply bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400; }
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* ─── High-Definition Clinical Print Styles ───────────────────────────────── */
+@media print {
+  /* Hide application navigation bars, headers, sidebars, and control inputs */
+  aside,
+  header,
+  nav,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+
+  /* Expand prescription pad to clean paper layout */
+  .printable-prescription-pad,
+  #printable-bill-receipt {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  /* Force side-by-side two-column clinical prescription layout in print */
+  .prescription-two-col {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    width: 100% !important;
+  }
+
+  .prescription-col-left {
+    display: block !important;
+    width: 32% !important;
+    min-width: 32% !important;
+    max-width: 32% !important;
+    border-right: 1.5px solid #0f172a !important;
+    padding-right: 16px !important;
+  }
+
+  .prescription-col-right {
+    display: block !important;
+    width: 68% !important;
+    min-width: 68% !important;
+    max-width: 68% !important;
+    padding-left: 20px !important;
+  }
+
+  /* Clear all card-like backgrounds, borders and shadows on print */
+  .printable-prescription-pad * {
+    box-shadow: none !important;
+  }
+
+  /* Prevent page breaks inside medication rows or sections */
+  .printable-prescription-pad tr,
+  .printable-prescription-pad li,
+  .printable-prescription-pad .group,
+  #printable-bill-receipt tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
