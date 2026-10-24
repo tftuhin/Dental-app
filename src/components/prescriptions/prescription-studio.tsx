@@ -1738,7 +1738,7 @@ export function PrescriptionStudio() {
                       <span>AUTHENTICATED DIGITAL e-PRESCRIPTION</span>
                     </div>
                     <p className="font-mono text-[9px] text-muted-foreground">
-                      SHA-256: 7f8a...9c2e · Verifiable via DentAI OS
+                      SHA-256: 7f8a...9c2e · Verifiable via DentalOS1
                     </p>
                     <p className="text-[9px] text-muted-foreground">
                       Issued in compliance with Bangladesh Medical & Dental Council (BMDC) Regulations.
@@ -2777,7 +2777,7 @@ export function PrescriptionStudio() {
                           <span>AUTHENTICATED DIGITAL e-PRESCRIPTION</span>
                         </div>
                         <p className="font-mono text-[9px] text-slate-500">
-                          SHA-256: 7f8a...9c2e · Verifiable via DentAI OS
+                          SHA-256: 7f8a...9c2e · Verifiable via DentalOS1
                         </p>
                         <p className="text-[9px] text-slate-500">
                           Issued in compliance with Bangladesh Medical & Dental Council (BMDC) Regulations.

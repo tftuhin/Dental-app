@@ -1,5 +1,5 @@
 /**
- * Medical & Dental Certificate PDF & Print Generator for DentAI OS
+ * Medical & Dental Certificate PDF & Print Generator for DentalOS1
  * 
  * Generates an authentic, executive clinic letterhead printed certificate formatted for standard A4:
  * - Real hospital pad letterhead with traditional engraved double rules
@@ -82,9 +82,9 @@ export function generateCertificateHtml(data: CertificatePdfData): string {
   }
 
   // QR Code
-  const qrHash = `DENTAI-AUTH-${certNo.replace(/[^a-zA-Z0-9]/g, "")}-${String(data.patientId).slice(-4)}`;
+  const qrHash = `DENTALOS1-AUTH-${certNo.replace(/[^a-zA-Z0-9]/g, "")}-${String(data.patientId).slice(-4)}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=4&data=${encodeURIComponent(
-    `https://dentai.health/verify/cert?id=${certNo}&patient=${encodeURIComponent(data.patientName)}&hash=${qrHash}`
+    `https://dentalos1.health/verify/cert?id=${certNo}&patient=${encodeURIComponent(data.patientName)}&hash=${qrHash}`
   )}`;
 
   return `<!DOCTYPE html>
@@ -646,7 +646,7 @@ export function generateCertificateHtml(data: CertificatePdfData): string {
 
           <!-- Bottom Footer Notice -->
           <div class="hospital-footer">
-            <span>DentAI OS · Secure Electronic Health Record # EHR-${data.patientId}</span>
+            <span>DentalOS1 · Secure Electronic Health Record # EHR-${data.patientId}</span>
             <span>Issued: ${data.issueDate} · Certified Dental Practitioner Sign-off</span>
             <span>Page 1 of 1</span>
           </div>

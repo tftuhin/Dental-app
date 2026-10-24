@@ -1,5 +1,5 @@
 /**
- * Money Receipt / Cash Memo PDF & Print Generator for DentAI OS
+ * Money Receipt / Cash Memo PDF & Print Generator for DentalOS1
  * 
  * Generates an official, executive 2-copy Money Receipt formatted for A4 portrait:
  * - Top Half: PATIENT COPY
@@ -235,7 +235,7 @@ function renderReceiptSlip(
 
       <!-- Micro Notice -->
       <div class="slip-notice">
-        Computer-generated official money receipt under DentAI OS. Dental restorations carry standard clinic warranty. Keep this receipt for corporate insurance & tax filing.
+        Computer-generated official money receipt under DentalOS1. Dental restorations carry standard clinic warranty. Keep this receipt for corporate insurance & tax filing.
       </div>
     </div>
   `;

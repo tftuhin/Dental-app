@@ -111,7 +111,7 @@ export function ClinicSetupTab() {
     setIsSaving(true);
     try {
       saveClinicSetup(setup);
-      toast.success("Clinic Setup successfully saved & updated across DentAI OS!");
+      toast.success("Clinic Setup successfully saved & updated across DentalOS1!");
     } catch {
       toast.error("Failed to save clinic setup");
     } finally {

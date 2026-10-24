@@ -63,7 +63,7 @@ export default function LoginPage() {
             <ToothIcon className="h-6 w-6" strokeWidth={2.5} />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            DentAI OS
+            DentalOS1
           </h1>
           <p className="text-sm text-muted-foreground">
             Enterprise AI Dental Practice Management & Clinical EHR

@@ -231,7 +231,7 @@ export function IntegrationsSettingsTab() {
                 <KeyRound className="h-3.5 w-3.5 text-muted-foreground absolute right-2.5 top-2.5" />
               </div>
               <p className="text-[10px] text-muted-foreground">
-                Leave blank to use DentAI OS default system cloud gateway.
+                Leave blank to use DentalOS1 default system cloud gateway.
               </p>
             </div>
           </div>

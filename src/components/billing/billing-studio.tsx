@@ -235,7 +235,7 @@ function ModalReceiptSlip({
           </div>
           <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-            <span>Official medical tax invoice & hospital money receipt authenticated under DentAI OS.</span>
+            <span>Official medical tax invoice & hospital money receipt authenticated under DentalOS1.</span>
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 // ============================================================
-// DENTAI OS — MEDICATIONS CATALOG & PHARMACOPEIA STORE
+// DENTALOS1 — MEDICATIONS CATALOG & PHARMACOPEIA STORE
 // Comprehensive dental medications catalog tailored for Bangladesh clinics
 // Provides:
 // 1. Full schema & typed definitions for medications

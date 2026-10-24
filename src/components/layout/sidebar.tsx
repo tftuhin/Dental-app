@@ -134,7 +134,7 @@ export function Sidebar({ clinicName, clinicId }: SidebarProps) {
               </div>
               <div>
                 <p className="text-sm font-bold leading-none text-sidebar-primary-foreground">
-                  DentAI OS
+                  DentalOS1
                 </p>
                 <p className="text-[10px] leading-tight text-sidebar-foreground/60">
                   Clinical Platform

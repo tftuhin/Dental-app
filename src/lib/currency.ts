@@ -1,5 +1,5 @@
 /**
- * Bangladesh Taka (BDT / ৳) Currency Utilities for DentAI OS
+ * Bangladesh Taka (BDT / ৳) Currency Utilities for DentalOS1
  */
 
 export const CURRENCY_SYMBOL = "৳";

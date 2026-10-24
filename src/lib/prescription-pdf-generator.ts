@@ -427,7 +427,7 @@ export function generatePrescriptionHtml(data: PrescriptionPdfData): string {
 </head>
 <body>
   <div class="sheet-wrapper">
-    <div class="watermark">DENTAI PRESCRIPTION</div>
+    <div class="watermark">DENTALOS1 PRESCRIPTION</div>
 
     <!-- Letterhead -->
     <div class="header">
@@ -626,7 +626,7 @@ export function generatePrescriptionHtml(data: PrescriptionPdfData): string {
         </div>
         <div class="security-text">
           <div class="sha-hash">DIGITAL VERIFICATION: SHA-256: 7f8a...9c2e · Rx #${data.rxNumber}</div>
-          <div>Electronically authorized under DentAI OS. Valid without physical signature.</div>
+          <div>Electronically authorized under DentalOS1. Valid without physical signature.</div>
           <div style="color: #94a3b8; font-size: 8px;">Prescription Record ID: ${data.patientId} · Hotline: ${clinicPhone}</div>
         </div>
       </div>

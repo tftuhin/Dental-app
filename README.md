@@ -1,4 +1,6 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DentalOS1
+
+**DentalOS1** is an enterprise AI-powered Dental Practice Management & Clinical EHR Platform designed for dental surgeons, periodontists, and orthodontists.
 
 ## Getting Started
 

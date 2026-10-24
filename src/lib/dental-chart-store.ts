@@ -1,5 +1,5 @@
 // ============================================================
-// DENTAI OS — DENTAL CHART PERSISTENCE STORE
+// DENTALOS1 — DENTAL CHART PERSISTENCE STORE
 // Manages local persistence and cross-view synchronization for:
 // 1. Odontogram (Teeth 1-32, surfaces, conditions, FDI mapping)
 // 2. Periodontal Chart (6-point probing depths, BOP, furcation, mobility)

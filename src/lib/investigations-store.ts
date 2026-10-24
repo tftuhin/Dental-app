@@ -1,5 +1,5 @@
 // ============================================================
-// DENTAI OS — INVESTIGATIONS & DIAGNOSTIC TESTS STORE
+// DENTALOS1 — INVESTIGATIONS & DIAGNOSTIC TESTS STORE
 // Standard Dental Diagnostic & Laboratory Formulary (Bangladesh)
 // Provides:
 // 1. Full schema & typed definitions for dental tests & investigations

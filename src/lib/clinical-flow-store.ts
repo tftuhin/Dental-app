@@ -1,5 +1,5 @@
 // ============================================================
-// DENTAI OS — CLINICAL FLOW STORE & PATIENT QUEUE
+// DENTALOS1 — CLINICAL FLOW STORE & PATIENT QUEUE
 // Manages:
 // 1. Patient booking (Online, Phone, Walk-in) with Daily Serials
 // 2. Doctor session start, consultation, briefing, note taking & file uploads

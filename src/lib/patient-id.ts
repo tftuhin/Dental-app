@@ -1,5 +1,5 @@
 // ============================================================
-// DENTAI OS — Patient ID Atomic Generator
+// DENTALOS1 — Patient ID Atomic Generator
 // Uses PostgreSQL UPSERT for concurrency-safe sequence generation
 // ============================================================
 

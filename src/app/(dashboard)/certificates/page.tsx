@@ -330,9 +330,9 @@ export default function MedicalCertificatePage() {
   // Certificate Type specific labels
   const isSickLeave = certType === "sick_leave";
   const isFitness = certType === "fitness";
-  const qrHash = `DENTAI-AUTH-${certNumber}-${customId.slice(-5)}`;
+  const qrHash = `DENTALOS1-AUTH-${certNumber}-${customId.slice(-5)}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=4&data=${encodeURIComponent(
-    `https://dentai.health/verify/cert?id=${certNumber}&patient=${encodeURIComponent(patientName)}&hash=${qrHash}`
+    `https://dentalos1.health/verify/cert?id=${certNumber}&patient=${encodeURIComponent(patientName)}&hash=${qrHash}`
   )}`;
 
   return (
@@ -1028,7 +1028,7 @@ export default function MedicalCertificatePage() {
 
                       {/* ── 7. HOSPITAL ARCHIVE MICRO-FOOTPRINT ── */}
                       <div className="border-t border-dotted border-slate-300 pt-2 mt-3 flex items-center justify-between text-[8px] font-mono text-slate-500">
-                        <span>DentAI OS · Secure Electronic Health Record # EHR-{customId}</span>
+                        <span>DentalOS1 · Secure Electronic Health Record # EHR-{customId}</span>
                         <span>Issued: {issueDate} · Certified Dental Practitioner Sign-off</span>
                         <span>Page 1 of 1</span>
                       </div>
