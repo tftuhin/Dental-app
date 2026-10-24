@@ -774,265 +774,270 @@ export default function MedicalCertificatePage() {
             {/* Stationery Desk Worksurface Preview Backdrop */}
             <div className="bg-slate-100 dark:bg-slate-950/80 p-3 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner flex justify-center">
               {/* Authentic Physical A4 Letterhead Sheet */}
-              <div className="bg-white text-slate-900 shadow-[0_16px_40px_rgba(0,0,0,0.16)] border border-slate-300 w-full max-w-2xl font-serif text-[12.5px] leading-relaxed relative select-text">
+              <div className="bg-white text-slate-900 shadow-[0_16px_40px_rgba(0,0,0,0.16)] border border-slate-300 w-full max-w-2xl font-sans text-xs leading-relaxed relative select-text p-5 sm:p-7 min-h-[820px] flex flex-col justify-between">
                 
-                {/* Traditional Certificate Frame (Double Border) */}
-                <div className="p-2 sm:p-3.5 m-2.5 sm:m-3.5 border border-slate-900 relative bg-white">
-                  <div className="p-3 sm:p-5 border border-slate-300 relative bg-white">
+                {/* Subtle Watermark Crest (Matching Prescription) */}
+                <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[30deg] text-[70px] font-black text-sky-500/[0.035] tracking-[12px] uppercase select-none pointer-events-none whitespace-nowrap font-serif z-0">
+                  DENTALOS1 CERTIFICATE
+                </div>
 
-                    {/* Subtle Watermark Crest */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none">
-                      <ToothIcon className="w-80 h-80 text-slate-900" strokeWidth={1} />
-                    </div>
-
-                    <div className="relative z-10 space-y-3.5">
-                      {/* ── 1. CLINIC & DOCTOR LETTERHEAD HEADER ── */}
-                      {letterheadMode === "full_blank_a4" ? (
-                        <div className="border-b-[2.5px] border-double border-slate-900 pb-3 mb-3">
-                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                            {/* Left: Clinic Brand & Crest */}
-                            <div className="flex items-start gap-2.5 flex-1">
-                              <div className="h-11 w-11 border-[1.5px] border-slate-900 rounded-xs bg-white flex items-center justify-center shrink-0">
-                                <ToothIcon className="h-6 w-6 text-slate-900" strokeWidth={2} />
-                              </div>
-                              <div className="space-y-0.5">
-                                <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-slate-900 uppercase font-serif leading-tight">
-                                  {clinicName}
-                                </h2>
-                                <p className="text-[10px] text-slate-700 italic font-serif">
-                                  Institute of Advanced Oral Surgery, Microscopic Endodontics & Implantology
-                                </p>
-                                <p className="text-[9.5px] text-slate-600 font-sans leading-tight mt-0.5">
-                                  House 42, Road 7A, Dhanmondi R/A, Dhaka-1209 · Tel: <strong className="text-slate-900 font-semibold">+880 1712-345678</strong>
-                                </p>
-                                <div className="flex items-center gap-2 text-[8.5px] text-slate-500 font-mono pt-0.5">
-                                  <span>DGHS Reg: DGHS/DH-2024/9912</span>
-                                  <span>•</span>
-                                  <span>BMDC Approved Dental Facility</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Right: Attending Doctor Qualifications */}
-                            <div className="text-left sm:text-right space-y-0.5 sm:border-l sm:pl-3.5 border-slate-300 shrink-0 min-w-[190px]">
-                              <span className="font-serif font-bold text-sm sm:text-[15px] text-slate-900 block leading-tight">
-                                {doctorName}
-                              </span>
-                              <p className="text-[10px] font-semibold text-slate-800 leading-tight">
-                                {doctorDegree}
-                              </p>
-                              <p className="text-[9.5px] text-slate-600 leading-tight">
-                                {doctorDesignation}
-                              </p>
-                              <div className="pt-0.5 flex flex-col sm:items-end text-[9px] font-mono">
-                                <span className="font-bold text-sky-900">{bmdcReg}</span>
-                                <span className="text-[8.5px] text-slate-500 font-sans">Visiting: Sat-Thu 4:00 PM - 9:00 PM</span>
-                              </div>
-                            </div>
+                <div className="relative z-10 flex-1 flex flex-col">
+                  {/* ── 1. CLINIC & DOCTOR LETTERHEAD HEADER (EXACT PRESCRIPTION DESIGN) ── */}
+                  {letterheadMode === "full_blank_a4" ? (
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b-[2.5px] border-[#0284c7] pb-3 mb-3 gap-4 relative z-10">
+                      {/* Left: Clinic Brand */}
+                      <div className="flex items-start gap-3">
+                        <div className="h-11 w-11 rounded-[10px] bg-[#0284c7] text-white flex items-center justify-center shrink-0 shadow-[0_2px_8px_rgba(2,132,199,0.25)]">
+                          <ToothIcon className="h-6 w-6 text-white" strokeWidth={2.2} />
+                        </div>
+                        <div className="space-y-0.5">
+                          <h2 className="text-[17px] font-extrabold tracking-[-0.3px] text-slate-900 uppercase leading-tight font-sans">
+                            {clinicName}
+                          </h2>
+                          <p className="text-[10.5px] font-semibold text-[#0284c7]">
+                            Institute of Advanced Oral Surgery, Microscopic Endodontics & Implantology
+                          </p>
+                          <p className="text-[9.5px] text-slate-500 leading-snug">
+                            House 42, Road 7A, Dhanmondi R/A, Dhaka-1209 · Phone: <strong className="text-slate-900 font-semibold">+880 1711-234567 / +880 2-9876543</strong>
+                          </p>
+                          <div className="flex items-center gap-2 text-[8.5px] text-slate-400 font-mono pt-0.5">
+                            <span>DGHS Reg: DGHS/DH-2024/9912</span>
+                            <span>•</span>
+                            <span>BMDC Approved Dental Centre</span>
                           </div>
                         </div>
-                      ) : (
-                        /* Pre-printed Pad Spacer (60mm) */
-                        <div className="h-20 flex flex-col items-center justify-center border border-dashed border-slate-300 rounded bg-slate-50/50 text-slate-400 text-xs italic font-sans mb-3">
-                          <span>[Pre-printed clinic letterhead pad reserved space — 60mm]</span>
-                          <span className="text-[10px] text-slate-400">Printed text starts below this line</span>
+                      </div>
+
+                      {/* Right: Attending Doctor Qualifications */}
+                      <div className="text-left sm:text-right space-y-0.5 shrink-0 min-w-[200px]">
+                        <span className="font-serif font-extrabold text-base text-slate-900 block leading-tight">
+                          {doctorName}
+                        </span>
+                        <p className="text-[10.5px] font-semibold text-slate-700 leading-tight">
+                          {doctorDegree}
+                        </p>
+                        <div className="pt-0.5 flex flex-col sm:items-end text-[9.5px] text-slate-500 font-mono">
+                          <span>BMDC Reg. No: {bmdcReg}</span>
+                          <span className="text-[9px] text-[#0284c7] font-semibold">Chamber 101 · Visiting: Sat-Thu (4pm - 9:30pm)</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Pre-printed Pad Spacer (60mm) */
+                    <div className="h-20 flex flex-col items-center justify-center border border-dashed border-slate-300 rounded bg-slate-50/50 text-slate-400 text-xs italic font-sans mb-3">
+                      <span>[Pre-printed clinic letterhead pad reserved space — 60mm]</span>
+                      <span className="text-[10px] text-slate-400">Printed text starts below this line</span>
+                    </div>
+                  )}
+
+                  {/* ── 2. PATIENT DETAILS BAR (EXACT PRESCRIPTION DESIGN) ── */}
+                  <div className="border-y-[1.5px] border-slate-900 py-1.5 px-1 grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 relative z-10 bg-white">
+                    <div>
+                      <span className="text-[9px] uppercase text-slate-500 font-extrabold tracking-wider block mb-0.5">Patient Name</span>
+                      <strong className="text-slate-900 text-[13px] font-bold block truncate">{patientName}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[9px] uppercase text-slate-500 font-extrabold tracking-wider block mb-0.5">Age / Gender</span>
+                      <span className="font-mono font-bold text-slate-900 text-xs block">{age} Y / {gender}</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] uppercase text-slate-500 font-extrabold tracking-wider block mb-0.5">Patient ID</span>
+                      <span className="font-mono font-bold text-slate-900 text-xs block">{customId}</span>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <span className="text-[9px] uppercase text-slate-500 font-extrabold tracking-wider block mb-0.5">Date</span>
+                      <span className="font-mono font-bold text-slate-900 text-xs block">{issueDate}</span>
+                    </div>
+                  </div>
+
+                  {/* ── 3. DOCUMENT STYLE BODY ── */}
+                  <div className="flex-1 relative z-10 px-1 font-serif text-[12.5px] leading-relaxed text-slate-800">
+                    {/* Document Tracking Reference */}
+                    <div className="flex items-center justify-between border-b border-dashed border-slate-300 pb-1 mb-3 text-[10px] font-mono text-slate-500">
+                      <div>Ref. No: <strong className="text-slate-900 font-bold">{certNumber}</strong></div>
+                      <div>Classification: <strong className="text-slate-900 font-bold">Official Medical Certification</strong></div>
+                      <div>Issue Date: <strong className="text-slate-900 font-bold">{issueDate}</strong></div>
+                    </div>
+
+                    {/* Formal Document Title */}
+                    <div className="text-center my-3">
+                      <h3 className="text-base font-black tracking-widest uppercase text-slate-900 font-serif border-b-2 border-[#0284c7] inline-block pb-0.5">
+                        {certType === "fitness"
+                          ? "MEDICAL FITNESS CERTIFICATE"
+                          : certType === "treatment_completion"
+                          ? "DENTAL TREATMENT COMPLETION CERTIFICATE"
+                          : certType === "attendance"
+                          ? "CLINICAL ATTENDANCE CERTIFICATE"
+                          : "MEDICAL CERTIFICATE"}
+                      </h3>
+                      <p className="text-[9.5px] font-sans font-bold uppercase tracking-wider text-[#0284c7] mt-1">
+                        {certType === "fitness"
+                          ? "CERTIFICATE OF RECOVERY & FITNESS TO RESUME REGULAR DUTIES"
+                          : certType === "treatment_completion"
+                          ? "OFFICIAL RECORD OF SURGICAL / RESTORATIVE CARE RENDERED"
+                          : certType === "attendance"
+                          ? "RECORD OF CLINICAL CONSULTATION & ATTENDING SURGEON EXAMINATION"
+                          : "CERTIFICATE OF TEMPORARY MEDICAL UNFITNESS & SICK LEAVE"}
+                      </p>
+                    </div>
+
+                    {/* Formal Salutation */}
+                    <div className="text-center my-3.5">
+                      <span className="text-[13px] font-serif font-bold tracking-widest uppercase text-slate-900 underline underline-offset-4">
+                        TO WHOM IT MAY CONCERN
+                      </span>
+                    </div>
+
+                    {/* Document Certification Narrative */}
+                    <div className="space-y-3 leading-relaxed text-justify">
+                      <p>
+                        This is to officially certify that <strong className="text-slate-900 underline underline-offset-3 font-bold">{patientName}</strong>, 
+                        aged <strong>{age} years</strong>, residing at <em>{address}</em> (Patient Identification No.: <strong className="font-mono text-slate-900">{customId}</strong>), 
+                        has been clinically examined and received active dental surgical care under the care of the undersigned dental surgeon at this healthcare establishment on <strong>{issueDate}</strong>.
+                      </p>
+
+                      {/* Clause: Clinical Diagnosis & Operative Care */}
+                      <div className="border border-slate-300 border-l-[3.5px] border-l-[#0284c7] bg-slate-50/80 p-2.5 sm:p-3 my-2.5 rounded-xs">
+                        <div className="text-[9px] font-sans font-extrabold uppercase tracking-wider text-[#0284c7] mb-0.5">
+                          Clinical Diagnosis & Operative Procedure Rendered:
+                        </div>
+                        <div className="font-bold text-slate-900 text-xs sm:text-[13px]">
+                          {targetTooth && (
+                            <span className="font-mono font-bold text-sky-900 mr-1.5">
+                              [Tooth / Arch {targetTooth}]
+                            </span>
+                          )}
+                          {procedure}
+                        </div>
+                        {diagnosis && (
+                          <div className="text-[11.5px] text-slate-600 mt-1 italic">
+                            <strong className="font-sans text-[9px] uppercase tracking-wider not-italic text-slate-500 mr-1">Primary Diagnostic Finding:</strong>
+                            {diagnosis}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Sick Leave Declaration */}
+                      {isSickLeave && (
+                        <>
+                          <p>
+                            Following the surgical intervention administered under local anesthesia, the patient presents with 
+                            acute tissue trauma, post-operative surgical inflammation, and transient functional limitation. 
+                            In my professional clinical opinion, the patient is currently <strong>medically unfit to discharge occupational, physical, or academic duties</strong>.
+                          </p>
+
+                          <div className="border border-red-200 border-l-[3.5px] border-l-[#be123c] bg-red-50/60 p-2.5 sm:p-3 my-2.5 rounded-xs">
+                            <div className="text-[9px] font-sans font-extrabold uppercase tracking-wider text-[#be123c] mb-0.5">
+                              Prescribed Medical Rest & Absence Period:
+                            </div>
+                            <div className="text-xs sm:text-[13.5px] font-extrabold text-[#be123c]">
+                              The patient is strictly advised complete medical rest for a duration of{" "}
+                              <u>{daysRest} ({convertDaysToWords(daysRest)}) Day(s)</u>, effective from{" "}
+                              <strong>{startDate}</strong> through <strong>{endDate}</strong> (both days inclusive).
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Medical Fitness Clearance */}
+                      {isFitness && (
+                        <>
+                          <p>
+                            Upon comprehensive post-operative evaluation and clinical follow-up examination, the intraoral operative site exhibits 
+                            complete mucosal epithelialization, optimal physiological healing, and total resolution of acute symptoms.
+                          </p>
+
+                          <div className="border border-emerald-200 border-l-[3.5px] border-l-[#047857] bg-emerald-50/60 p-2.5 sm:p-3 my-2.5 rounded-xs">
+                            <div className="text-[9px] font-sans font-extrabold uppercase tracking-wider text-[#047857] mb-0.5">
+                              Clinical Fitness & Duty Resumption Clearance:
+                            </div>
+                            <div className="text-xs sm:text-[13.5px] font-extrabold text-[#047857]">
+                              The patient is clinically certified <strong>FIT TO RESUME NORMAL OCCUPATIONAL AND ACADEMIC DUTIES</strong> effective from{" "}
+                              <u>{fitFromDate || startDate}</u>.
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Treatment Completion / Attendance */}
+                      {!isSickLeave && !isFitness && (
+                        <p>
+                          The dental surgical and restorative procedure specified above has been successfully executed in adherence 
+                          with recognized clinical protocols. The patient has been discharged with post-operative instructions and appropriate pharmacotherapy.
+                        </p>
+                      )}
+
+                      {/* Clinician Advice */}
+                      {remarks && (
+                        <div className="border border-slate-200 border-l-[3.5px] border-l-slate-400 bg-slate-50/50 p-2 sm:p-2.5 my-2 rounded-xs">
+                          <div className="text-[9px] font-sans font-extrabold uppercase tracking-wider text-slate-500 mb-0.5">
+                            Clinician's Advice & Functional Limitations:
+                          </div>
+                          <div className="text-[11.5px] text-slate-700 italic">
+                            {remarks}
+                          </div>
                         </div>
                       )}
 
-                      {/* ── 2. REFERENCE NUMBER & DATE LINE ── */}
-                      <div className="flex items-baseline justify-between border-b border-slate-300 pb-2 mb-3 text-[11px] font-mono text-slate-600">
-                        <div>
-                          Ref. No.: <strong className="text-slate-900 font-bold">{certNumber}</strong>
-                        </div>
-                        <div>
-                          Patient ID: <strong className="text-slate-900 font-bold">{customId}</strong>
-                        </div>
-                        <div>
-                          Date: <strong className="text-slate-900 font-bold font-serif">{issueDate}</strong>
-                        </div>
-                      </div>
-
-                      {/* ── 3. OFFICIAL DOCUMENT TITLE ── */}
-                      <div className="text-center my-3">
-                        <h3 className="text-sm sm:text-base font-black tracking-widest uppercase text-slate-900 font-serif border-b-[1.5px] border-slate-900 inline-block pb-0.5">
-                          {certType === "fitness"
-                            ? "MEDICAL FITNESS CERTIFICATE"
-                            : certType === "treatment_completion"
-                            ? "DENTAL TREATMENT COMPLETION CERTIFICATE"
-                            : certType === "attendance"
-                            ? "CLINICAL ATTENDANCE CERTIFICATE"
-                            : "MEDICAL CERTIFICATE"}
-                        </h3>
-                        <p className="text-[9.5px] font-sans font-bold uppercase tracking-wider text-slate-600 mt-1">
-                          {certType === "fitness"
-                            ? "CERTIFICATE OF RECOVERY & FITNESS TO RESUME REGULAR DUTIES"
-                            : certType === "treatment_completion"
-                            ? "OFFICIAL RECORD OF SURGICAL / RESTORATIVE CARE RENDERED"
-                            : certType === "attendance"
-                            ? "RECORD OF CLINICAL CONSULTATION & CONSULTING SURGEON EXAMINATION"
-                            : "CERTIFICATE OF TEMPORARY MEDICAL UNFITNESS & SICK LEAVE"}
-                        </p>
-                      </div>
-
-                      {/* ── 4. FORMAL SALUTATION ── */}
-                      <div className="text-center my-3.5">
-                        <span className="text-xs sm:text-[13px] font-serif font-bold tracking-widest uppercase text-slate-900 underline underline-offset-4">
-                          TO WHOM IT MAY CONCERN
-                        </span>
-                      </div>
-
-                      {/* ── 5. FORMAL CERTIFICATION NARRATIVE ── */}
-                      <div className="text-[12px] sm:text-[12.5px] space-y-3 leading-relaxed text-slate-800 text-justify font-serif">
-                        <p>
-                          This is to officially certify that <strong className="text-slate-900 underline underline-offset-3 font-bold">{patientName}</strong>, 
-                          aged <strong>{age} years</strong>, residing at <em>{address}</em> (Patient Registration ID: <strong className="font-mono text-slate-900">{customId}</strong>), 
-                          has been clinically examined and under active dental surgical care at this healthcare facility on <strong>{issueDate}</strong>.
-                        </p>
-
-                        {/* Indented Clinical Diagnosis & Operative Care */}
-                        <div className="my-2.5 ml-4 pl-3 border-l-2 border-slate-900 py-1 bg-slate-50/70">
-                          <div className="text-[9px] font-sans font-bold uppercase tracking-wider text-slate-600 mb-0.5">
-                            Clinical Diagnosis & Operative Procedure Rendered:
-                          </div>
-                          <div className="font-semibold text-slate-900 text-xs">
-                            {targetTooth && (
-                              <span className="font-mono font-bold text-sky-900 mr-1.5">
-                                [Tooth {targetTooth}]
-                              </span>
-                            )}
-                            {procedure}
-                          </div>
-                          {diagnosis && (
-                            <div className="text-[11px] text-slate-600 mt-1">
-                              <strong>Diagnostic Finding:</strong> {diagnosis}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Sick Leave Declaration */}
-                        {isSickLeave && (
-                          <>
-                            <p>
-                              Following the surgical intervention administered under local anesthesia, the patient presents with 
-                              acute tissue trauma, post-operative inflammation, and transient functional limitation. 
-                              In my professional clinical opinion, the patient is currently <strong>medically unfit to discharge occupational, physical, or academic duties</strong>.
-                            </p>
-
-                            <div className="bg-slate-50/80 border border-slate-300 border-l-[3.5px] border-l-slate-900 p-2.5 sm:p-3 my-2.5">
-                              <div className="text-[9px] font-sans font-bold uppercase tracking-wider text-slate-600 mb-0.5">
-                                Prescribed Medical Rest & Absence Period:
-                              </div>
-                              <div className="text-xs sm:text-[13px] font-bold text-slate-900">
-                                The patient is strictly advised complete medical rest for a duration of{" "}
-                                <u>{daysRest} ({convertDaysToWords(daysRest)}) Day(s)</u>, effective from{" "}
-                                <strong>{startDate}</strong> to <strong>{endDate}</strong> (both days inclusive).
-                              </div>
-                            </div>
-                          </>
-                        )}
-
-                        {/* Medical Fitness Clearance */}
-                        {isFitness && (
-                          <>
-                            <p>
-                              Upon comprehensive post-operative evaluation and clinical follow-up, the intraoral operative site exhibits 
-                              complete mucosal epithelialization, optimal physiological healing, and resolution of symptoms.
-                            </p>
-
-                            <div className="bg-slate-50/80 border border-slate-300 border-l-[3.5px] border-l-slate-900 p-2.5 sm:p-3 my-2.5">
-                              <div className="text-[9px] font-sans font-bold uppercase tracking-wider text-slate-600 mb-0.5">
-                                Clinical Fitness Clearance:
-                              </div>
-                              <div className="text-xs sm:text-[13px] font-bold text-slate-900">
-                                The patient is clinically certified <strong>FIT TO RESUME NORMAL WORK / ACADEMIC DUTIES</strong> effective from{" "}
-                                <u>{fitFromDate || startDate}</u>.
-                              </div>
-                            </div>
-                          </>
-                        )}
-
-                        {/* Treatment Completion / Attendance */}
-                        {!isSickLeave && !isFitness && (
-                          <p>
-                            The dental surgical / restorative procedure described above was successfully executed in accordance with 
-                            recognized operative protocols. The patient has been provided post-operative instructions and appropriate pharmacotherapy.
-                          </p>
-                        )}
-
-                        {/* Clinician Advice */}
-                        {remarks && (
-                          <div className="my-2 ml-4 pl-3 border-l-2 border-slate-400 py-0.5">
-                            <div className="text-[9px] font-sans font-bold uppercase tracking-wider text-slate-500 mb-0.5">
-                              Clinician's Advice & Functional Limitations:
-                            </div>
-                            <div className="text-[11.5px] text-slate-700 italic">
-                              {remarks}
-                            </div>
-                          </div>
-                        )}
-
-                        <p className="text-[10.5px] text-slate-500 italic pt-1">
-                          This medical certificate is issued upon patient request without prejudice, for official communication 
-                          and institutional medical records verification.
-                        </p>
-                      </div>
-
-                      {/* ── 6. OFFICIAL SIGN-OFF, SEAL & VERIFICATION ── */}
-                      <div className="border-t-[1.5px] border-slate-900 pt-4 mt-6 flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4">
-                        {/* Digital Verification QR */}
-                        <div className="flex items-center gap-2.5">
-                          <img
-                            src={qrUrl}
-                            alt="Verification QR"
-                            className="h-14 w-14 border border-slate-300 p-0.5 bg-white shrink-0"
-                          />
-                          <div className="text-[8.5px] font-sans text-slate-500 leading-tight space-y-0.5 max-w-[150px]">
-                            <strong className="text-slate-900 text-[9px] block font-semibold">
-                              Electronic Health Record Verification
-                            </strong>
-                            <span>Scan with mobile camera to verify official registry record.</span>
-                            <span className="font-mono text-[7.5px] text-sky-800 block">
-                              Auth: {qrHash}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Official Hospital Circular Embossed Seal */}
-                        <div className="text-center select-none">
-                          <div className="h-20 w-20 rounded-full border-[1.5px] border-dashed border-slate-500 p-1 flex flex-col items-center justify-center text-center">
-                            <div className="h-full w-full rounded-full border border-slate-300 flex flex-col items-center justify-center p-1">
-                              <ToothIcon className="h-3.5 w-3.5 text-slate-500 mb-0.5" strokeWidth={1.5} />
-                              <span className="text-[6.5px] font-sans font-bold uppercase tracking-wider text-slate-600 leading-tight">
-                                DHAKA DENTAL
-                              </span>
-                              <span className="text-[5.5px] font-sans uppercase text-slate-500">
-                                OFFICIAL SEAL
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Attending Doctor Signature Block */}
-                        <div className="text-right min-w-[190px]">
-                          <div className="font-serif italic text-2xl text-slate-900 leading-none mb-1 pr-2">
-                            {doctorName}
-                          </div>
-                          <div className="border-t-[1.5px] border-slate-900 pt-1">
-                            <div className="text-xs font-bold text-slate-900 font-serif">{doctorName}</div>
-                            <div className="text-[9.5px] text-slate-700 font-serif">{doctorDegree}</div>
-                            <div className="text-[8.5px] text-sky-900 font-mono font-bold">{bmdcReg}</div>
-                            <div className="text-[9px] text-slate-600 font-sans">{doctorDesignation}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* ── 7. HOSPITAL ARCHIVE MICRO-FOOTPRINT ── */}
-                      <div className="border-t border-dotted border-slate-300 pt-2 mt-3 flex items-center justify-between text-[8px] font-mono text-slate-500">
-                        <span>DentalOS1 · Secure Electronic Health Record # EHR-{customId}</span>
-                        <span>Issued: {issueDate} · Certified Dental Practitioner Sign-off</span>
-                        <span>Page 1 of 1</span>
+                      <div className="text-[11px] text-slate-500 italic pt-2 border-t border-dotted border-slate-200">
+                        This medical certificate is an official document issued upon patient request without prejudice, for legitimate submission 
+                        to employers, educational institutions, or relevant administrative authorities for official medical records verification.
                       </div>
                     </div>
+                  </div>
+
+                  {/* ── 4. FOOTER, CLINICAL SEAL & VERIFICATION (PRESCRIPTION UNIFIED) ── */}
+                  <div className="border-t-[1.5px] border-slate-900 pt-3 mt-4 flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 relative z-10">
+                    {/* Digital Verification QR */}
+                    <div className="flex items-center gap-2.5">
+                      <img
+                        src={qrUrl}
+                        alt="Verification QR"
+                        className="h-12 w-12 border border-slate-900 p-0.5 bg-white shrink-0"
+                      />
+                      <div className="text-[8.5px] font-sans text-slate-500 leading-tight space-y-0.5 max-w-[160px]">
+                        <strong className="text-slate-900 text-[9px] block font-semibold">
+                          Electronic Health Record Verification
+                        </strong>
+                        <span>Scan with mobile camera to verify official registry record.</span>
+                        <span className="font-mono text-[7.5px] text-[#0284c7] font-bold block">
+                          Auth: {qrHash}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Official Hospital Circular Embossed Seal */}
+                    <div className="text-center select-none">
+                      <div className="h-[76px] w-[76px] rounded-full border-[1.5px] border-dashed border-[#0284c7] p-1 flex flex-col items-center justify-center text-center">
+                        <ToothIcon className="h-4 w-4 text-[#0284c7] mb-0.5" strokeWidth={1.8} />
+                        <span className="text-[6.5px] font-sans font-bold uppercase tracking-wider text-[#0284c7] leading-tight">
+                          DHAKA DENTAL
+                        </span>
+                        <span className="text-[5.5px] font-sans uppercase text-[#0284c7]">
+                          OFFICIAL SEAL
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Attending Doctor Signature Block */}
+                    <div className="text-right min-w-[200px]">
+                      <div className="font-serif italic text-2xl text-slate-900 leading-none mb-1 pr-1">
+                        {doctorName}
+                      </div>
+                      <div className="border-t-[1.5px] border-slate-900 pt-1">
+                        <div className="text-xs font-bold text-slate-900 font-serif">{doctorName}</div>
+                        <div className="text-[9.5px] text-slate-700 font-serif">{doctorDegree}</div>
+                        <div className="text-[8.5px] text-[#0284c7] font-mono font-bold">BMDC Reg. No: {bmdcReg}</div>
+                        <div className="text-[9px] text-slate-600 font-sans italic">{doctorDesignation}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 5. HOSPITAL ARCHIVE MICRO-FOOTPRINT ── */}
+                  <div className="border-t border-dotted border-slate-300 pt-1.5 mt-2 flex items-center justify-between text-[8px] font-mono text-slate-400 relative z-10">
+                    <span>DentalOS1 · Secure Electronic Health Record # EHR-{customId}</span>
+                    <span>Issued: {issueDate} · Certified Dental Practitioner Attestation</span>
+                    <span>Page 1 of 1</span>
                   </div>
                 </div>
               </div>
