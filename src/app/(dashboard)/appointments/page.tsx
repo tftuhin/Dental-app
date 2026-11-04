@@ -24,50 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  CalendarDays,
-  Plus,
-  Clock,
-  User,
-  Stethoscope,
-  CheckCircle2,
-  AlertCircle,
-  Filter,
-  Phone,
-  FileEdit,
-  ArrowRight,
-  Activity,
-  HeartPulse,
-  Sparkles,
-  Save,
-  Check,
-  UserX,
-  Play,
-  Pill,
-  Receipt,
-  Globe,
-  Footprints,
-  Zap,
-  Thermometer,
-  Flame,
-  ShieldAlert,
-  X,
-  ChevronRight,
-  Info,
-  Layers,
-  Upload,
-  FileUp,
-  FileText,
-  Paperclip,
-  Eye,
-  Trash2,
-  Image as ImageIcon,
-  Copy,
-  Loader2,
-} from "lucide-react";
-import { useCompletion } from "@ai-sdk/react";
-import { Odontogram } from "@/components/dental/odontogram";
-import { PeriodontalChart } from "@/components/dental/perio-chart";
+import { CalendarDays, Plus, Clock, Stethoscope, CheckCircle2, AlertCircle, Phone, FileEdit, ArrowRight, Activity, HeartPulse, Sparkles, Save, Check, UserX, Play, Pill, Receipt, Globe, Footprints, Zap, Flame, ShieldAlert, Upload, FileUp, FileText, Paperclip, Eye, Trash2, Copy, Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Odontogram, PeriodontalChart } from "@/components/dental/lazy-charts";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
   ClinicalQueuePatient,
@@ -90,12 +49,18 @@ import {
 } from "@/lib/patients-store";
 import { PatientContextPanel } from "@/components/clinical/patient-context-panel";
 import { VisitStepper } from "@/components/clinical/visit-stepper";
+import { PageHeader } from "@/components/layout/page-header";
+
+// AI SDK + its validation library only load when the copilot tab is opened
+const CopilotPanel = dynamic(() => import("@/components/clinical/copilot-panel"), {
+  ssr: false,
+  loading: () => <div className="h-64 animate-pulse rounded-xl bg-muted" />,
+});
 import {
   getClinicSetup,
   DentalChair,
   isChairMatch,
 } from "@/lib/clinic-setup-store";
-import { formatBDT } from "@/lib/currency";
 import { toast } from "sonner";
 
 // Categorized Clinical Symptoms for Dental Consultation
@@ -176,7 +141,6 @@ function from24h(value: string): string {
 export default function AppointmentsPage() {
   const router = useRouter();
   const [appointments, setAppointments] = useState<ClinicalQueuePatient[]>([]);
-  const [isClient, setIsClient] = useState(false);
   const [clinicChairs, setClinicChairs] = useState<DentalChair[]>([]);
   const [filterChair, setFilterChair] = useState<string>("all");
   const [statusTab, setStatusTab] = useState<"active" | "completed" | "no_show" | "all">("active");
@@ -234,45 +198,11 @@ export default function AppointmentsPage() {
   // Clinical Briefing & Session Tabs ("briefing" | "odontogram" | "copilot")
   const [sessionTab, setSessionTab] = useState<"briefing" | "odontogram" | "copilot">("briefing");
 
-  // DentAI Clinical Copilot hook
-  const {
-    completion: copilotCompletion,
-    complete: completeCopilot,
-    isLoading: isCopilotLoading,
-  } = useCompletion({
-    api: "/api/ai/copilot",
-    onError: (err) => {
-      toast.error("Failed to generate AI recommendations: " + err.message);
-    },
-    onFinish: () => {
-      toast.success("DentAI Copilot recommendations ready!");
-    },
-  });
-
-  const handleGenerateAiSuggestions = async () => {
-    if (!selectedAppointment) return;
-    toast.info("Consulting DentAI Clinical Copilot...");
-    await completeCopilot("", {
-      body: {
-        patient: {
-          age: selectedAppointment.age,
-          gender: selectedAppointment.gender,
-          medicalAlerts: selectedAppointment.alerts || [],
-          currentMedications: "",
-        },
-        symptoms: sessionSymptoms,
-        chiefComplaint: sessionComplaint,
-        clinicalNotes: `${sessionNotes}\nPhysical Examination: Percussion=${sessionPercussion}, Cold Vitality=${sessionColdTest}, Mobility=${sessionMobility}`,
-        activeTooth: sessionTargetTooth,
-      },
-    });
-  };
-
-  const handleApplyAiToNotes = () => {
-    if (!copilotCompletion) return;
-    setSessionNotes((prev) => (prev ? prev + "\n\n" : "") + "[DentAI Clinical Copilot Recommendations]:\n" + copilotCompletion);
-    toast.success("Copilot recommendations appended to Operatory Notes!");
-  };
+  // The AI copilot tab loads on first open and then stays mounted so its output isn't lost
+  const [copilotOpened, setCopilotOpened] = useState(false);
+  useEffect(() => {
+    if (sessionTab === "copilot") setCopilotOpened(true);
+  }, [sessionTab]);
 
   // Completed Handover Banner in modal
   const [isJustCompleted, setIsJustCompleted] = useState(false);
@@ -317,7 +247,6 @@ export default function AppointmentsPage() {
   };
 
   useEffect(() => {
-    setIsClient(true);
     const initialList = getStoredAppointments();
     setAppointments(initialList);
 
@@ -813,119 +742,87 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
 
   return (
     <div className="space-y-6">
-      {/* Title & Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-primary" />
-            Daily Patient Queue & Operatory Scheduling (Dhaka Clinic)
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Automated serial queue for Online, Phone & Walk-in bookings with real-time Doctor session handover to Rx & Billing
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Input
-            type="date"
-            value={queueDate}
-            onChange={(e) => setQueueDate(e.target.value || toISODate())}
-            className="h-8 text-xs w-[150px]"
-            aria-label="Queue date"
-          />
-          {queueDate !== toISODate() && (
-            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setQueueDate(toISODate())}>
-              Today
+      <PageHeader
+        title="Appointments"
+        description="Walk-in, phone and online bookings for the day, in queue order."
+        actions={
+          <>
+            <Input
+              type="date"
+              value={queueDate}
+              onChange={(e) => setQueueDate(e.target.value || toISODate())}
+              className="h-9 w-[150px]"
+              aria-label="Queue date"
+            />
+            {queueDate !== toISODate() && (
+              <Button size="sm" variant="ghost" onClick={() => setQueueDate(toISODate())}>
+                Today
+              </Button>
+            )}
+            <Button size="sm" onClick={() => setIsBookModalOpen(true)} className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              Book appointment
             </Button>
-          )}
-          <Button size="sm" onClick={() => setIsBookModalOpen(true)} className="gap-1.5 text-xs font-semibold shadow-sm">
-            <Plus className="h-3.5 w-3.5" />
-            Book Patient (Online / Phone / Walk-in)
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      {/* PROMINENT NEXT APPOINTMENT CARD (Dr. Start Session Callout) */}
+      {/* Next patient in the queue */}
       {nextInQueue && (
-        <Card className="border-2 border-primary/50 bg-gradient-to-r from-teal-500/15 via-emerald-500/10 to-background shadow-md overflow-hidden rounded-xl">
+        <Card className="border-primary/40 shadow-xs">
           <div className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge className="bg-primary text-primary-foreground text-xs font-extrabold px-2.5 py-0.5 shadow-sm">
-                  NEXT IN QUEUE · SERIAL #{nextInQueue.fifoSerial}
-                </Badge>
-                <Badge variant="outline" className="text-xs font-mono font-bold">
-                  Token: {nextInQueue.token}
-                </Badge>
+            <div className="space-y-2 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <Badge>Next · #{nextInQueue.fifoSerial}</Badge>
                 {channelBadge(nextInQueue.bookingChannel)}
-                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5 text-primary" />
-                  {nextInQueue.time} ({nextInQueue.duration})
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  {nextInQueue.time} · {nextInQueue.duration}
+                </span>
+                <span className="text-muted-foreground">
+                  {nextInQueue.chair} · {nextInQueue.doctor.split(",")[0]}
                 </span>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-baseline gap-2">
-                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                  {nextInQueue.patient}
-                  <span className="text-xs font-normal text-muted-foreground">
-                    ({nextInQueue.gender}, {nextInQueue.age} yrs)
+              <div>
+                <h2 className="text-lg font-semibold leading-tight">
+                  {nextInQueue.patient}{" "}
+                  <span className="text-sm font-normal text-muted-foreground">
+                    {nextInQueue.gender}, {nextInQueue.age} yrs · <span className="font-mono">{nextInQueue.patientId}</span>
                   </span>
-                </h3>
-                <span className="text-xs text-muted-foreground">
-                  {nextInQueue.patientId} · {nextInQueue.address} · {nextInQueue.phone}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 text-xs">
-                <span className="text-foreground font-medium">
-                  Chief Complaint / Service: <strong className="text-primary">{nextInQueue.service}</strong>
-                </span>
-                <span className="text-muted-foreground">·</span>
-                <span className="text-foreground">
-                  Chair: <strong>{nextInQueue.chair}</strong>
-                </span>
-                <span className="text-muted-foreground">·</span>
-                <span className="text-foreground">
-                  Doctor: <strong>{nextInQueue.doctor}</strong>
-                </span>
+                </h2>
+                <p className="text-sm text-muted-foreground mt-0.5">{nextInQueue.service}</p>
               </div>
 
               {nextInQueue.alerts.length > 0 && (
-                <div className="inline-flex items-center gap-1.5 text-xs text-red-600 font-semibold bg-red-100/90 dark:bg-red-950/50 px-2 py-0.5 rounded">
+                <div className="inline-flex items-center gap-1.5 text-xs text-red-700 dark:text-red-300 font-medium bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 px-2 py-0.5 rounded-md">
                   <AlertCircle className="h-3.5 w-3.5" />
-                  Medical Alert: {nextInQueue.alerts.join(", ")}
+                  {nextInQueue.alerts.join(", ")}
                 </div>
               )}
             </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
-              {nextInQueue.status === "in_progress" ? (
-                <Button
-                  size="sm"
-                  className="gap-2 bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-md h-10 px-4 text-xs"
-                  onClick={() => openSessionModal(nextInQueue, false)}
-                >
-                  <FileEdit className="h-4 w-4" />
-                  Continue Active Session & Notes
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md h-10 px-4 text-xs"
-                  onClick={() => openSessionModal(nextInQueue, true)}
-                >
-                  <Play className="h-4 w-4 fill-current" />
-                  Start Session (Listen & Take Notes)
-                </Button>
-              )}
+            <div className="flex items-center gap-2 shrink-0">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-10 text-xs text-red-600 hover:bg-red-50 border-red-200"
+                className="text-muted-foreground"
                 onClick={(e) => handleMarkNoShow(nextInQueue, e)}
               >
-                <UserX className="h-3.5 w-3.5 mr-1" />
-                No Show
+                <UserX className="h-4 w-4 mr-1" />
+                No show
               </Button>
+              {nextInQueue.status === "in_progress" ? (
+                <Button className="gap-2" onClick={() => openSessionModal(nextInQueue, false)}>
+                  <FileEdit className="h-4 w-4" />
+                  Continue session
+                </Button>
+              ) : (
+                <Button className="gap-2" onClick={() => openSessionModal(nextInQueue, true)}>
+                  <Play className="h-4 w-4 fill-current" />
+                  Start session
+                </Button>
+              )}
             </div>
           </div>
         </Card>
@@ -995,7 +892,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                 <th className="py-3 px-3 text-left font-semibold">Token</th>
                 <th className="py-3 px-3 text-left font-semibold">Channel</th>
                 <th className="py-3 px-3 text-left font-semibold">Time</th>
-                <th className="py-3 px-4 text-left font-semibold">Patient (Bangladesh)</th>
+                <th className="py-3 px-4 text-left font-semibold">Patient</th>
                 <th className="py-3 px-3 text-left font-semibold">Service</th>
                 <th className="py-3 px-3 text-left font-semibold">Operatory</th>
                 <th className="py-3 px-3 text-left font-semibold">Status</th>
@@ -1028,12 +925,12 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                   </td>
                   <td className="py-3 px-4 font-medium text-foreground">
                     <div>
-                      <span className="font-bold text-primary hover:underline">{apt.patient}</span>
-                      <span className="text-[11px] text-muted-foreground block">
-                        {apt.patientId} · {apt.address} · {apt.phone}
+                      <span className="font-semibold">{apt.patient}</span>
+                      <span className="text-xs text-muted-foreground block">
+                        <span className="font-mono">{apt.patientId}</span> · {apt.phone}
                       </span>
                       {apt.alerts.length > 0 && (
-                        <span className="inline-flex items-center gap-1 text-[10px] text-red-600 font-semibold mt-0.5">
+                        <span className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400 font-medium mt-0.5">
                           <AlertCircle className="h-3 w-3" />
                           {apt.alerts.join(", ")}
                         </span>
@@ -1069,11 +966,11 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                         <>
                           <Button
                             size="sm"
-                            className="h-7 text-[10px] px-2 gap-1 font-bold bg-primary hover:bg-primary/90"
+                            className="h-8 gap-1"
                             onClick={() => openSessionModal(apt, true)}
                           >
                             <Play className="h-3 w-3 fill-current" />
-                            Start Session
+                            Start
                           </Button>
                           <Button
                             size="sm"
@@ -1151,7 +1048,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        ID: <span className="font-mono font-medium text-foreground">{selectedAppointment.patientId}</span> · {selectedAppointment.gender}, {selectedAppointment.age} years · {selectedAppointment.phone} · {selectedAppointment.address}
+                        ID: <span className="font-mono font-medium text-foreground">{selectedAppointment.patientId}</span> · {selectedAppointment.gender}, {selectedAppointment.age} years · {selectedAppointment.phone}<span className="hidden lg:inline"> · {selectedAppointment.address}</span>
                       </p>
                     </div>
                   </div>
@@ -1968,157 +1865,37 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                 </div>
               )}
 
-              {/* ─── TAB 3: DENTAI CLINICAL COPILOT ─── */}
-              {sessionTab === "copilot" && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                    {/* Left: Input Parameters (5 cols) */}
-                    <div className="col-span-12 lg:col-span-5 space-y-4">
-                      <Card className="border shadow-xs bg-gradient-to-b from-card to-primary/5">
-                        <CardHeader className="py-3 px-4 border-b">
-                          <CardTitle className="text-xs font-bold text-foreground flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-amber-500 fill-amber-500" />
-                            DentAI Clinical Decision Support
-                          </CardTitle>
-                          <CardDescription className="text-[11px]">
-                            Evidence-based chairside clinical assistant
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-4 space-y-3.5 text-xs">
-                          {/* Patient Snapshot */}
-                          <div className="p-3 rounded-lg bg-muted/40 border space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="font-semibold text-foreground">Patient Profile</span>
-                              <span className="font-mono text-primary font-bold">{selectedAppointment.patient}</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
-                              <div>Age/Gender: <span className="font-medium text-foreground">{selectedAppointment.age}y / {selectedAppointment.gender}</span></div>
-                              <div>Target Tooth: <span className="font-mono font-bold text-primary">{sessionTargetTooth}</span></div>
-                              <div>Blood Pressure: <span className="font-mono font-medium text-foreground">{sessionBp}</span></div>
-                              <div>Pulse / RBS: <span className="font-mono font-medium text-foreground">{sessionPulse} bpm / {sessionBloodSugar}</span></div>
-                            </div>
-                            {selectedAppointment.alerts && selectedAppointment.alerts.length > 0 && (
-                              <div className="pt-1 border-t border-border/50 text-[11px] text-red-600 font-medium flex items-center gap-1.5">
-                                <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-                                Medical Alerts: {selectedAppointment.alerts.join(", ")}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Chief Complaint */}
-                          <div className="space-y-1">
-                            <Label className="text-xs font-semibold">Chief Complaint Under Consideration</Label>
-                            <p className="text-xs text-muted-foreground p-2 rounded bg-background border italic">
-                              "{sessionComplaint}"
-                            </p>
-                          </div>
-
-                          {/* Marked Symptoms */}
-                          {sessionSymptoms.length > 0 && (
-                            <div className="space-y-1">
-                              <Label className="text-xs font-semibold">Presenting Symptoms ({sessionSymptoms.length})</Label>
-                              <div className="flex flex-wrap gap-1">
-                                {sessionSymptoms.map((s, idx) => (
-                                  <Badge key={idx} variant="outline" className="text-[10px] bg-background">
-                                    {s}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Physical Exam Values */}
-                          <div className="p-2.5 rounded-lg bg-background border text-[11px] space-y-1">
-                            <span className="font-semibold text-foreground block">Chairside Examination Signals:</span>
-                            <div className="grid grid-cols-3 gap-1 text-muted-foreground">
-                              <div>Percussion: <span className="font-medium text-foreground uppercase">{sessionPercussion}</span></div>
-                              <div>Cold Vitality: <span className="font-medium text-foreground capitalize">{sessionColdTest}</span></div>
-                              <div>Mobility: <span className="font-medium text-foreground uppercase">{sessionMobility}</span></div>
-                            </div>
-                          </div>
-
-                          {/* Generate Button */}
-                          <Button
-                            type="button"
-                            onClick={handleGenerateAiSuggestions}
-                            disabled={isCopilotLoading}
-                            className="w-full h-10 gap-2 text-xs font-bold shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground"
-                          >
-                            {isCopilotLoading ? (
-                              <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Analyzing Symptoms & Dental Evidence...
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="h-4 w-4" />
-                                Generate AI Differential & CDT Treatment Plan
-                              </>
-                            )}
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    </div>
-
-                    {/* Right: Copilot Output Stream (7 cols) */}
-                    <div className="col-span-12 lg:col-span-7">
-                      <Card className="border shadow-xs h-full flex flex-col">
-                        <CardHeader className="py-3 px-4 border-b bg-muted/20 flex flex-row items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Stethoscope className="h-4 w-4 text-primary" />
-                            <CardTitle className="text-xs font-bold text-foreground">
-                              AI Diagnostic & Treatment Recommendations
-                            </CardTitle>
-                          </div>
-                          {copilotCompletion && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={handleApplyAiToNotes}
-                              className="h-7 text-xs px-2.5 gap-1.5 bg-background font-semibold hover:bg-primary/10 hover:text-primary"
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                              Append to Clinical Notes
-                            </Button>
-                          )}
-                        </CardHeader>
-                        <CardContent className="p-4 flex-1 flex flex-col">
-                          {copilotCompletion || isCopilotLoading ? (
-                            <div className="p-3.5 rounded-lg border bg-muted/20 flex-1 overflow-y-auto max-h-[500px]">
-                              <div className="text-xs font-mono whitespace-pre-wrap leading-relaxed text-foreground">
-                                {copilotCompletion}
-                                {isCopilotLoading && (
-                                  <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1 align-middle" />
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center border border-dashed rounded-xl bg-muted/10 space-y-2">
-                              <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                                <Sparkles className="h-5 w-5" />
-                              </div>
-                              <h4 className="text-xs font-bold text-foreground">No AI Recommendations Generated Yet</h4>
-                              <p className="text-xs text-muted-foreground max-w-sm">
-                                Click "Generate AI Differential & CDT Treatment Plan" on the left to analyze the patient's symptoms, target tooth {sessionTargetTooth}, and vitals.
-                              </p>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
+              {/* ─── TAB 3: AI COPILOT (loaded on demand) ─── */}
+              {copilotOpened && (
+                <div className={sessionTab === "copilot" ? "" : "hidden"}>
+                  <CopilotPanel
+                    patient={{
+                      name: selectedAppointment.patient,
+                      age: selectedAppointment.age,
+                      gender: selectedAppointment.gender,
+                      alerts: selectedAppointment.alerts || [],
+                    }}
+                    complaint={sessionComplaint}
+                    symptoms={sessionSymptoms}
+                    notes={sessionNotes}
+                    targetTooth={sessionTargetTooth}
+                    vitals={{ bp: sessionBp, pulse: sessionPulse, bloodSugar: sessionBloodSugar }}
+                    findings={{ percussion: sessionPercussion, coldTest: sessionColdTest, mobility: sessionMobility }}
+                    onAppendToNotes={(text) =>
+                      setSessionNotes((prev) => (prev ? prev + "\n\n" : "") + "[AI suggestions]:\n" + text)
+                    }
+                  />
                 </div>
               )}
             </div>
 
             {/* STICKY FOOTER */}
-              <div className="p-3.5 border-t bg-muted/30 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <div className="flex items-center gap-1.5">
+              <div className="p-3 sm:p-3.5 border-t bg-muted/30 shrink-0 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                <div className="grid grid-cols-2 gap-2 w-full xl:flex xl:w-auto xl:items-center xl:gap-3">
+                  <div className="flex min-w-0 items-center gap-1.5">
                     <span className="text-[11px] text-muted-foreground font-medium">Operatory:</span>
                     <Select value={sessionChair} onValueChange={setSessionChair}>
-                      <SelectTrigger className="h-8 text-xs w-[140px] bg-background">
+                      <SelectTrigger className="h-8 text-xs w-full xl:w-[140px] bg-background">
                         <SelectValue placeholder="Select chair" />
                       </SelectTrigger>
                       <SelectContent>
@@ -2132,13 +1909,13 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                     </Select>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex min-w-0 items-center gap-1.5">
                     <span className="text-[11px] text-muted-foreground font-medium">Status:</span>
                     <Select
                       value={sessionStatus}
                       onValueChange={(val: any) => setSessionStatus(val)}
                     >
-                      <SelectTrigger className="h-8 text-xs w-[140px] bg-background font-semibold">
+                      <SelectTrigger className="h-8 text-xs w-full xl:w-[140px] bg-background font-semibold">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -2152,7 +1929,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:flex-wrap sm:items-center sm:justify-end xl:w-auto">
                   <Button
                     variant="outline"
                     size="sm"
@@ -2176,7 +1953,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                     size="sm"
                     variant="outline"
                     onClick={() => handleCompleteNotes("procedure")}
-                    className="text-xs h-9 px-4 gap-1.5 font-bold border-primary text-primary"
+                    className="col-span-2 sm:col-auto text-xs h-9 px-4 gap-1.5 font-bold border-primary text-primary"
                   >
                     <ToothIcon className="h-4 w-4" />
                     Needs Procedure / Surgery
@@ -2185,7 +1962,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                   <Button
                     size="sm"
                     onClick={() => handleCompleteNotes("prescription")}
-                    className="text-xs h-9 px-4 gap-1.5 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                    className="col-span-2 sm:col-auto text-xs h-9 px-4 gap-1.5 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                   >
                     <Pill className="h-4 w-4" />
                     No Procedure: Go to Prescription

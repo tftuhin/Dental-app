@@ -6,8 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Odontogram } from "@/components/dental/odontogram";
-import { PeriodontalChart } from "@/components/dental/perio-chart";
+import { Odontogram, PeriodontalChart } from "@/components/dental/lazy-charts";
 import { PatientProfileTimeline } from "@/components/patients/patient-profile-timeline";
 import { EditPatientDialog } from "@/components/patients/edit-patient-dialog";
 import {
@@ -15,28 +14,7 @@ import {
   getPatientById,
   formatDobDisplay,
 } from "@/lib/patients-store";
-import {
-  User,
-  Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  AlertTriangle,
-  Stethoscope,
-  Pill,
-  Receipt,
-  FileText,
-  Clock,
-  Plus,
-  ShieldCheck,
-  CheckCircle2,
-  ChevronRight,
-  Sparkles,
-  Edit,
-  HeartPulse,
-  Briefcase,
-  FileSpreadsheet,
-} from "lucide-react";
+import { User, Phone, Mail, Calendar, AlertTriangle, Stethoscope, Edit, HeartPulse } from "lucide-react";
 
 interface PatientProfileViewProps {
   initialPatientId: string;
@@ -217,7 +195,7 @@ export function PatientProfileView({ initialPatientId }: PatientProfileViewProps
       {/* ─── Profile Navigation Tabs ─── */}
       <Tabs defaultValue="timeline" className="w-full">
         <div className="overflow-x-auto pb-1">
-          <TabsList className="grid grid-cols-4 w-full sm:w-[500px]">
+          <TabsList className="w-full max-w-full justify-start overflow-x-auto sm:w-auto">
             <TabsTrigger value="timeline" className="text-xs">
               Unified Timeline
             </TabsTrigger>

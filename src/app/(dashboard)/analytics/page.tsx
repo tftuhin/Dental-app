@@ -1,19 +1,8 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  BarChart3,
-  TrendingUp,
-  Receipt,
-  Users,
-  Activity,
-  Calendar,
-  Sparkles,
-  Download,
-} from "lucide-react";
-import { ToothIcon } from "@/components/icons/dental-icons";
+import { BarChart3, Download } from "lucide-react";
 
 export default function AnalyticsPage() {
   const procedureBreakdown = [

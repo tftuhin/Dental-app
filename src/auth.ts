@@ -33,10 +33,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     process.env.NEXTAUTH_SECRET ||
     "dentalos1-auth-jwt-production-secret-min32chars-2026",
   adapter: DrizzleAdapter(db, {
+    // The clinic's users table has extra columns (role, clinic) the adapter's types don't know about
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     usersTable: users as any,
     accountsTable: accounts as any,
     sessionsTable: sessions as any,
     verificationTokensTable: verificationTokens as any,
+    /* eslint-enable @typescript-eslint/no-explicit-any */
   }),
   session: {
     strategy: "jwt",
@@ -91,17 +94,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as any).role;
-        token.clinicId = (user as any).clinicId;
-        token.userId = (user as any).id;
+        token.role = user.role;
+        token.clinicId = user.clinicId;
+        token.userId = user.id;
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        (session.user as any).role = token.role;
-        (session.user as any).clinicId = token.clinicId;
-        (session.user as any).id = token.userId;
+        session.user.role = token.role;
+        session.user.clinicId = token.clinicId;
+        if (token.userId) session.user.id = token.userId;
       }
       return session;
     },

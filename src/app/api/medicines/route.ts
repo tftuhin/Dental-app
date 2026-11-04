@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
+import { db, isDatabaseConfigured } from "@/db";
 import { medicinesCatalog } from "@/db/schema";
 import { ilike, or, eq, desc } from "drizzle-orm";
 import { auth } from "@/auth";
-import { DEFAULT_BANGLA_MEDICINES } from "@/lib/medicines-store";
+import { DEFAULT_BANGLA_MEDICINES } from "@/lib/medicines-catalog";
 
 export async function GET(request: Request) {
   try {
@@ -11,7 +11,8 @@ export async function GET(request: Request) {
     const query = searchParams.get("q") || "";
 
     if (query.trim().length > 0) {
-      try {
+      // Without a database, go straight to the bundled catalog (no failed connection wait)
+      if (isDatabaseConfigured) try {
         const results = await db
           .select()
           .from(medicinesCatalog)
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
     }
 
     // Default medicines list
-    try {
+    if (isDatabaseConfigured) try {
       const results = await db
         .select()
         .from(medicinesCatalog)
@@ -67,8 +68,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  // Changing the catalog requires a signed-in user
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   try {
-    const session = await auth();
     const body = await request.json();
 
     const {
@@ -92,11 +95,11 @@ export async function POST(request: Request) {
 
     const safeDosageForm = dosageForm ? dosageForm.trim() : "Tablet";
 
-    try {
+    if (isDatabaseConfigured) try {
       const [newMedicine] = await db
         .insert(medicinesCatalog)
         .values({
-          clinicId: (session?.user as any)?.clinicId || null,
+          clinicId: session.user.clinicId || null,
           brandName: brandName.trim(),
           genericName: genericName ? genericName.trim() : null,
           strength: strength ? strength.trim() : null,
@@ -143,6 +146,8 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -150,7 +155,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Medicine ID is required" }, { status: 400 });
     }
 
-    try {
+    if (isDatabaseConfigured) try {
       await db.delete(medicinesCatalog).where(eq(medicinesCatalog.id, id));
     } catch (dbErr) {
       console.warn("DB delete skipped or failed:", dbErr);

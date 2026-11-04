@@ -203,6 +203,7 @@ const SelectContent = React.forwardRef<
     position?: "popper" | "item-aligned"
     searchPlaceholder?: string
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- taken out so it isn't passed to the DOM
 >(({ className, children, position: _position, searchPlaceholder = "Search…", ...props }, ref) => {
   // Long lists keep max-h-* from className on the scroll area
   const maxH = className?.match(/max-h-\S+/)?.[0]

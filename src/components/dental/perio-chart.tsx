@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PeriodontalProbeIcon } from "@/components/icons/dental-icons";
-import { Activity, AlertCircle, CheckCircle2, Save, RotateCcw } from "lucide-react";
+import { CheckCircle2, Save, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import {
   ToothPerioState,
@@ -92,24 +92,6 @@ export function PeriodontalChart({
       saveStoredPerioChart(patientId, updated);
       setLastSaved(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
       return updated;
-    });
-  };
-
-  const updateDepth = (toothNum: number, siteIndex: number, delta: number) => {
-    if (readOnly) return;
-    setPerioData((prev) => {
-      const tooth = prev[toothNum];
-      const newDepths = [...tooth.probingDepths] as [number, number, number, number, number, number];
-      const updated = Math.max(1, Math.min(12, newDepths[siteIndex] + delta));
-      newDepths[siteIndex] = updated;
-      const nextData = {
-        ...prev,
-        [toothNum]: { ...tooth, probingDepths: newDepths },
-      };
-      // Auto-save to localStorage
-      saveStoredPerioChart(patientId, nextData);
-      setLastSaved(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
-      return nextData;
     });
   };
 

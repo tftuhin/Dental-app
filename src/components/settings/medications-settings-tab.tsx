@@ -22,27 +22,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Pill,
-  Search,
-  Plus,
-  Trash2,
-  Edit3,
-  RotateCcw,
-  Sparkles,
-  Clock,
-  Calendar,
-  AlertCircle,
-  Building,
-  CheckCircle2,
-  Filter,
-  Check,
-  ShieldCheck,
-  Beaker,
-} from "lucide-react";
+import { Pill, Search, Plus, Trash2, Edit3, RotateCcw, Clock, Calendar, AlertCircle, Check, Beaker } from "lucide-react";
 import {
   CatalogMedicine,
   getStoredMedicines,
+  ensureMedicineCatalog,
   addStoredMedicine,
   updateStoredMedicine,
   deleteStoredMedicine,
@@ -144,8 +128,8 @@ export function MedicationsSettingsTab() {
 
   // Load medications on mount & listen to sync events
   useEffect(() => {
-    const list = getStoredMedicines();
-    setMedications(list);
+    setMedications(getStoredMedicines());
+    ensureMedicineCatalog().catch((err) => console.warn("Medicine catalog unavailable:", err));
 
     const handleSync = () => {
       setMedications(getStoredMedicines());
@@ -272,9 +256,10 @@ export function MedicationsSettingsTab() {
 
   // Reset to default formulary
   const handleResetDefaults = () => {
-    if (confirm("Reset the medications catalog back to the default 15+ Bangladeshi dental medications? Any custom added drugs will be cleared.")) {
-      resetStoredMedicines();
-      toast.success("Medications catalog restored to standard Bangladeshi dental formulary.");
+    if (confirm("Reset the medicine catalog to the default list? Medicines you added will be removed.")) {
+      resetStoredMedicines()
+        .then(() => toast.success("Medicine catalog restored to the default list."))
+        .catch(() => toast.error("Could not load the default catalog. Check your connection."));
     }
   };
 

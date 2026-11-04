@@ -22,21 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  User,
-  Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  AlertTriangle,
-  HeartPulse,
-  ShieldAlert,
-  Save,
-  X,
-  Plus,
-  Edit,
-  Sparkles,
-} from "lucide-react";
+import { User, Phone, Mail, MapPin, Calendar, AlertTriangle, HeartPulse, ShieldAlert, Save, X, Plus, Edit } from "lucide-react";
 import { toast } from "sonner";
 import {
   PatientProfile,
@@ -203,7 +189,7 @@ export function EditPatientDialog({
       toast.success(`Personal details for ${updated.name} updated successfully!`);
       if (onSaved) onSaved(updated);
       onOpenChange(false);
-    } catch (err) {
+    } catch {
       setSaving(false);
       toast.error("Failed to update patient details.");
     }

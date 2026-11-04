@@ -1,20 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  FlaskConical,
-  Plus,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  Calendar,
-  Truck,
-  Sparkles,
-} from "lucide-react";
+import { FlaskConical, Plus, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 interface LabOrder {
@@ -82,7 +71,7 @@ const INITIAL_ORDERS: LabOrder[] = [
 ];
 
 export default function LabOrdersPage() {
-  const [orders, setOrders] = useState(INITIAL_ORDERS);
+  const orders = INITIAL_ORDERS;
 
   return (
     <div className="space-y-6">

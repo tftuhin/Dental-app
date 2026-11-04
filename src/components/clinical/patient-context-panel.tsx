@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShieldAlert, HeartPulse, History, AlertTriangle, UserRound } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { ShieldAlert, HeartPulse, History, AlertTriangle, ClipboardList, ExternalLink } from "lucide-react";
 import {
   ClinicalQueuePatient,
   PatientTimelineEvent,
@@ -20,40 +21,58 @@ export function derivePrecautions(allergies: string[], conditions: string[]): st
   const out: string[] = [];
   const text = [...allergies, ...conditions].join(" ").toLowerCase();
 
-  for (const a of allergies) {
-    out.push(`Allergy: ${a}. Avoid this drug and cross-reacting drugs.`);
-  }
   if (/penicillin|amoxicillin/.test(text)) {
-    out.push("Penicillin allergy: check every antibiotic for cross-reactivity before prescribing.");
+    out.push("Penicillin allergy: check every antibiotic for cross-reactivity.");
   }
   if (/diabet/.test(text)) {
-    out.push("Diabetes: check blood sugar before surgery; expect slower healing and higher infection risk.");
+    out.push("Diabetes: check blood sugar before surgery; expect slower healing.");
   }
   if (/hypertens|blood pressure/.test(text)) {
-    out.push("Hypertension: check BP before treatment; limit adrenaline in local anaesthetic.");
+    out.push("Hypertension: check BP; limit adrenaline in local anaesthetic.");
   }
   if (/cardiac|heart|valve|stent|angina/.test(text)) {
-    out.push("Heart condition: consider whether antibiotic prophylaxis or a physician consult is needed.");
+    out.push("Heart condition: consider antibiotic prophylaxis or a physician consult.");
   }
   if (/warfarin|anticoag|aspirin|clopidogrel|bleeding/.test(text)) {
-    out.push("Bleeding risk (anticoagulant/antiplatelet): check INR/bleeding before extraction or surgery.");
+    out.push("Bleeding risk: check INR/bleeding before extraction or surgery.");
   }
   if (/bisphosphonate|osteoporosis/.test(text)) {
-    out.push("Bisphosphonates: risk of osteonecrosis of the jaw. Minimise surgical trauma.");
+    out.push("Bisphosphonates: osteonecrosis risk. Minimise surgical trauma.");
   }
   if (/asthma/.test(text)) {
     out.push("Asthma: use NSAIDs and aspirin with caution; keep the inhaler available.");
   }
   if (/pregnan/.test(text)) {
-    out.push("Pregnancy: avoid non-urgent X-rays; check every drug for pregnancy safety.");
+    out.push("Pregnancy: avoid non-urgent X-rays; check drug safety.");
   }
   if (/kidney|renal/.test(text)) {
-    out.push("Kidney disease: adjust drug doses and avoid NSAIDs.");
+    out.push("Kidney disease: adjust doses and avoid NSAIDs.");
   }
   if (/liver|hepat/.test(text)) {
-    out.push("Liver disease: adjust or avoid drugs processed by the liver (e.g. paracetamol dose).");
+    out.push("Liver disease: adjust or avoid drugs processed by the liver.");
   }
   return out;
+}
+
+/**
+ * Merge allergy lists from the patient record and the booking, dropping
+ * near-duplicates such as "Penicillin (Severe Anaphylaxis)" and
+ * "Penicillin Allergy (Severe Anaphylaxis)". The longer wording wins.
+ */
+export function mergeAllergies(...lists: string[][]): string[] {
+  const key = (a: string) =>
+    a
+      .toLowerCase()
+      .replace(/\b(allergy|allergic|to|sensitivity)\b/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  const byKey = new Map<string, string>();
+  for (const a of lists.flat().map((x) => x.trim()).filter(Boolean)) {
+    const k = key(a);
+    const existing = byKey.get(k);
+    if (!existing || a.length > existing.length) byKey.set(k, a);
+  }
+  return [...byKey.values()];
 }
 
 interface PatientContextPanelProps {
@@ -63,7 +82,20 @@ interface PatientContextPanelProps {
   className?: string;
 }
 
-/** History, health issues and precautions, shown on every stage of the visit. */
+function SectionTitle({ icon: Icon, children, tone }: { icon: React.ComponentType<{ className?: string }>; children: React.ReactNode; tone?: "danger" }) {
+  return (
+    <h3
+      className={`flex items-center gap-1.5 text-xs font-medium ${
+        tone === "danger" ? "text-red-700 dark:text-red-400" : "text-muted-foreground"
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {children}
+    </h3>
+  );
+}
+
+/** History, health issues and precautions, shown on every clinical stage of the visit. */
 export function PatientContextPanel({ visit, hideTodaySummary, className }: PatientContextPanelProps) {
   const [record, setRecord] = useState<PatientProfile | undefined>();
   const [timeline, setTimeline] = useState<PatientTimelineEvent[]>([]);
@@ -85,173 +117,142 @@ export function PatientContextPanel({ visit, hideTodaySummary, className }: Pati
 
   if (!visit) return null;
 
-  const allergies = Array.from(
-    new Set([...(record?.allergies || []), ...(visit.alerts || [])].filter(Boolean))
-  );
+  const allergies = mergeAllergies(record?.allergies || [], visit.alerts || []);
   const conditions = record?.medicalConditions || [];
   const precautions = derivePrecautions(allergies, conditions);
   // Previous visits only: leave out anything logged for today's visit
-  const pastEvents = timeline.filter((e) => !e.id.includes(visit.id)).slice(0, 6);
+  const pastEvents = timeline.filter((e) => !e.id.includes(visit.id)).slice(0, 5);
+  const vitals = visit.vitals
+    ? [
+        visit.vitals.bp && `BP ${visit.vitals.bp}`,
+        visit.vitals.pulse && `Pulse ${visit.vitals.pulse}`,
+        visit.vitals.bloodSugar && `RBS ${visit.vitals.bloodSugar}`,
+        visit.vitals.temp && `Temp ${visit.vitals.temp}`,
+      ].filter(Boolean)
+    : [];
+  const showToday =
+    !hideTodaySummary &&
+    (visit.chiefComplaint || visit.provisionalDiagnosis || vitals.length > 0 || (visit.procedures?.length ?? 0) > 0);
 
   return (
-    <div className={`space-y-3 ${className || ""}`}>
-      <Card className="border shadow-xs">
-        <CardHeader className="py-2.5 px-3.5 border-b bg-muted/20">
-          <CardTitle className="text-xs font-bold flex items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5">
-              <UserRound className="h-3.5 w-3.5 text-primary" />
-              {visit.patient}
-            </span>
-            {record ? (
-              <Link
-                href={`/patients/${record.id}`}
-                className="text-[10px] font-semibold text-primary hover:underline"
-              >
-                Open profile
-              </Link>
-            ) : null}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-3.5 text-xs space-y-1">
-          <p className="text-muted-foreground">
-            <span className="font-mono text-foreground">{visit.patientId}</span> · {visit.gender},{" "}
-            {visit.age} yrs{record?.bloodGroup ? ` · Blood ${record.bloodGroup}` : ""}
-          </p>
-          <p className="text-muted-foreground">{visit.phone}</p>
-          {!record && (
-            <p className="text-amber-700 dark:text-amber-400 text-[11px]">
-              No registry record linked to this visit. History may be incomplete.
-            </p>
+    <Card className={`gap-0 py-0 shadow-xs ${className || ""}`}>
+      <CardHeader className="px-4 py-3 border-b">
+        <CardTitle className="flex items-center justify-between gap-2 text-sm">
+          <span className="truncate">{visit.patient}</span>
+          {record && (
+            <Link
+              href={`/patients/${record.id}`}
+              className="inline-flex items-center gap-1 text-xs font-normal text-primary hover:underline shrink-0"
+            >
+              Profile
+              <ExternalLink className="h-3 w-3" />
+            </Link>
           )}
-        </CardContent>
-      </Card>
+        </CardTitle>
+        <CardDescription className="text-xs">
+          <span className="font-mono">{visit.patientId}</span> · {visit.gender}, {visit.age} yrs
+          {record?.bloodGroup ? ` · ${record.bloodGroup}` : ""} · {visit.phone}
+        </CardDescription>
+        {!record && (
+          <p className="text-xs text-amber-700 dark:text-amber-400">
+            No registry record linked. History may be incomplete.
+          </p>
+        )}
+      </CardHeader>
 
-      {/* Allergies & precautions */}
-      <Card className="border border-red-200 dark:border-red-900 shadow-xs">
-        <CardHeader className="py-2.5 px-3.5 border-b bg-red-50/60 dark:bg-red-950/30">
-          <CardTitle className="text-xs font-bold flex items-center gap-1.5 text-red-800 dark:text-red-300">
-            <ShieldAlert className="h-3.5 w-3.5" />
-            Alerts & Precautions
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-3.5 text-xs space-y-2">
-          <div className="flex flex-wrap gap-1">
-            {allergies.length === 0 ? (
-              <span className="text-muted-foreground">No known allergies recorded.</span>
-            ) : (
-              allergies.map((a) => (
-                <Badge key={a} className="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 text-[10px]">
+      <CardContent className="px-4 py-3 space-y-3 text-sm">
+        {/* Allergies & precautions */}
+        <section className="space-y-2">
+          <SectionTitle icon={ShieldAlert} tone={allergies.length > 0 ? "danger" : undefined}>
+            Allergies & precautions
+          </SectionTitle>
+          {allergies.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No known allergies.</p>
+          ) : (
+            <div className="flex flex-wrap gap-1">
+              {allergies.map((a) => (
+                <Badge key={a} variant="destructive" className="h-auto whitespace-normal text-left font-normal">
                   {a}
                 </Badge>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
           {precautions.length > 0 && (
             <ul className="space-y-1">
               {precautions.map((p) => (
-                <li key={p} className="flex gap-1.5 text-[11px] leading-snug">
-                  <AlertTriangle className="h-3 w-3 text-amber-600 shrink-0 mt-0.5" />
+                <li key={p} className="flex gap-1.5 text-xs leading-snug">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-px" />
                   <span>{p}</span>
                 </li>
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </section>
 
-      {/* Health issues */}
-      <Card className="border shadow-xs">
-        <CardHeader className="py-2.5 px-3.5 border-b bg-muted/20">
-          <CardTitle className="text-xs font-bold flex items-center gap-1.5">
-            <HeartPulse className="h-3.5 w-3.5 text-rose-500" />
-            Medical History
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-3.5 text-xs">
+        <Separator />
+
+        {/* Health issues */}
+        <section className="space-y-1.5">
+          <SectionTitle icon={HeartPulse}>Medical history</SectionTitle>
           {conditions.length === 0 ? (
-            <span className="text-muted-foreground">No medical conditions recorded.</span>
+            <p className="text-xs text-muted-foreground">None recorded.</p>
           ) : (
-            <ul className="list-disc pl-4 space-y-0.5">
+            <ul className="list-disc pl-4 space-y-0.5 text-xs">
               {conditions.map((c) => (
                 <li key={c}>{c}</li>
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </section>
 
-      {/* Today's summary */}
-      {!hideTodaySummary && (visit.chiefComplaint || visit.provisionalDiagnosis || visit.vitals) && (
-        <Card className="border shadow-xs">
-          <CardHeader className="py-2.5 px-3.5 border-b bg-muted/20">
-            <CardTitle className="text-xs font-bold">Today&apos;s Visit</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3.5 text-xs space-y-1.5">
-            {visit.chiefComplaint && (
-              <p>
-                <span className="font-semibold">Complaint:</span> {visit.chiefComplaint}
-              </p>
-            )}
-            {visit.selectedSymptoms && visit.selectedSymptoms.length > 0 && (
-              <p>
-                <span className="font-semibold">Symptoms:</span> {visit.selectedSymptoms.join(", ")}
-              </p>
-            )}
-            {visit.provisionalDiagnosis && (
-              <p>
-                <span className="font-semibold">Diagnosis:</span> {visit.provisionalDiagnosis}
-              </p>
-            )}
-            {visit.vitals && (visit.vitals.bp || visit.vitals.pulse) && (
-              <p className="text-muted-foreground">
-                {[
-                  visit.vitals.bp && `BP ${visit.vitals.bp}`,
-                  visit.vitals.pulse && `Pulse ${visit.vitals.pulse}`,
-                  visit.vitals.bloodSugar && `Sugar ${visit.vitals.bloodSugar}`,
-                  visit.vitals.temp && `Temp ${visit.vitals.temp}`,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-            )}
-            {visit.procedures && visit.procedures.length > 0 && (
-              <p>
-                <span className="font-semibold">Done today:</span>{" "}
-                {visit.procedures.map((p) => p.name + (p.toothNumber ? ` (${p.toothNumber})` : "")).join(", ")}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+        {showToday && (
+          <>
+            <Separator />
+            <section className="space-y-1.5 text-xs">
+              <SectionTitle icon={ClipboardList}>Today</SectionTitle>
+              {visit.chiefComplaint && (
+                <p>
+                  <span className="text-muted-foreground">Complaint:</span> {visit.chiefComplaint}
+                </p>
+              )}
+              {visit.provisionalDiagnosis && (
+                <p>
+                  <span className="text-muted-foreground">Diagnosis:</span> {visit.provisionalDiagnosis}
+                </p>
+              )}
+              {vitals.length > 0 && <p className="text-muted-foreground">{vitals.join(" · ")}</p>}
+              {visit.procedures && visit.procedures.length > 0 && (
+                <p>
+                  <span className="text-muted-foreground">Done:</span>{" "}
+                  {visit.procedures.map((p) => p.name + (p.toothNumber ? ` (${p.toothNumber})` : "")).join(", ")}
+                </p>
+              )}
+            </section>
+          </>
+        )}
 
-      {/* Previous visits */}
-      <Card className="border shadow-xs">
-        <CardHeader className="py-2.5 px-3.5 border-b bg-muted/20">
-          <CardTitle className="text-xs font-bold flex items-center gap-1.5">
-            <History className="h-3.5 w-3.5 text-primary" />
-            Previous Visits
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-3.5 text-xs">
+        <Separator />
+
+        {/* Previous visits */}
+        <section className="space-y-2">
+          <SectionTitle icon={History}>Previous visits</SectionTitle>
           {pastEvents.length === 0 ? (
-            <span className="text-muted-foreground">No previous visits on record.</span>
+            <p className="text-xs text-muted-foreground">No previous visits on record.</p>
           ) : (
             <ol className="space-y-2">
               {pastEvents.map((e) => (
-                <li key={e.id} className="border-l-2 border-primary/30 pl-2">
-                  <p className="font-semibold leading-tight">{e.title}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {e.date} · {e.doctor}
+                <li key={e.id} className="border-l-2 border-border pl-2.5 text-xs">
+                  <p className="font-medium leading-tight">{e.title}</p>
+                  <p className="text-muted-foreground">
+                    {e.date} · {e.doctor.split(",")[0]}
                   </p>
-                  {e.provisionalDiagnosis && (
-                    <p className="text-[11px] mt-0.5">Dx: {e.provisionalDiagnosis}</p>
-                  )}
+                  {e.provisionalDiagnosis && <p className="mt-0.5">Dx: {e.provisionalDiagnosis}</p>}
                 </li>
               ))}
             </ol>
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </section>
+      </CardContent>
+    </Card>
   );
 }

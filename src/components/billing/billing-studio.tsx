@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,30 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Receipt,
-  Plus,
-  Trash2,
-  Cake,
-  Printer,
-  CreditCard,
-  Banknote,
-  Percent,
-  CheckCircle2,
-  ShieldCheck,
-  Smartphone,
-  Clock,
-  User,
-  ArrowRight,
-  Pill,
-  FileText,
-  Calendar,
-  Edit,
-  Stethoscope,
-  Scissors,
-  Download,
-  X,
-} from "lucide-react";
+import { Receipt, Plus, Trash2, Cake, Printer, CreditCard, Banknote, Percent, CheckCircle2, ShieldCheck, Smartphone, Clock, FileText, Edit, Stethoscope, Scissors, Download, X } from "lucide-react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
   ClinicalQueuePatient,
@@ -59,6 +35,7 @@ import {
 import { getPatientById, updatePatient } from "@/lib/patients-store";
 import { buildReceiptFromInvoice, recalcPatientOutstanding } from "@/lib/billing-store";
 import { DuePayments, CollectDueDialog } from "@/components/billing/due-payments";
+import { PageHeader } from "@/components/layout/page-header";
 import { getDefaultConsultationItem } from "@/lib/procedures-catalog-store";
 import { VisitStepper } from "@/components/clinical/visit-stepper";
 import { formatBDT, numberToWordsBDT } from "@/lib/currency";
@@ -368,7 +345,7 @@ export function BillingStudio() {
 
   const [discountType, setDiscountType] = useState<"none" | "fixed" | "percentage" | "birthday">("none");
   const [discountValue, setDiscountValue] = useState<number>(0);
-  const [taxRate, setTaxRate] = useState<number>(0);
+  const taxRate = 0; // no VAT on dental services; kept so receipts show the line if added later
   const [paidAmount, setPaidAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [trxId, setTrxId] = useState("");
@@ -768,63 +745,48 @@ export function BillingStudio() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-emerald-600" />
-            Dental Billing, Invoicing & POS Studio (BDT / ৳)
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Collect consultation & procedure fees in Bangladeshi Taka (৳) via bKash, Nagad, POS Card, and Cash with instant SMS dispatch
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowReceiptModal(true)}
-            className="gap-1.5 text-xs flex-1 sm:flex-initial"
-          >
-            <FileText className="h-3.5 w-3.5" />
-            Preview Receipt
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePrintMoneyReceipt}
-            className="gap-1.5 text-xs bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 font-medium flex-1 sm:flex-initial"
-          >
-            <Printer className="h-3.5 w-3.5" />
-            Print Receipt (2 Copies, Landscape)
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleFinalizeInvoice}
-            className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm w-full sm:w-auto"
-          >
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            Record Payment & Finalize
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Billing"
+        description="Bills are built from the visit: consultation, procedures and items used. Partial payments stay as dues."
+        actions={
+          visit && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setShowReceiptModal(true)} className="gap-1.5">
+                <FileText className="h-4 w-4" />
+                Preview receipt
+              </Button>
+              {visit.invoice ? (
+                <Button size="sm" onClick={handlePrintMoneyReceipt} className="gap-1.5">
+                  <Printer className="h-4 w-4" />
+                  Print receipt
+                </Button>
+              ) : (
+                <Button size="sm" onClick={handleFinalizeInvoice} className="gap-1.5">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Record payment & finalize
+                </Button>
+              )}
+            </>
+          )
+        }
+      />
 
       {/* DROPDOWN: TODAY'S PATIENTS AWAITING BILLING (Handover from Consultation/Rx) */}
-      <Card className="border-2 border-emerald-500/30 bg-emerald-500/5 p-4 shadow-sm">
+      <Card className="p-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-1">
-            <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
-              Select Today's Patient Awaiting Billing (Completed from Consultation & Rx)
+            <span className="text-sm font-medium flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              Patient to bill
             </span>
             <p className="text-xs text-muted-foreground">
-              Automatically populates examination fees, completed procedures, radiograph tests, and prescribed items
+              Today&apos;s patients whose prescription is done. Older unpaid bills are under Outstanding Dues.
             </p>
           </div>
 
           <div className="w-full sm:w-96">
             <Select value={selectedQueuePatientId} onValueChange={handleSelectPatient}>
-              <SelectTrigger className="h-9 text-xs font-medium bg-background border-emerald-400/50">
+              <SelectTrigger className="h-9 bg-background">
                 <SelectValue placeholder="Select patient awaiting billing..." />
               </SelectTrigger>
               <SelectContent>
@@ -928,21 +890,19 @@ export function BillingStudio() {
         </div>
       )}
 
+      {visit && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column (8 cols): Invoice Editor & Line Items */}
         <div className="lg:col-span-8 space-y-4">
           <Card className="border shadow-sm">
             <CardHeader className="pb-3 border-b bg-muted/20">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <span>Invoice #{invoiceNumber}</span>
-                    <Badge variant="outline" className="text-[10px] font-mono">
-                      {clinicName}
-                    </Badge>
+                <div className="min-w-0">
+                  <CardTitle className="text-sm font-semibold break-all">
+                    Invoice <span className="font-mono">#{invoiceNumber}</span>
                   </CardTitle>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Patient: <strong className="text-foreground">{patient.name}</strong> ({patient.customId}) · {patient.address}
+                    <strong className="text-foreground">{patient.name}</strong> ({patient.customId})
                   </p>
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -1386,6 +1346,7 @@ export function BillingStudio() {
           </Card>
         </div>
       </div>
+      )}
 
       {/* PRINTABLE BILL RECEIPT MODAL */}
       <Dialog open={showReceiptModal} onOpenChange={setShowReceiptModal}>

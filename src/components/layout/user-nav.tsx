@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
@@ -14,13 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  User,
-  Settings,
-  LogOut,
-  Shield,
-  CreditCard,
-} from "lucide-react";
+import { User, Settings, LogOut, Shield } from "lucide-react";
 
 export function UserNav() {
   const { data: session } = useSession();
@@ -61,7 +54,7 @@ export function UserNav() {
               {user?.email}
             </p>
             <p className="text-xs leading-none text-primary font-medium capitalize">
-              {(user as any)?.role?.replace("_", " ") ?? "Clinician"}
+              {user?.role?.replace("_", " ") ?? "Clinician"}
             </p>
           </div>
         </DropdownMenuLabel>

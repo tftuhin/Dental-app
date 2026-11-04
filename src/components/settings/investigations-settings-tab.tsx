@@ -22,21 +22,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Microscope,
-  Search,
-  Plus,
-  Trash2,
-  Edit3,
-  RotateCcw,
-  Clock,
-  AlertCircle,
-  Check,
-  FileText,
-  Scan,
-  Activity,
-  Layers,
-} from "lucide-react";
+import { Microscope, Search, Plus, Trash2, Edit3, RotateCcw, Clock, AlertCircle, Check, Scan } from "lucide-react";
 import {
   InvestigationItem,
   getStoredInvestigations,

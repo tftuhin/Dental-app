@@ -1,27 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ToothIcon } from "@/components/icons/dental-icons";
-import {
-  Calendar,
-  Clock,
-  User,
-  Phone,
-  Mail,
-  AlertTriangle,
-  CheckCircle2,
-  Sparkles,
-  MapPin,
-  ShieldCheck,
-  ChevronRight,
-  ArrowLeft,
-} from "lucide-react";
+import { Clock, AlertTriangle, CheckCircle2, MapPin, ChevronRight, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 const SERVICES = [
@@ -65,8 +51,6 @@ const TIME_SLOTS = [
 ];
 
 export default function PublicBookingPortal() {
-  const params = useParams();
-  const clinicSlug = (params?.clinicSlug as string) || "dentai-dhaka";
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [selectedService, setSelectedService] = useState(SERVICES[0]);

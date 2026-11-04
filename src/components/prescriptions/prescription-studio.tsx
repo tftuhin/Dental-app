@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { useSearchParams } from "next/navigation";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,35 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Plus,
-  Trash2,
-  Printer,
-  ShieldCheck,
-  Pill,
-  AlertCircle,
-  Search,
-  Sparkles,
-  Database,
-  CheckCircle2,
-  Clock,
-  Check,
-  Receipt,
-  ArrowRight,
-  History,
-  FileText,
-  User,
-  RotateCcw,
-  Edit,
-  GripVertical,
-  ChevronUp,
-  ChevronDown,
-  Download,
-  Eye,
-  Calendar,
-  Stethoscope,
-  Loader2,
-} from "lucide-react";
+import { Plus, Trash2, Printer, ShieldCheck, Pill, AlertCircle, Search, Sparkles, Database, CheckCircle2, Clock, Receipt, ArrowRight, History, FileText, RotateCcw, Edit, GripVertical, ChevronUp, ChevronDown, Download, Eye, Stethoscope, Loader2 } from "lucide-react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
   ClinicalQueuePatient,
@@ -68,8 +40,11 @@ import {
 } from "@/lib/clinical-flow-store";
 import { downloadPrescriptionPdf, PrescriptionPdfData } from "@/lib/prescription-pdf-generator";
 import { getPatientById } from "@/lib/patients-store";
-import { PatientContextPanel } from "@/components/clinical/patient-context-panel";
+import { findAllergyConflicts } from "@/lib/allergy-check";
+import { PatientContextPanel, mergeAllergies } from "@/components/clinical/patient-context-panel";
 import { VisitStepper } from "@/components/clinical/visit-stepper";
+import { PageHeader } from "@/components/layout/page-header";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatBDT } from "@/lib/currency";
 import { toast } from "sonner";
 
@@ -87,7 +62,7 @@ export interface PrescriptionMedicine {
 
 import {
   CatalogMedicine,
-  DEFAULT_BANGLA_MEDICINES,
+  ensureMedicineCatalog,
   getStoredMedicines,
   addStoredMedicine,
 } from "@/lib/medicines-store";
@@ -110,7 +85,6 @@ export interface PrescriptionTest {
 
 
 export function PrescriptionStudio() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   // Clinic Setup Data from settings store
@@ -173,9 +147,7 @@ export function PrescriptionStudio() {
   const [aiRationale, setAiRationale] = useState("");
 
   // Medicine Search & Add State
-  const [isAddingMedicine, setIsAddingMedicine] = useState(false);
-  const [catalogMedicines, setCatalogMedicines] = useState<CatalogMedicine[]>(DEFAULT_BANGLA_MEDICINES);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [catalogMedicines, setCatalogMedicines] = useState<CatalogMedicine[]>([]);
   const [selectedCatalogMed, setSelectedCatalogMed] = useState<CatalogMedicine | null>(null);
 
   // New field inputs for prescription item
@@ -221,7 +193,8 @@ export function PrescriptionStudio() {
   // Next Follow-Up Review Date (Optional - auto schedules appointment)
   const [followUpDate, setFollowUpDate] = useState<string>("");
   const [followUpNotes, setFollowUpNotes] = useState<string>("");
-  const [autoScheduleFollowUp, setAutoScheduleFollowUp] = useState<boolean>(true);
+  // Follow-ups are always auto-booked at the earliest free slot when a date is set
+  const autoScheduleFollowUp = true;
 
   // Search Historical Prescriptions State
   const [histSearchQuery, setHistSearchQuery] = useState("");
@@ -281,32 +254,14 @@ export function PrescriptionStudio() {
   // Sync with local store & settings updates
   useEffect(() => {
     setCatalogMedicines(getStoredMedicines());
+    // First visit on this device: fetch the catalog once (fires the sync event below)
+    ensureMedicineCatalog().catch((err) => console.warn("Medicine catalog unavailable:", err));
     const handleMedsSync = () => {
       setCatalogMedicines(getStoredMedicines());
     };
     window.addEventListener("dentai-medications-updated", handleMedsSync);
     return () => window.removeEventListener("dentai-medications-updated", handleMedsSync);
   }, []);
-
-  // Load medicines catalog from database on mount or search
-  useEffect(() => {
-    async function loadMedicines() {
-      try {
-        const url = searchQuery ? `/api/medicines?q=${encodeURIComponent(searchQuery)}` : "/api/medicines";
-        const res = await fetch(url);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.medicines && data.medicines.length > 0) {
-            setCatalogMedicines(data.medicines);
-          }
-        }
-      } catch (err) {
-        console.warn("Could not fetch remote medicines catalog, using local defaults", err);
-      }
-    }
-    const timer = setTimeout(loadMedicines, 250);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
   // Select a patient from Today's Completed Patients Dropdown
   const handleSelectTodayCompletedPatient = (appointmentId: string) => {
@@ -330,7 +285,7 @@ export function PrescriptionStudio() {
       gender: chosen.gender,
       phone: chosen.phone,
       address: chosen.address,
-      allergies: Array.from(new Set([...(record?.allergies || []), ...(chosen.alerts || [])])),
+      allergies: mergeAllergies(record?.allergies || [], chosen.alerts || []),
       date: new Date().toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
     });
 
@@ -439,7 +394,15 @@ export function PrescriptionStudio() {
       ]);
       if (data.advice && !additionalAdvice.trim()) setAdditionalAdvice(data.advice);
       setAiRationale(data.rationale || "");
-      toast.success("AI draft added. Review every medicine before signing.");
+      const flagged = drafted.filter((d) => findAllergyConflicts(d, patient.allergies).length > 0);
+      if (flagged.length > 0) {
+        toast.error(
+          `Allergy warning: ${flagged.map((d) => d.brandName).join(", ")} may conflict with the patient's allergies. Review before signing.`,
+          { duration: 10000 }
+        );
+      } else {
+        toast.success("AI draft added. Review every medicine before signing.");
+      }
     } catch (err) {
       toast.error(`AI pre-fill failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -467,6 +430,18 @@ export function PrescriptionStudio() {
       toast.error("Please enter or select a medicine brand name");
       return;
     }
+    const conflicts = findAllergyConflicts(
+      { brandName: brand, genericName: customGeneric || selectedCatalogMed?.genericName },
+      patient.allergies
+    );
+    if (
+      conflicts.length > 0 &&
+      !confirm(
+        `ALLERGY WARNING: ${brand} may conflict with "${conflicts.map((c) => c.allergy).join(", ")}" (${conflicts[0].reason}).\n\nAdd it anyway?`
+      )
+    ) {
+      return;
+    }
 
     const newPrescriptionItem: PrescriptionMedicine = {
       id: "med-" + Date.now(),
@@ -483,9 +458,7 @@ export function PrescriptionStudio() {
     setMedicines([...medicines, newPrescriptionItem]);
     toast.success(`${brand} added to e-Prescription`);
 
-    setIsAddingMedicine(false);
     setSelectedCatalogMed(null);
-    setSearchQuery("");
     setCustomBrand("");
     setCustomGeneric("");
     setCustomStrength("");
@@ -808,6 +781,16 @@ export function PrescriptionStudio() {
       return;
     }
 
+    const risky = medicines.filter((m) => findAllergyConflicts(m, patient.allergies).length > 0);
+    if (
+      risky.length > 0 &&
+      !confirm(
+        `ALLERGY WARNING: ${risky.map((m) => m.brandName).join(", ")} may conflict with the patient's allergies (${patient.allergies.join(", ")}).\n\nSign the prescription anyway?`
+      )
+    ) {
+      return;
+    }
+
     const pdfDoc = createPrescriptionPdfDoc();
     const rxNumber = visit.prescription?.rxNumber || pdfDoc.rxNumber;
     pdfDoc.rxNumber = rxNumber;
@@ -918,12 +901,14 @@ export function PrescriptionStudio() {
     toast.success(`Loaded prescription #${rx.rxNumber} for ${rx.patientName} into Studio!`);
   };
 
-  // Check if selected medicine triggers allergy alert
-  const hasAllergyWarning =
-    (customBrand.toLowerCase().includes("amox") ||
-      customGeneric.toLowerCase().includes("amox") ||
-      customGeneric.toLowerCase().includes("penicillin")) &&
-    patient.allergies.some((a) => a.toLowerCase().includes("penicillin"));
+  // Does the medicine being added conflict with a recorded allergy?
+  const pendingMedConflicts = findAllergyConflicts(
+    {
+      brandName: customBrand || selectedCatalogMed?.brandName,
+      genericName: customGeneric || selectedCatalogMed?.genericName,
+    },
+    patient.allergies
+  );
 
   // Vitals and tooth shown on the pad come from the visit, never sample values
   const padVitals =
@@ -945,73 +930,52 @@ export function PrescriptionStudio() {
 
   return (
     <div className="space-y-6">
-      {/* Header & Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 print:hidden">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Pill className="h-5 w-5 text-primary" />
-            e-Prescription & Diagnostic Studio (BDT / ৳)
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Prescribe Bangladeshi dental pharmacotherapy, select today's completed patients, or search historical records
-          </p>
-        </div>
-
-        {/* Tab switch between Write Rx & Search Past Rx */}
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <div className="flex rounded-lg border p-1 bg-muted/40 text-xs font-semibold w-full sm:w-auto">
-            <button
-              onClick={() => setActiveTab("write")}
-              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-all ${
-                activeTab === "write" ? "bg-background text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Pill className="h-3.5 w-3.5 text-primary" />
-              Write e-Prescription
-            </button>
-            <button
-              onClick={() => setActiveTab("search")}
-              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-all ${
-                activeTab === "search" ? "bg-background text-foreground shadow-xs font-bold text-primary" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <History className="h-3.5 w-3.5" />
-              Search Past Prescriptions
-            </button>
-          </div>
-
-          {activeTab === "write" && (
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5 text-xs flex-1 sm:flex-initial">
-                <Printer className="h-3.5 w-3.5" />
-                Print Rx
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSignAndFinalizeRx}
-                className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex-1 sm:flex-initial"
-              >
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Sign & Finalize Rx
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Prescriptions"
+        description="Write today's prescription from the visit notes, or find a past one."
+        actions={
+          <>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "write" | "search")}>
+              <TabsList>
+                <TabsTrigger value="write" className="gap-1.5">
+                  <Pill className="h-4 w-4" />
+                  Write
+                </TabsTrigger>
+                <TabsTrigger value="search" className="gap-1.5">
+                  <History className="h-4 w-4" />
+                  Past prescriptions
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            {activeTab === "write" && visit && (
+              <>
+                <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
+                  <Printer className="h-4 w-4" />
+                  Print
+                </Button>
+                <Button size="sm" onClick={handleSignAndFinalizeRx} className="gap-1.5">
+                  <ShieldCheck className="h-4 w-4" />
+                  {isSignedAndReadyForBilling ? "Re-sign" : "Sign & finalize"}
+                </Button>
+              </>
+            )}
+          </>
+        }
+      />
 
       {/* ─── TAB 1: WRITE E-PRESCRIPTION ─── */}
       {activeTab === "write" && (
         <div className="space-y-4">
           {/* 1. DROPDOWN FOR TODAY'S COMPLETED PATIENTS */}
-          <Card className="border-2 border-primary/30 bg-primary/5 p-4 shadow-sm print:hidden">
+          <Card className="p-4 shadow-xs print:hidden">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-1">
-                <span className="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5" />
-                  Select Today's Completed Consultation Patient (Queue Dropdown)
+                <span className="text-sm font-medium flex items-center gap-1.5">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  Patient
                 </span>
                 <p className="text-xs text-muted-foreground">
-                  Loads patient demographics, consultation notes, allergy warnings, and ordered lab tests
+                  Today&apos;s patients who have finished note taking (and the procedure, if needed).
                 </p>
               </div>
 
@@ -1024,9 +988,15 @@ export function PrescriptionStudio() {
                     <SelectValue placeholder="Choose a completed patient..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {completedPatients.length === 0 ? (
+                    {visit && !completedPatients.some((a) => a.id === visit.id) && (
+                      <SelectItem value={visit.id} className="text-xs">
+                        <span className="font-bold text-primary mr-1.5">Serial #{visit.fifoSerial}:</span>
+                        {visit.patient} · {visit.service}
+                      </SelectItem>
+                    )}
+                    {completedPatients.length === 0 && !visit ? (
                       <SelectItem value="none" disabled>
-                        No completed consultations yet today
+                        No patients ready for a prescription today
                       </SelectItem>
                     ) : (
                       completedPatients.map((apt) => (
@@ -1109,6 +1079,12 @@ export function PrescriptionStudio() {
           )}
 
                     {/* 3. Interactive Prescription Pad with Integrated Controls */}
+          {!visit ? (
+            <Card className="border-dashed p-10 text-center text-sm text-muted-foreground print:hidden">
+              Select a patient above to write their prescription. Patients appear here after note taking
+              (and the procedure, if one was needed).
+            </Card>
+          ) : (
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
           <div className="xl:col-span-8 space-y-4">
             <Card className="printable-prescription-pad border-2 shadow-xl bg-card p-6 sm:p-10 space-y-6 print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none relative overflow-hidden">
@@ -1782,6 +1758,12 @@ export function PrescriptionStudio() {
                         placeholder="Special directions (e.g. Swish 60 seconds, do not exceed 5 days)..."
                         className="h-6 text-xs bg-background"
                       />
+                      {pendingMedConflicts.length > 0 && (
+                        <div role="alert" className="rounded-md border border-red-300 bg-red-50 p-2 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                          <strong>Allergy warning:</strong> may conflict with{" "}
+                          {pendingMedConflicts.map((c) => c.allergy).join(", ")} ({pendingMedConflicts[0].reason}).
+                        </div>
+                      )}
                       <Button
                         type="button"
                         onClick={handleConfirmAddMedicine}
@@ -1907,15 +1889,10 @@ export function PrescriptionStudio() {
 
             {/* History, health issues & precautions for this patient */}
             <div className="xl:col-span-4 print:hidden">
-              {visit ? (
-                <PatientContextPanel visit={visit} className="xl:sticky xl:top-4" />
-              ) : (
-                <Card className="border-dashed p-6 text-xs text-muted-foreground">
-                  Select a patient to see their history, alerts and precautions.
-                </Card>
-              )}
+              <PatientContextPanel visit={visit} className="xl:sticky xl:top-4" />
             </div>
           </div>
+          )}
 
         </div>
       )}

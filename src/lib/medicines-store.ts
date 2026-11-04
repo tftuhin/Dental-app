@@ -1,14 +1,9 @@
 // ============================================================
-// DENTALOS1 — MEDICATIONS CATALOG & PHARMACOPEIA STORE
-// Comprehensive real dental medications catalog tailored for Bangladesh clinics
-// Provides:
-// 1. Full schema & typed definitions for medications
-// 2. Real Bangladeshi pharmaceuticals catalog (Square, Incepta, Beximco, Renata, etc.)
-// 3. Browser LocalStorage sync with custom window events
-// 4. Search and category filtering
+// DENTALOS1 — Medicine catalog (browser side)
+// The ~1,500-brand catalog is NOT bundled into pages (it was ~800 KB of
+// JavaScript). It is fetched once from /api/medicines and cached in
+// localStorage; the clinic's own additions live in the same cache.
 // ============================================================
-
-import rawMedicinesData from "./medicines-data.json";
 
 export interface CatalogMedicine {
   id: string;
@@ -27,64 +22,50 @@ export interface CatalogMedicine {
   notes?: string;
 }
 
-interface RawMedicineItem {
-  brand_name: string;
-  generic_name: string;
-  strength: string;
-  dosage_form: string;
-  company_name: string;
-  popularity_rank?: number | null;
-  default_frequency?: string | null;
-  default_duration?: string | null;
-  default_timing?: string | null;
-  category: string;
-  is_custom_added?: boolean;
-  is_active?: boolean;
-  notes?: string | null;
-}
-
-export const DEFAULT_BANGLA_MEDICINES: CatalogMedicine[] = (rawMedicinesData as RawMedicineItem[]).map(
-  (item, idx) => ({
-    id: `med-real-${idx + 1}`,
-    brandName: item.brand_name,
-    genericName: item.generic_name || undefined,
-    strength: item.strength || undefined,
-    dosageForm: item.dosage_form || "Tablet",
-    manufacturer: item.company_name || undefined,
-    category: item.category || "General",
-    defaultFrequency: item.default_frequency || undefined,
-    defaultDuration: item.default_duration || undefined,
-    defaultTiming: item.default_timing || undefined,
-    specialInstructions: item.notes ? item.notes.split(" | ").slice(1, 3).join(" • ") : undefined,
-    isCustomAdded: item.is_custom_added ?? false,
-    isActive: item.is_active ?? true,
-    notes: item.notes || undefined,
-  })
-);
-
 const STORAGE_KEY = "dentai_medications_catalog_v3";
 
+/** The cached catalog, or [] until it has been fetched (see ensureMedicineCatalog). */
 export function getStoredMedicines(): CatalogMedicine[] {
-  if (typeof window === "undefined") {
-    return DEFAULT_BANGLA_MEDICINES;
-  }
+  if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_BANGLA_MEDICINES));
-      return DEFAULT_BANGLA_MEDICINES;
-    }
-    const parsed = JSON.parse(raw);
-    // Upgrade if the user has an old small cache (<100 medicines)
-    if (Array.isArray(parsed) && parsed.length >= 100) {
-      return parsed;
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_BANGLA_MEDICINES));
-    return DEFAULT_BANGLA_MEDICINES;
-  } catch (err) {
-    console.error("Error reading stored medicines:", err);
-    return DEFAULT_BANGLA_MEDICINES;
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
+}
+
+async function fetchDefaultCatalog(): Promise<CatalogMedicine[]> {
+  const res = await fetch("/api/medicines");
+  if (!res.ok) throw new Error(`Medicine catalog request failed (${res.status})`);
+  const data = await res.json();
+  return Array.isArray(data.medicines) ? data.medicines : [];
+}
+
+let inflight: Promise<CatalogMedicine[]> | null = null;
+
+/**
+ * Make sure the catalog is cached, fetching it once if needed. Callers can
+ * render immediately with getStoredMedicines() and update when this resolves
+ * (it also fires "dentai-medications-updated").
+ */
+export function ensureMedicineCatalog(): Promise<CatalogMedicine[]> {
+  const cached = getStoredMedicines();
+  // A small cache is an old seed or only custom additions: top it up from the full catalog
+  if (cached.length >= 100) return Promise.resolve(cached);
+  if (!inflight) {
+    inflight = fetchDefaultCatalog()
+      .then((defaults) => {
+        const custom = getStoredMedicines().filter((m) => m.isCustomAdded);
+        const merged = [...custom, ...defaults.filter((d) => !custom.some((c) => c.brandName === d.brandName))];
+        saveStoredMedicines(merged);
+        return merged;
+      })
+      .finally(() => {
+        inflight = null;
+      });
+  }
+  return inflight;
 }
 
 export function saveStoredMedicines(list: CatalogMedicine[]) {
@@ -135,7 +116,9 @@ export function deleteStoredMedicine(id: string): boolean {
   return false;
 }
 
-export function resetStoredMedicines(): CatalogMedicine[] {
-  saveStoredMedicines(DEFAULT_BANGLA_MEDICINES);
-  return DEFAULT_BANGLA_MEDICINES;
+/** Replace the cache with the default catalog (drops the clinic's own additions). */
+export async function resetStoredMedicines(): Promise<CatalogMedicine[]> {
+  const defaults = await fetchDefaultCatalog();
+  saveStoredMedicines(defaults);
+  return defaults;
 }

@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Stethoscope, Plus, Trash2, ArrowRight, Save, Search, Package } from "lucide-react";
+import { Plus, Trash2, ArrowRight, Save, Search, Package } from "lucide-react";
 import { toast } from "sonner";
 import {
   ClinicalQueuePatient,
@@ -37,6 +37,7 @@ import {
 import { formatBDT } from "@/lib/currency";
 import { PatientContextPanel } from "@/components/clinical/patient-context-panel";
 import { VisitStepper } from "@/components/clinical/visit-stepper";
+import { PageHeader } from "@/components/layout/page-header";
 
 const PICKER_TABS: CatalogCategory[] = ["examination", "procedure", "surgery"];
 
@@ -206,20 +207,13 @@ export function ProcedureStudio() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-            <Stethoscope className="h-5 w-5 text-primary" />
-            Examination & Procedure
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Record examinations, procedures and surgery from the clinic price list, plus medicines and disposables used.
-          </p>
-        </div>
+      <PageHeader
+        title="Examination & Procedure"
+        description="Record examinations, procedures and surgery from the price list, plus medicines and disposables used."
+        actions={
         <div className="w-full sm:w-80">
-          <Label className="text-[11px] text-muted-foreground">Patient</Label>
           <Select value={visitId} onValueChange={setVisitId}>
-            <SelectTrigger className="h-9 text-xs mt-1">
+            <SelectTrigger className="h-9" aria-label="Patient">
               <SelectValue placeholder="Select a patient waiting for procedure" />
             </SelectTrigger>
             <SelectContent>
@@ -239,7 +233,8 @@ export function ProcedureStudio() {
             </SelectContent>
           </Select>
         </div>
-      </div>
+        }
+      />
 
       {!visit ? (
         <Card className="border-dashed">

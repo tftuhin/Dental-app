@@ -4,14 +4,8 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ToothIcon } from "@/components/icons/dental-icons";
-import { Sparkles, RefreshCw, ZoomIn, Info, CheckCircle2, Save, RotateCcw } from "lucide-react";
+import { CheckCircle2, Save, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import {
   SurfaceType,
@@ -140,10 +134,6 @@ export function Odontogram({
     const tooth = teeth[toothNum];
     const isSelected = selectedTooth === toothNum;
     const isMaxillary = toothNum <= 16;
-    const isMolarOrPremolar =
-      (toothNum >= 1 && toothNum <= 5) ||
-      (toothNum >= 12 && toothNum <= 21) ||
-      (toothNum >= 28 && toothNum <= 32);
 
     const label = notation === "universal" ? tooth.number : tooth.fdiNumber;
 
@@ -455,7 +445,7 @@ export function Odontogram({
                 <p className="text-[11px] text-muted-foreground">
                   Condition: <strong className="capitalize text-foreground">{teeth[selectedTooth].condition}</strong> · 
                   Surfaces: {Object.entries(teeth[selectedTooth].surfaces)
-                    .filter(([_, v]) => v !== "sound")
+                    .filter(([, v]) => v !== "sound")
                     .map(([k, v]) => `${k} (${v})`)
                     .join(", ") || "Sound"}
                 </p>

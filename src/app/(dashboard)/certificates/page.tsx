@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,21 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToothIcon } from "@/components/icons/dental-icons";
-import {
-  Award,
-  Printer,
-  ShieldCheck,
-  QrCode,
-  Calendar,
-  CheckCircle2,
-  Download,
-  FileText,
-  User,
-  Stethoscope,
-  Clock,
-  Sparkles,
-  Zap,
-} from "lucide-react";
+import { Award, Printer, ShieldCheck, Download, FileText, User, Stethoscope, Zap } from "lucide-react";
 import { toast } from "sonner";
 import {
   CertificatePdfData,
@@ -49,81 +35,6 @@ interface PresetPatient {
   phone: string;
   address: string;
 }
-
-const PRESET_PATIENTS: PresetPatient[] = [
-  {
-    id: "p-42",
-    name: "Anika Tabassum",
-    customId: "DENT-2026-00042",
-    age: 34,
-    gender: "Female",
-    phone: "+880 1711-234891",
-    address: "House 42, Road 7A, Dhanmondi R/A, Dhaka-1209",
-  },
-  {
-    id: "p-89",
-    name: "Nusrat Parveen",
-    customId: "DENT-2026-00089",
-    age: 28,
-    gender: "Female",
-    phone: "+880 1819-872334",
-    address: "Flat 4B, Plot 12, Banani DOHS, Dhaka",
-  },
-  {
-    id: "p-104",
-    name: "Mohammad Tariqul Islam",
-    customId: "DENT-2026-00104",
-    age: 45,
-    gender: "Male",
-    phone: "+880 1912-439019",
-    address: "House 18, Road 3, Uttara Sector 4, Dhaka",
-  },
-  {
-    id: "p-122",
-    name: "Tanvir Ahmed",
-    customId: "DENT-2026-00122",
-    age: 39,
-    gender: "Male",
-    phone: "+880 1675-901443",
-    address: "Road 11, Block C, Mirpur-2, Dhaka",
-  },
-  {
-    id: "p-812",
-    name: "Kazi Nazrul Haque",
-    customId: "DENT-2025-00812",
-    age: 62,
-    gender: "Male",
-    phone: "+880 1722-312778",
-    address: "Plot 88, Gulshan-2, Dhaka",
-  },
-  {
-    id: "p-95",
-    name: "Farhana Chowdhury",
-    customId: "DENT-2026-00095",
-    age: 31,
-    gender: "Female",
-    phone: "+880 1733-892120",
-    address: "56 Shantinagar Road, Kakrail, Dhaka",
-  },
-  {
-    id: "p-88",
-    name: "Rahat Chowdhury",
-    customId: "DENT-2026-00088",
-    age: 28,
-    gender: "Male",
-    phone: "+880 1819-876543",
-    address: "House 12, Road 5, Sector 7, Uttara, Dhaka",
-  },
-  {
-    id: "p-105",
-    name: "Sarah Begum",
-    customId: "DENT-2026-00105",
-    age: 45,
-    gender: "Female",
-    phone: "+880 1911-223344",
-    address: "Apt 5A, Green Road, Farmgate, Dhaka",
-  },
-];
 
 const CLINICAL_CERT_TEMPLATES = [
   {
@@ -216,11 +127,11 @@ export default function MedicalCertificatePage() {
   );
 
   // Clinic & Doctor Customization
-  const [clinicName, setClinicName] = useState("DHAKA DENTAL CARE & MAXILLOFACIAL HOSPITAL");
-  const [doctorName, setDoctorName] = useState("Dr. Sarah Smith");
-  const [doctorDegree, setDoctorDegree] = useState("BDS (DU), FCPS (Oral & Maxillofacial Surgery)");
-  const [doctorDesignation, setDoctorDesignation] = useState("Senior Consultant Dental Surgeon");
-  const [bmdcReg, setBmdcReg] = useState("BMDC Reg. No: A-84291");
+  const clinicName = "DHAKA DENTAL CARE & MAXILLOFACIAL HOSPITAL";
+  const doctorName = "Dr. Sarah Smith";
+  const doctorDegree = "BDS (DU), FCPS (Oral & Maxillofacial Surgery)";
+  const doctorDesignation = "Senior Consultant Dental Surgeon";
+  const bmdcReg = "BMDC Reg. No: A-84291";
 
   // Letterhead Mode
   const [letterheadMode, setLetterheadMode] = useState<"full_blank_a4" | "preprinted_pad">("full_blank_a4");
@@ -341,7 +252,6 @@ export default function MedicalCertificatePage() {
 
   // Issue & Log to Patient History
   const handleIssueCertificate = () => {
-    const data = getCertificateData();
     // Log to patient timeline
     logPatientActivity({
       id: `cert-${Date.now()}`,
@@ -774,7 +684,7 @@ export default function MedicalCertificatePage() {
         {/* ─── RIGHT COLUMN (7 COLS): AUTHENTIC PRINTED LETTERHEAD CERTIFICATE PREVIEW ─── */}
         <div className="lg:col-span-7">
           <div className="sticky top-6">
-            <div className="flex items-center justify-between mb-2 px-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2 px-1">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <FileText className="h-4 w-4 text-primary" />
                 A4 Authentic Printed Letterhead Preview
@@ -808,7 +718,7 @@ export default function MedicalCertificatePage() {
             {/* Stationery Desk Worksurface Preview Backdrop */}
             <div className="bg-slate-100 dark:bg-slate-950/80 p-3 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner flex justify-center">
               {/* Authentic Physical A4 Letterhead Sheet */}
-              <div className="bg-white text-slate-900 shadow-[0_16px_40px_rgba(0,0,0,0.16)] border border-slate-300 w-full max-w-2xl font-sans text-xs leading-relaxed relative select-text p-5 sm:p-7 min-h-[820px] flex flex-col justify-between">
+              <div className="bg-white text-slate-900 shadow-[0_16px_40px_rgba(0,0,0,0.16)] border border-slate-300 w-full max-w-2xl font-sans text-xs leading-relaxed relative overflow-hidden select-text p-5 sm:p-7 min-h-[820px] flex flex-col justify-between">
                 
                 {/* Subtle Watermark Crest (Matching Prescription) */}
                 <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[30deg] text-[70px] font-black text-sky-500/[0.035] tracking-[12px] uppercase select-none pointer-events-none whitespace-nowrap font-serif z-0">

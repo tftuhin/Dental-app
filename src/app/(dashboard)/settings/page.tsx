@@ -2,15 +2,9 @@
 
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { PageHeader } from "@/components/layout/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Settings,
-  Building2,
-  Pill,
-  Microscope,
-  Layers,
-  Receipt,
-} from "lucide-react";
+import { Building2, Pill, Microscope, Layers, Receipt } from "lucide-react";
 import { ProceduresSettingsTab } from "@/components/settings/procedures-settings-tab";
 import { ClinicSetupTab } from "@/components/settings/clinic-setup-tab";
 import { MedicationsSettingsTab } from "@/components/settings/medications-settings-tab";
@@ -30,18 +24,13 @@ function SettingsContent() {
 
   return (
     <div className="space-y-6 max-w-5xl">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <Settings className="h-5 w-5 text-primary" />
-          Clinic & Practice Settings
-        </h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Configure clinic profile, operating hours, brand colors, doctors, operatories, pharmacotherapy, diagnostic investigations, and cloud services
-        </p>
-      </div>
+      <PageHeader
+        title="Settings"
+        description="Clinic profile and hours, doctors and chairs, price list, medicines, tests and services."
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
-        <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full sm:w-auto h-auto p-1 bg-muted/60 rounded-xl border gap-1">
+        <TabsList className="w-full max-w-full justify-start overflow-x-auto sm:w-auto">
           {/* Tab 1: Clinic Setup */}
           <TabsTrigger value="clinic-setup" className="text-xs gap-1.5 py-1.5 font-semibold">
             <Building2 className="h-3.5 w-3.5 text-primary" />

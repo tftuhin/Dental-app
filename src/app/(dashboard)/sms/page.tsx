@@ -7,19 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  MessageSquare,
-  Send,
-  Clock,
-  CheckCheck,
-  AlertCircle,
-  Users,
-  Sparkles,
-  Cake,
-  RefreshCw,
-  Plus,
-} from "lucide-react";
+import { MessageSquare, Send, CheckCheck, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { getServicesSettings } from "@/lib/services-store";
 

@@ -21,25 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Building2,
-  Clock,
-  Palette,
-  Users,
-  Plus,
-  Trash2,
-  Edit,
-  Save,
-  Check,
-  Phone,
-  MapPin,
-  Mail,
-  Calendar,
-  Stethoscope,
-  ShieldCheck,
-  Upload,
-  Sparkles,
-} from "lucide-react";
+import { Building2, Clock, Palette, Users, Plus, Trash2, Edit, Save, Check, Phone, MapPin, Mail, Stethoscope, ShieldCheck } from "lucide-react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
   ClinicSetupData,

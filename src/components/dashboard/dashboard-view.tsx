@@ -20,16 +20,40 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ToothIcon } from "@/components/icons/dental-icons";
-import {
-  getClinicSetup,
-  DentalChair,
-  isChairMatch,
-  ClinicSetupData,
-} from "@/lib/clinic-setup-store";
+import { getClinicSetup, isChairMatch, ClinicSetupData } from "@/lib/clinic-setup-store";
 import {
   getStoredAppointments,
   ClinicalQueuePatient,
+  toISODate,
 } from "@/lib/clinical-flow-store";
+import { getAllPatients } from "@/lib/patients-store";
+import { getOutstandingVisits, getPayments } from "@/lib/billing-store";
+import { formatBDT } from "@/lib/currency";
+import { PageHeader } from "@/components/layout/page-header";
+
+/** Today's collections and all outstanding dues, from the saved bills. */
+function computeMoney() {
+  const today = toISODate();
+  let collectedToday = 0;
+  let paymentsToday = 0;
+  for (const v of getStoredAppointments()) {
+    if (!v.invoice) continue;
+    for (const p of getPayments(v.invoice)) {
+      const d = new Date(p.paidAt);
+      if (!isNaN(d.getTime()) && toISODate(d) === today) {
+        collectedToday += p.amount;
+        paymentsToday++;
+      }
+    }
+  }
+  const dues = getOutstandingVisits();
+  return {
+    collectedToday,
+    paymentsToday,
+    dueTotal: dues.reduce((sum, v) => sum + (v.invoice?.balanceDue || 0), 0),
+    dueBills: dues.length,
+  };
+}
 
 interface DashboardViewProps {
   userName: string;
@@ -39,27 +63,35 @@ export function DashboardView({ userName }: DashboardViewProps) {
   const [setup, setSetup] = useState<ClinicSetupData | null>(null);
   const [appointments, setAppointments] = useState<ClinicalQueuePatient[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const [patientCount, setPatientCount] = useState(0);
+  const [money, setMoney] = useState({ collectedToday: 0, paymentsToday: 0, dueTotal: 0, dueBills: 0 });
 
   // Load setup and appointments on mount, and listen to real-time events
   useEffect(() => {
     setIsClient(true);
     setSetup(getClinicSetup());
-    setAppointments(getStoredAppointments());
+    const loadToday = () =>
+      getStoredAppointments().filter((a) => (a.date || toISODate()) === toISODate());
+    setAppointments(loadToday());
+    setPatientCount(getAllPatients().length);
+    setMoney(computeMoney());
 
     const handleSetupSync = () => {
       setSetup(getClinicSetup());
     };
 
     const handleAptSync = () => {
-      setAppointments(getStoredAppointments());
+      setAppointments(loadToday());
+      setMoney(computeMoney());
     };
 
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "dentai_clinic_setup_v1") {
         setSetup(getClinicSetup());
       }
-      if (e.key === "dentai_clinical_queue_v1") {
-        setAppointments(getStoredAppointments());
+      if (e.key === "dentai_appointments_patient_queue_v2") {
+        setAppointments(loadToday());
+        setMoney(computeMoney());
       }
     };
 
@@ -132,46 +164,34 @@ export function DashboardView({ userName }: DashboardViewProps) {
     return chairs.filter((c) => c.status === "active").length;
   }, [chairs]);
 
-  // Production calculation
-  const todayProduction = useMemo(() => {
-    const total = appointments
-      .filter((a) => a.status === "completed" || a.status === "in_progress")
-      .reduce((sum, a) => sum + (a.suggestedFee || 4500), 0);
-    return total > 0 ? total : 48500;
-  }, [appointments]);
-
   const metrics = [
     {
-      title: "Today's Appointments",
-      value: appointments.length > 0 ? appointments.length.toString() : "14",
-      subtext: `${completedCount} completed · ${inChairCount} in-chair · ${upcomingCount} upcoming`,
+      title: "Today's appointments",
+      value: String(appointments.length),
+      subtext: `${completedCount} done · ${inChairCount} in chair · ${upcomingCount} waiting`,
       icon: CalendarCheck,
-      color: "text-blue-600 dark:text-blue-400",
-      bgColor: "bg-blue-50 dark:bg-blue-950/40",
+      href: "/appointments",
     },
     {
-      title: "Active Patients",
-      value: "1,248",
-      subtext: "+18 registered this month",
+      title: "Registered patients",
+      value: patientCount.toLocaleString("en-BD"),
+      subtext: "In the patient registry",
       icon: Users,
-      color: "text-teal-600 dark:text-teal-400",
-      bgColor: "bg-teal-50 dark:bg-teal-950/40",
+      href: "/patients",
     },
     {
-      title: "Today's Production",
-      value: `৳${todayProduction.toLocaleString("en-BD", { minimumFractionDigits: 2 })}`,
-      subtext: "Target: ৳55,000.00 (88% achieved)",
+      title: "Collected today",
+      value: formatBDT(money.collectedToday),
+      subtext: `${money.paymentsToday} payment${money.paymentsToday === 1 ? "" : "s"} received`,
       icon: Receipt,
-      color: "text-emerald-600 dark:text-emerald-400",
-      bgColor: "bg-emerald-50 dark:bg-emerald-950/40",
+      href: "/billing",
     },
     {
-      title: "Recalls Due (30d)",
-      value: "38",
-      subtext: "Automated SMS reminders active",
+      title: "Outstanding dues",
+      value: formatBDT(money.dueTotal),
+      subtext: money.dueBills === 0 ? "No unpaid bills" : `${money.dueBills} unpaid bill${money.dueBills === 1 ? "" : "s"}`,
       icon: Activity,
-      color: "text-amber-600 dark:text-amber-400",
-      bgColor: "bg-amber-50 dark:bg-amber-950/40",
+      href: "/billing",
     },
   ];
 
@@ -190,60 +210,42 @@ export function DashboardView({ userName }: DashboardViewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner & Quick Greeting */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            Welcome back, {userName}
-            <span className="inline-block animate-pulse">✨</span>
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Today is{" "}
-            {new Date().toLocaleDateString("en-US", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}{" "}
-            ·{" "}
-            <span className="font-semibold text-foreground">
-              {activeOperatoriesCount} of {chairs.length} Operatories Active
-            </span>
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/appointments">
-              <Clock className="mr-1.5 h-3.5 w-3.5" />
-              Full Schedule
-            </Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href="/appointments?session=active">
-              <Stethoscope className="mr-1.5 h-3.5 w-3.5" />
-              Start Clinical Encounter
-            </Link>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title={`Welcome back, ${userName.split(",")[0]}`}
+        description={`${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · ${activeOperatoriesCount} of ${chairs.length} chairs active`}
+        actions={
+          <>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/appointments">
+                <Clock className="mr-1.5 h-4 w-4" />
+                Schedule
+              </Link>
+            </Button>
+            <Button size="sm" asChild>
+              <Link href="/appointments?session=active">
+                <Stethoscope className="mr-1.5 h-4 w-4" />
+                Start next session
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       {/* 4 Key Stat Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {metrics.map((m) => (
-          <Card key={m.title} className="shadow-xs border hover:shadow transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">
-                {m.title}
-              </CardTitle>
-              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${m.bgColor}`}>
-                <m.icon className={`h-4 w-4 ${m.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{m.value}</div>
-              <p className="text-[11px] text-muted-foreground mt-1">{m.subtext}</p>
-            </CardContent>
-          </Card>
+          <Link key={m.title} href={m.href} className="group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <Card className="h-full shadow-xs transition-colors group-hover:bg-muted/40">
+              <CardHeader className="flex flex-row items-center justify-between pb-1">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{m.title}</CardTitle>
+                <m.icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-semibold tabular-nums">{m.value}</div>
+                <p className="text-xs text-muted-foreground mt-1">{m.subtext}</p>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 

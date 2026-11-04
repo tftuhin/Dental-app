@@ -13,7 +13,7 @@ export default async function DashboardLayout({
   const session = await auth();
   if (!session?.user) redirect("/auth/login");
 
-  const clinicId = (session.user as any).clinicId as string | undefined;
+  const clinicId = session.user.clinicId ?? undefined;
   let clinicName = "My Clinic";
 
   if (clinicId && isDatabaseConfigured) {

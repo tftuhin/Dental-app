@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
 // Public routes that don't require authentication
 const publicRoutes = [
@@ -11,7 +10,7 @@ const publicRoutes = [
 ];
 
 export default auth((req) => {
-  const { nextUrl, auth: session } = req as any;
+  const { nextUrl, auth: session } = req;
   const isLoggedIn = !!session;
   const isPublicRoute = publicRoutes.some(
     (route) =>

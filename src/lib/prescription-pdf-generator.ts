@@ -1,6 +1,5 @@
 "use client";
 
-import { PrescriptionMedicine, PrescriptionTest } from "@/components/prescriptions/prescription-studio";
 
 export interface PrescriptionPdfData {
   rxNumber: string;

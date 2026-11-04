@@ -2,31 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EditPatientDialog } from "@/components/patients/edit-patient-dialog";
-import {
-  PatientProfile,
-  getAllPatients,
-  INITIAL_PATIENTS,
-} from "@/lib/patients-store";
-import {
-  Users,
-  Search,
-  Plus,
-  Filter,
-  Calendar,
-  AlertTriangle,
-  ChevronRight,
-  UserCheck,
-  Clock,
-  ArrowUpDown,
-  Edit,
-  Phone,
-  MapPin,
-} from "lucide-react";
+import { PatientProfile, getAllPatients } from "@/lib/patients-store";
+import { Search, Plus, AlertTriangle, ChevronRight, Edit } from "lucide-react";
 
 export default function PatientsDirectoryPage() {
   const [patients, setPatients] = useState<PatientProfile[]>(() => {
@@ -78,24 +61,18 @@ export default function PatientsDirectoryPage() {
 
   return (
     <div className="space-y-6">
-      {/* Title & Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            Patient Directory & Clinical EHR Registry
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Manage comprehensive clinical records, demographics, addresses, contact details, and medical alerts.
-          </p>
-        </div>
-        <Button size="sm" asChild className="gap-1.5 text-xs w-full sm:w-auto">
-          <Link href="/patients/new">
-            <Plus className="h-3.5 w-3.5" />
-            Register New Patient
-          </Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="Patients"
+        description="Everyone registered at the clinic, with contact details and medical alerts."
+        actions={
+          <Button size="sm" asChild className="gap-1.5">
+            <Link href="/patients/new">
+              <Plus className="h-4 w-4" />
+              Register patient
+            </Link>
+          </Button>
+        }
+      />
 
       {/* Filter and Search Bar */}
       <Card className="border shadow-sm p-4">
@@ -137,7 +114,7 @@ export default function PatientsDirectoryPage() {
 
       {/* Patients Table */}
       <Card className="border shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-muted/50 border-b text-muted-foreground">
               <tr>

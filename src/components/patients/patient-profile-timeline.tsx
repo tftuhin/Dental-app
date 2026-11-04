@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,29 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Clock,
-  Stethoscope,
-  Pill,
-  Receipt,
-  FileText,
-  Calendar,
-  AlertTriangle,
-  FileCheck,
-  Eye,
-  Download,
-  ExternalLink,
-  Activity,
-  Heart,
-  Droplet,
-  Thermometer,
-  ShieldCheck,
-  CheckCircle2,
-  CalendarCheck2,
-  ChevronDown,
-  ChevronUp,
-  ChevronsUpDown,
-} from "lucide-react";
+import { Clock, Stethoscope, Pill, Receipt, FileText, Calendar, FileCheck, Eye, Download, Activity, CalendarCheck2, ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
   PatientTimelineEvent,

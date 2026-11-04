@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { DEFAULT_INVESTIGATIONS, InvestigationItem } from "@/lib/investigations-store";
 
 export async function GET(request: Request) {
@@ -32,6 +33,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   try {
     const body = await request.json();
     const {
@@ -77,6 +80,8 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
