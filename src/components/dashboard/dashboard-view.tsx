@@ -219,7 +219,7 @@ export function DashboardView({ userName }: DashboardViewProps) {
             </Link>
           </Button>
           <Button size="sm" asChild>
-            <Link href="/clinical/new">
+            <Link href="/appointments?session=active">
               <Stethoscope className="mr-1.5 h-3.5 w-3.5" />
               Start Clinical Encounter
             </Link>

@@ -1,10 +1,10 @@
 /**
  * Money Receipt / Cash Memo PDF & Print Generator for DentalOS1
  * 
- * Generates an official, executive 2-copy Money Receipt formatted for A4 portrait:
- * - Top Half: PATIENT COPY
- * - Perforation Divider (✂ Cut Here)
- * - Bottom Half: OFFICE / CLINIC COPY
+ * Generates an official 2-copy Money Receipt on one A4 landscape sheet:
+ * - Left half: PATIENT COPY
+ * - Vertical perforation divider (✂ Cut Here)
+ * - Right half: OFFICE / CLINIC COPY
  * Both copies feature full clinic letterhead, patient demographics, clinical diagnosis,
  * itemized procedures table, financial ledger, and placeholders for manual signatures.
  */
@@ -56,6 +56,10 @@ export interface ReceiptPdfData {
   paymentMethod: string;
   trxId?: string;
   notes?: string;
+  /** Set on a due-payment receipt: total paid before this payment. */
+  previouslyPaid?: number;
+  /** Set on a due-payment receipt: the amount received now. */
+  thisPayment?: number;
 }
 
 function renderReceiptSlip(
@@ -74,10 +78,11 @@ function renderReceiptSlip(
   const clinicPhoneNo = data.clinicPhone || "+880 1712-345678 / +880 2-9876543";
   const clinicLic = data.clinicLicense || "DGHS/DH-2024/9912 · BMDC Approved";
 
-  const isFullSettlement = data.paidAmount >= data.grandTotal;
+  const isFullSettlement = data.balanceDue <= 0.009;
+  const isDuePayment = data.thisPayment !== undefined;
   const statusBadge = isFullSettlement
-    ? `<span class="status-badge paid">PAID IN FULL</span>`
-    : `<span class="status-badge due">PARTIAL / DUE: ${formatBDT(data.balanceDue)}</span>`;
+    ? `<span class="status-badge paid">${isDuePayment ? "DUE CLEARED · PAID IN FULL" : "PAID IN FULL"}</span>`
+    : `<span class="status-badge due">${isDuePayment ? "DUE PAYMENT · " : "PARTIAL · "}STILL DUE: ${formatBDT(data.balanceDue)}</span>`;
 
   const rowsHtml = data.items.length === 0
     ? `<tr><td colspan="6" style="text-align: center; color: #64748b; font-style: italic; padding: 6px;">No billable procedures listed</td></tr>`
@@ -95,7 +100,9 @@ function renderReceiptSlip(
       </tr>
     `).join("");
 
-  const inWords = numberToWordsBDT(data.paidAmount > 0 ? data.paidAmount : data.grandTotal);
+  // In words: the money received on this receipt
+  const receivedNow = data.thisPayment ?? data.paidAmount;
+  const inWords = numberToWordsBDT(receivedNow > 0 ? receivedNow : data.grandTotal);
 
   return `
     <div class="receipt-slip">
@@ -201,10 +208,27 @@ function renderReceiptSlip(
             <span>Net Payable Total:</span>
             <span class="font-mono font-bold">${formatBDT(data.grandTotal)}</span>
           </div>
+          ${
+            data.thisPayment !== undefined
+              ? `
+          <div class="ledger-row">
+            <span>Previously Paid:</span>
+            <span class="font-mono">${formatBDT(data.previouslyPaid || 0)}</span>
+          </div>
+          <div class="ledger-row text-paid">
+            <span>This Payment:</span>
+            <span class="font-mono font-bold">${formatBDT(data.thisPayment)}</span>
+          </div>
+          <div class="ledger-row">
+            <span>Total Paid:</span>
+            <span class="font-mono">${formatBDT(data.paidAmount)}</span>
+          </div>`
+              : `
           <div class="ledger-row text-paid">
             <span>Amount Received:</span>
             <span class="font-mono font-bold">${formatBDT(data.paidAmount)}</span>
-          </div>
+          </div>`
+          }
           <div class="ledger-row ${data.balanceDue > 0 ? "text-due font-bold" : "text-settled"}">
             <span>Balance Due:</span>
             <span class="font-mono">${formatBDT(data.balanceDue)}</span>
@@ -251,8 +275,8 @@ export function generateReceiptHtml(data: ReceiptPdfData): string {
   <title>Official Money Receipt — ${data.patientName} (${receiptNo})</title>
   <style>
     @page { 
-      size: A4 portrait; 
-      margin: 6mm 10mm 6mm 10mm; 
+      size: A4 landscape;
+      margin: 6mm 8mm;
     }
     *, *::before, *::after {
       box-sizing: border-box;
@@ -268,38 +292,42 @@ export function generateReceiptHtml(data: ReceiptPdfData): string {
       -webkit-font-smoothing: antialiased;
     }
 
+    /* A4 landscape (297 × 210 mm) minus margins = 281 × 198 mm: two copies side by side */
     .a4-sheet {
-      width: 100%;
-      max-width: 190mm;
+      width: 281mm;
       margin: 0 auto;
       display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      height: 284mm; /* Perfectly fits single A4 portrait page */
+      flex-direction: row;
+      align-items: stretch;
+      height: 197mm;
       overflow: hidden;
     }
 
-    /* Receipt Slip Box (Top / Bottom) */
+    /* Receipt Slip Box (Left / Right) */
     .receipt-slip {
       border: 1.5px solid #0f172a;
       border-radius: 6px;
       padding: 8px 10px;
       background: #ffffff;
-      height: 135mm;
-      max-height: 135mm;
+      flex: 1 1 0;
+      min-width: 0;
+      height: 100%;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: flex-start;
+      gap: 6px;
       overflow: hidden;
     }
 
-    /* Perforation Cut Line */
+    /* Vertical Perforation Cut Line */
     .cut-divider {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 9mm;
-      gap: 10px;
+      width: 9mm;
+      flex: 0 0 9mm;
+      gap: 8px;
       color: #64748b;
       font-size: 9px;
       font-family: monospace;
@@ -308,12 +336,14 @@ export function generateReceiptHtml(data: ReceiptPdfData): string {
     }
     .cut-line {
       flex: 1;
-      border-top: 1.5px dashed #94a3b8;
+      border-left: 1.5px dashed #94a3b8;
     }
     .cut-text {
       display: flex;
       align-items: center;
       gap: 6px;
+      writing-mode: vertical-rl;
+      white-space: nowrap;
       text-transform: uppercase;
       letter-spacing: 1px;
     }
@@ -411,8 +441,8 @@ export function generateReceiptHtml(data: ReceiptPdfData): string {
     /* Patient Strip */
     .patient-strip {
       display: grid;
-      grid-template-columns: 2fr 1.2fr 1fr 1.2fr;
-      gap: 3px 8px;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 3px 10px;
       background: #f8fafc;
       border: 1px solid #cbd5e1;
       border-radius: 4px;
@@ -428,8 +458,10 @@ export function generateReceiptHtml(data: ReceiptPdfData): string {
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    /* Clinician and diagnosis take the full width and may wrap */
     .p-cell.span-2 {
-      grid-column: span 2;
+      grid-column: 1 / -1;
+      white-space: normal;
     }
     .p-lbl {
       color: #64748b;
@@ -579,7 +611,7 @@ export function generateReceiptHtml(data: ReceiptPdfData): string {
       grid-template-columns: 1fr 90px 1fr;
       align-items: end;
       gap: 8px;
-      margin-top: 4px;
+      margin-top: auto; /* sits at the bottom of the copy */
       padding-top: 14px;
       border-top: 1px solid #cbd5e1;
     }
@@ -647,14 +679,14 @@ export function generateReceiptHtml(data: ReceiptPdfData): string {
         padding: 0;
       }
       .a4-sheet {
-        height: 284mm;
+        height: 197mm;
       }
     }
   </style>
 </head>
 <body>
   <div class="a4-sheet">
-    <!-- TOP HALF: PATIENT COPY -->
+    <!-- LEFT HALF: PATIENT COPY -->
     ${renderReceiptSlip("PATIENT COPY", "#047857", "#ffffff", data)}
 
     <!-- PERFORATION DIVIDER -->
@@ -662,13 +694,13 @@ export function generateReceiptHtml(data: ReceiptPdfData): string {
       <div class="cut-line"></div>
       <div class="cut-text">
         <span>✂</span>
-        <span>CUT OR TEAR HERE · PATIENT COPY (TOP) / OFFICE COPY (BOTTOM)</span>
+        <span>CUT OR TEAR HERE · PATIENT COPY (LEFT) / OFFICE COPY (RIGHT)</span>
         <span>✂</span>
       </div>
       <div class="cut-line"></div>
     </div>
 
-    <!-- BOTTOM HALF: OFFICE / CLINIC COPY -->
+    <!-- RIGHT HALF: OFFICE / CLINIC COPY -->
     ${renderReceiptSlip("OFFICE / CLINIC COPY", "#1e293b", "#ffffff", data)}
   </div>
 </body>

@@ -45,6 +45,12 @@ const navItems = [
     description: "Schedule, session & clinical briefing",
   },
   {
+    title: "Procedures",
+    href: "/procedures",
+    icon: Stethoscope,
+    description: "Examination, procedure & surgery",
+  },
+  {
     title: "Prescriptions",
     href: "/prescriptions",
     icon: Pill,

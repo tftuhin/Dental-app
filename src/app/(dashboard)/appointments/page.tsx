@@ -72,9 +72,24 @@ import { ToothIcon } from "@/components/icons/dental-icons";
 import {
   ClinicalQueuePatient,
   ClinicalSessionFile,
+  VisitStage,
   getStoredAppointments,
   saveStoredAppointments,
+  logPatientActivity,
+  toISODate,
+  findEarliestSlot,
+  nextSerialForDate,
 } from "@/lib/clinical-flow-store";
+import {
+  PatientProfile,
+  searchPatients,
+  findPatientByPhone,
+  createPatient,
+  updatePatient,
+  getPatientById,
+} from "@/lib/patients-store";
+import { PatientContextPanel } from "@/components/clinical/patient-context-panel";
+import { VisitStepper } from "@/components/clinical/visit-stepper";
 import {
   getClinicSetup,
   DentalChair,
@@ -138,6 +153,26 @@ const QUICK_LAB_TESTS = [
   "CAD/CAM Monolithic Zirconia Crown",
 ];
 
+/** "02:30 PM" → "14:30" for <input type="time"> */
+function to24h(time: string): string {
+  const m = time.match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])?$/);
+  if (!m) return "";
+  let h = parseInt(m[1], 10);
+  const ap = m[3]?.toUpperCase();
+  if (ap === "PM" && h < 12) h += 12;
+  if (ap === "AM" && h === 12) h = 0;
+  return `${String(h).padStart(2, "0")}:${m[2]}`;
+}
+
+/** "14:30" → "02:30 PM" (the format stored on appointments) */
+function from24h(value: string): string {
+  const [hStr, mStr] = value.split(":");
+  const h = parseInt(hStr, 10);
+  const ap = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${String(h12).padStart(2, "0")}:${mStr} ${ap}`;
+}
+
 export default function AppointmentsPage() {
   const router = useRouter();
   const [appointments, setAppointments] = useState<ClinicalQueuePatient[]>([]);
@@ -157,14 +192,15 @@ export default function AppointmentsPage() {
   const [sessionDiagnosis, setSessionDiagnosis] = useState("");
   const [sessionChair, setSessionChair] = useState("Chair 1");
   const [sessionStatus, setSessionStatus] = useState<ClinicalQueuePatient["status"]>("in_progress");
-  const [sessionBp, setSessionBp] = useState("120/80");
-  const [sessionPulse, setSessionPulse] = useState("74");
-  const [sessionBloodSugar, setSessionBloodSugar] = useState("6.2 mmol/L");
-  const [sessionTemp, setSessionTemp] = useState("98.6°F");
-  const [sessionTargetTooth, setSessionTargetTooth] = useState("#19");
-  const [sessionPainScore, setSessionPainScore] = useState<number>(7);
-  const [sessionPercussion, setSessionPercussion] = useState<"positive" | "negative" | "severe">("positive");
-  const [sessionColdTest, setSessionColdTest] = useState<"lingering" | "normal" | "non_responsive">("lingering");
+  // Vitals and findings start empty: anything shown here gets saved as the patient's real readings
+  const [sessionBp, setSessionBp] = useState("");
+  const [sessionPulse, setSessionPulse] = useState("");
+  const [sessionBloodSugar, setSessionBloodSugar] = useState("");
+  const [sessionTemp, setSessionTemp] = useState("");
+  const [sessionTargetTooth, setSessionTargetTooth] = useState("");
+  const [sessionPainScore, setSessionPainScore] = useState<number>(0);
+  const [sessionPercussion, setSessionPercussion] = useState<"positive" | "negative" | "severe">("negative");
+  const [sessionColdTest, setSessionColdTest] = useState<"lingering" | "normal" | "non_responsive">("normal");
   const [sessionMobility, setSessionMobility] = useState<"gr0" | "gr1" | "gr2" | "gr3">("gr0");
   const [sessionLabProcedures, setSessionLabProcedures] = useState<string[]>([]);
   const [newLabProcedureText, setNewLabProcedureText] = useState("");
@@ -177,14 +213,23 @@ export default function AppointmentsPage() {
   // New Booking Modal State
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
   const [newPatientName, setNewPatientName] = useState("");
-  const [newPhone, setNewPhone] = useState("+880 17");
-  const [newAge, setNewAge] = useState<number>(30);
+  const [newPhone, setNewPhone] = useState("+880 ");
+  const [newAge, setNewAge] = useState<number | "">("");
   const [newGender, setNewGender] = useState("Female");
-  const [newAddress, setNewAddress] = useState("Dhanmondi, Dhaka");
+  const [newAddress, setNewAddress] = useState("");
   const [newChannel, setNewChannel] = useState<"walk_in" | "phone" | "online">("walk_in");
-  const [newService, setNewService] = useState("Comprehensive Oral Exam & RCT Consult");
+  const [newService, setNewService] = useState("");
   const [newChair, setNewChair] = useState("Chair 1");
   const [newAlerts, setNewAlerts] = useState("");
+  const [newDoctor, setNewDoctor] = useState("");
+  const [newDate, setNewDate] = useState(toISODate());
+  const [newTime, setNewTime] = useState(""); // empty = earliest free slot
+  // Returning-patient lookup
+  const [patientQuery, setPatientQuery] = useState("");
+  const [linkedPatient, setLinkedPatient] = useState<PatientProfile | null>(null);
+  const [clinicDoctors, setClinicDoctors] = useState<string[]>([]);
+  // Queue date filter (today by default; also shows upcoming follow-ups)
+  const [queueDate, setQueueDate] = useState(toISODate());
 
   // Clinical Briefing & Session Tabs ("briefing" | "odontogram" | "copilot")
   const [sessionTab, setSessionTab] = useState<"briefing" | "odontogram" | "copilot">("briefing");
@@ -238,7 +283,7 @@ export default function AppointmentsPage() {
     if (autoStart && (apt.status === "scheduled" || apt.status === "checked_in")) {
       currentStatus = "in_progress";
       const updatedList = (appointments.length > 0 ? appointments : getStoredAppointments()).map((a) =>
-        a.id === apt.id ? { ...a, status: "in_progress" as const } : a
+        a.id === apt.id ? { ...a, status: "in_progress" as const, stage: "notes" as const } : a
       );
       setAppointments(updatedList);
       saveStoredAppointments(updatedList);
@@ -248,37 +293,25 @@ export default function AppointmentsPage() {
     const matchedTooth = apt.service?.match(/#\d+/) || apt.clinicalNotes?.match(/#\d+/);
     setSelectedAppointment({ ...apt, status: currentStatus });
     setSessionTab("briefing");
-    setSessionComplaint(apt.chiefComplaint || `Patient reports discomfort in ${matchedTooth ? matchedTooth[0] : "lower molar"}.`);
-    setSessionSymptoms(apt.selectedSymptoms && apt.selectedSymptoms.length > 0 ? apt.selectedSymptoms : ["Spontaneous Throbbing Toothache", "Sharp Sensitivity to Cold/Hot"]);
+    // Only load what was actually recorded for this visit. The booking reason is a starting point for the complaint.
+    const f = apt.examinationFindings;
+    setSessionComplaint(apt.chiefComplaint || apt.service || "");
+    setSessionSymptoms(apt.selectedSymptoms || []);
     setSessionNotes(apt.clinicalNotes || "");
     setSessionDiagnosis(apt.provisionalDiagnosis || "");
     setSessionChair(apt.chair);
     setSessionStatus(currentStatus);
-    setSessionBp(apt.vitals?.bp || "120/80");
-    setSessionPulse(apt.vitals?.pulse || "74");
-    setSessionBloodSugar(apt.vitals?.bloodSugar || "6.2 mmol/L");
-    setSessionTemp("98.6°F");
-    setSessionTargetTooth(matchedTooth ? matchedTooth[0] : "#19");
-    setSessionPainScore(7);
-    setSessionPercussion("positive");
-    setSessionColdTest("lingering");
-    setSessionMobility("gr0");
-    setSessionLabProcedures(apt.labProceduresRecommended && apt.labProceduresRecommended.length > 0 ? apt.labProceduresRecommended : ["Digital IOPA Radiograph"]);
-    setSessionUploadedFiles(
-      apt.uploadedFiles && apt.uploadedFiles.length > 0
-        ? apt.uploadedFiles
-        : [
-            {
-              id: "file-init-1",
-              name: "Digital_IOPA_Tooth_19.jpg",
-              type: "image",
-              size: "1.4 MB",
-              url: "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=800&q=80",
-              uploadedAt: "Today 10:20 AM",
-              notes: "Periapical radiolucency noted around mesial root apex (#19)",
-            },
-          ]
-    );
+    setSessionBp(apt.vitals?.bp || "");
+    setSessionPulse(apt.vitals?.pulse || "");
+    setSessionBloodSugar(apt.vitals?.bloodSugar || "");
+    setSessionTemp(apt.vitals?.temp || "");
+    setSessionTargetTooth(f?.targetTooth || (matchedTooth ? matchedTooth[0] : ""));
+    setSessionPainScore(f?.painScore ?? 0);
+    setSessionPercussion((f?.percussion as typeof sessionPercussion) || "negative");
+    setSessionColdTest((f?.coldTest as typeof sessionColdTest) || "normal");
+    setSessionMobility((f?.mobility as typeof sessionMobility) || "gr0");
+    setSessionLabProcedures(apt.labProceduresRecommended || []);
+    setSessionUploadedFiles(apt.uploadedFiles || []);
     setIsJustCompleted(apt.status === "completed");
     setIsSessionModalOpen(true);
   };
@@ -294,6 +327,11 @@ export default function AppointmentsPage() {
     if (loadedChairs.length > 0) {
       setNewChair(loadedChairs[0].name);
     }
+    const doctorNames = (initialSetup.doctors || [])
+      .filter((d) => d.status === "active")
+      .map((d) => d.name);
+    setClinicDoctors(doctorNames);
+    if (doctorNames.length > 0) setNewDoctor(doctorNames[0]);
 
     const handleSync = () => {
       setAppointments(getStoredAppointments());
@@ -311,7 +349,14 @@ export default function AppointmentsPage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const sessionParam = params.get("session");
-      const patientIdParam = params.get("patientId");
+      const patientIdParam = params.get("visitId") || params.get("patientId");
+      if (params.get("new") === "true") {
+        // Opened from a patient profile: book for that returning patient
+        const bookFor = params.get("bookFor");
+        const existing = bookFor ? getPatientById(bookFor) : undefined;
+        if (existing) linkExistingPatient(existing);
+        setIsBookModalOpen(true);
+      }
       if (sessionParam === "active" || patientIdParam) {
         let targetApt: ClinicalQueuePatient | undefined;
         if (patientIdParam) {
@@ -319,7 +364,7 @@ export default function AppointmentsPage() {
             (a) => a.id === patientIdParam || a.patientId === patientIdParam
           );
         }
-        if (!targetApt) {
+        if (!targetApt && sessionParam === "active") {
           targetApt =
             initialList.find((a) => a.status === "in_progress") ||
             initialList.find((a) => a.status === "checked_in" || a.status === "scheduled") ||
@@ -340,7 +385,9 @@ export default function AppointmentsPage() {
   }, []);
 
   // Sorted active queue: strictly sorted by serial (lowest first)
+  const isOnQueueDate = (a: ClinicalQueuePatient) => (a.date || toISODate()) === queueDate;
   const activeQueue = appointments
+    .filter(isOnQueueDate)
     .filter((a) => a.status === "in_progress" || a.status === "checked_in" || a.status === "scheduled")
     .sort((a, b) => a.fifoSerial - b.fifoSerial);
 
@@ -467,69 +514,131 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
     if (!procName) setNewLabProcedureText("");
   };
 
+  // Everything recorded in the session, as a patch for the visit record
+  const buildSessionPatch = (): Partial<ClinicalQueuePatient> => ({
+    chiefComplaint: sessionComplaint,
+    selectedSymptoms: sessionSymptoms,
+    clinicalNotes: sessionNotes,
+    provisionalDiagnosis: sessionDiagnosis,
+    chair: sessionChair,
+    labProceduresRecommended: sessionLabProcedures,
+    uploadedFiles: sessionUploadedFiles,
+    vitals: {
+      bp: sessionBp,
+      pulse: sessionPulse,
+      bloodSugar: sessionBloodSugar,
+      temp: sessionTemp,
+    },
+    examinationFindings: {
+      targetTooth: sessionTargetTooth,
+      painScore: sessionPainScore,
+      percussion: sessionPercussion,
+      coldTest: sessionColdTest,
+      mobility: sessionMobility,
+    },
+  });
+
   // Save in-progress session notes
   const handleSaveNotes = () => {
     if (!selectedAppointment) return;
 
     const updatedList = appointments.map((a) =>
-      a.id === selectedAppointment.id
-        ? {
-            ...a,
-            chiefComplaint: sessionComplaint,
-            selectedSymptoms: sessionSymptoms,
-            clinicalNotes: sessionNotes,
-            provisionalDiagnosis: sessionDiagnosis,
-            chair: sessionChair,
-            status: sessionStatus,
-            labProceduresRecommended: sessionLabProcedures,
-            uploadedFiles: sessionUploadedFiles,
-            vitals: {
-              bp: sessionBp,
-              pulse: sessionPulse,
-              bloodSugar: sessionBloodSugar,
-            },
-          }
-        : a
+      a.id === selectedAppointment.id ? { ...a, ...buildSessionPatch(), status: sessionStatus } : a
     );
 
     setAppointments(updatedList);
     saveStoredAppointments(updatedList);
-    toast.success(`Clinical notes, uploaded reports & symptoms saved for ${selectedAppointment.patient}!`);
+    toast.success(`Clinical notes saved for ${selectedAppointment.patient}.`);
   };
 
-  // Mark patient completed & move to Rx and Billing
-  const handleMarkCompletedAndHandover = () => {
+  /**
+   * Finish note taking and send the patient on:
+   *  - "procedure"    → Examination & Procedure (needs treatment or surgery today)
+   *  - "prescription" → straight to Prescription (no procedure needed)
+   */
+  const handleCompleteNotes = (next: "procedure" | "prescription") => {
     if (!selectedAppointment) return;
+    if (!sessionComplaint.trim()) {
+      toast.error("Record the patient's complaint before moving on.");
+      return;
+    }
 
     const completionTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const patch: Partial<ClinicalQueuePatient> = {
+      ...buildSessionPatch(),
+      status: "completed",
+      completedAt: `${completionTime} Today`,
+      stage: next,
+    };
     const updatedList = appointments.map((a) =>
-      a.id === selectedAppointment.id
-        ? {
-            ...a,
-            chiefComplaint: sessionComplaint,
-            selectedSymptoms: sessionSymptoms,
-            clinicalNotes: sessionNotes,
-            provisionalDiagnosis: sessionDiagnosis,
-            chair: sessionChair,
-            status: "completed" as const,
-            completedAt: `${completionTime} Today`,
-            labProceduresRecommended: sessionLabProcedures,
-            uploadedFiles: sessionUploadedFiles,
-            vitals: {
-              bp: sessionBp,
-              pulse: sessionPulse,
-              bloodSugar: sessionBloodSugar,
-            },
-          }
-        : a
+      a.id === selectedAppointment.id ? { ...a, ...patch } : a
     );
-
     setAppointments(updatedList);
     saveStoredAppointments(updatedList);
-    setIsJustCompleted(true);
+
+    // Keep the patient profile in step with today's visit
+    const record = getPatientById(selectedAppointment.patientRecordId || selectedAppointment.patientId);
+    if (record) {
+      updatePatient(record.id, {
+        lastVisit: new Date().toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
+        status: "in_treatment",
+      });
+    }
+
+    // Add today's consultation to the patient's history timeline
+    logPatientActivity({
+      id: `ev-${selectedAppointment.id}-notes`,
+      patientId: selectedAppointment.patientId,
+      date: new Date().toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
+      timestamp: Date.now(),
+      type: "appointment",
+      title: `Consultation: ${sessionComplaint.slice(0, 80)}`,
+      doctor: selectedAppointment.doctor,
+      chair: sessionChair,
+      chiefComplaint: sessionComplaint,
+      selectedSymptoms: sessionSymptoms,
+      targetTooth: sessionTargetTooth || undefined,
+      clinicalNotes: sessionNotes,
+      provisionalDiagnosis: sessionDiagnosis || undefined,
+      examinationFindings: {
+        percussion: sessionPercussion,
+        coldTest: sessionColdTest,
+        mobility: sessionMobility,
+        vitals: { bp: sessionBp, pulse: sessionPulse, bloodSugar: sessionBloodSugar, temp: sessionTemp },
+      },
+      labProcedures: sessionLabProcedures,
+      uploadedFiles: sessionUploadedFiles,
+      badge: "Consultation",
+      badgeColor: "bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300",
+    });
+
+    setIsSessionModalOpen(false);
     toast.success(
-      `Consultation completed for ${selectedAppointment.patient}! Profile & uploaded reports moved to Prescription & Billing.`
+      next === "procedure"
+        ? `${selectedAppointment.patient} sent to Examination & Procedure.`
+        : `${selectedAppointment.patient} sent to Prescription.`
     );
+    router.push(
+      next === "procedure"
+        ? `/procedures?visitId=${selectedAppointment.id}`
+        : `/prescriptions?visitId=${selectedAppointment.id}`
+    );
+  };
+
+  /** Link for a finished consultation's next step, based on where the visit is. */
+  const nextStepFor = (apt: ClinicalQueuePatient): { href: string; label: string } | null => {
+    switch (apt.stage as VisitStage | undefined) {
+      case "procedure":
+        return { href: `/procedures?visitId=${apt.id}`, label: "Procedure" };
+      case "prescription":
+        return { href: `/prescriptions?visitId=${apt.id}`, label: "Write Rx" };
+      case "billing":
+        return { href: `/billing?visitId=${apt.id}`, label: "Bill Patient" };
+      case "done":
+        return { href: `/billing?visitId=${apt.id}`, label: "Receipt" };
+      default:
+        return null;
+    }
   };
 
   // Mark patient as No Show
@@ -546,52 +655,127 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
     }
   };
 
-  // Book new appointment (Serial assignment)
+  // Returning-patient search results for the booking form
+  const patientMatches = linkedPatient ? [] : searchPatients(patientQuery);
+
+  const linkExistingPatient = (p: PatientProfile) => {
+    setLinkedPatient(p);
+    setNewPatientName(p.name);
+    setNewPhone(p.phone);
+    setNewAge(p.age || "");
+    setNewGender(p.gender || "Female");
+    setNewAddress(p.address || "");
+    setNewAlerts((p.allergies || []).join(", "));
+    setPatientQuery("");
+  };
+
+  const resetBookingForm = () => {
+    setLinkedPatient(null);
+    setPatientQuery("");
+    setNewPatientName("");
+    setNewPhone("+880 ");
+    setNewAge("");
+    setNewAddress("");
+    setNewService("");
+    setNewAlerts("");
+    setNewDate(toISODate());
+    setNewTime("");
+  };
+
+  // Book a visit: link a returning patient or register a new one, then place it in the queue
   const handleBookAppointment = (e: React.FormEvent) => {
     e.preventDefault();
-    const maxSerial = appointments.reduce((max, a) => Math.max(max, a.fifoSerial || 0), 0);
-    const nextSerial = maxSerial + 1;
-    const token = `A-0${nextSerial + 13}`;
-    const newId = "apt-" + Date.now();
-    const customPatientId = `DENT-2026-00${String(nextSerial + 150).padStart(3, "0")}`;
+    const doctor = newDoctor || clinicDoctors[0] || "Duty Doctor";
+    const isWalkIn = newChannel === "walk_in";
+    const date = isWalkIn ? toISODate() : newDate;
 
+    // 1. Find or register the patient (one record per person)
+    let record = linkedPatient;
+    if (!record) {
+      const samePhone = findPatientByPhone(newPhone);
+      if (samePhone) {
+        toast.error(
+          `${samePhone.name} (${samePhone.customId}) is already registered with this phone number. Select them from the search instead.`
+        );
+        setPatientQuery(newPhone);
+        return;
+      }
+      record = createPatient({
+        name: newPatientName.trim(),
+        phone: newPhone.trim(),
+        age: Number(newAge) || 0,
+        dob: "",
+        gender: newGender,
+        email: "",
+        address: newAddress.trim(),
+        emergencyContact: "",
+        bloodGroup: "",
+        allergies: newAlerts ? newAlerts.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        medicalConditions: [],
+        status: "new",
+        lastVisit: "First Visit",
+        outstandingBalance: "৳0.00",
+        tags: ["New Patient"],
+      });
+    }
+
+    // 2. Time: walk-ins now; phone/online at the chosen time or the earliest free slot
+    let time = newTime;
+    let finalDate = date;
+    if (isWalkIn) {
+      time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } else if (!time) {
+      const slot = findEarliestSlot(date, doctor, appointments);
+      if (!slot) {
+        toast.error("No free slot found for this doctor in the next 30 days. Check clinic hours in Settings.");
+        return;
+      }
+      finalDate = slot.date;
+      time = slot.time;
+      if (slot.movedFromRequested) {
+        toast.info(`No free slot on ${date}. Booked on ${slot.date} instead.`);
+      }
+    }
+
+    const serial = nextSerialForDate(finalDate, appointments);
     const newApt: ClinicalQueuePatient = {
-      id: newId,
-      token,
-      fifoSerial: nextSerial,
+      id: "apt-" + Date.now(),
+      token: `A-${String(serial).padStart(3, "0")}`,
+      fifoSerial: serial,
+      serialNumber: serial,
       bookingChannel: newChannel,
-      patient: newPatientName.trim(),
-      patientId: customPatientId,
-      phone: newPhone.trim(),
-      age: Number(newAge),
-      gender: newGender,
-      address: newAddress.trim(),
+      patient: record.name,
+      patientId: record.customId,
+      patientRecordId: record.id,
+      phone: record.phone,
+      age: record.age,
+      gender: record.gender,
+      address: record.address,
       chair: newChair,
-      doctor: "Dr. Sarah Smith, BDS, FCPS",
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      doctor,
+      date: finalDate,
+      time,
       duration: "30m",
-      service: newService,
-      status: newChannel === "walk_in" ? "checked_in" : "scheduled",
-      alerts: newAlerts ? newAlerts.split(",").map((s) => s.trim()) : [],
-      chiefComplaint: "New appointment consultation",
-      suggestedFee: 800,
+      service: newService.trim() || "Consultation",
+      status: isWalkIn ? "checked_in" : "scheduled",
+      stage: "waiting",
+      alerts: record.allergies || [],
     };
 
     const updated = [...appointments, newApt];
     setAppointments(updated);
     saveStoredAppointments(updated);
     setIsBookModalOpen(false);
+    setQueueDate(finalDate);
     toast.success(
-      `Appointment booked for ${newApt.patient}! Assigned Serial #${nextSerial} (${newApt.token}).`
+      `${linkedPatient ? "Returning patient" : "New patient " + record.customId} booked: ${newApt.patient}, ${finalDate} at ${time}, Serial #${serial}.`
     );
-
-    // Reset fields
-    setNewPatientName("");
-    setNewAlerts("");
+    resetBookingForm();
   };
 
   // Filter based on operatory & status tab
   const filteredList = appointments
+    .filter(isOnQueueDate)
     .filter((a) => filterChair === "all" || isChairMatch(a.chair, filterChair))
     .filter((a) => {
       if (statusTab === "active") return a.status === "in_progress" || a.status === "checked_in" || a.status === "scheduled";
@@ -641,6 +825,18 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Input
+            type="date"
+            value={queueDate}
+            onChange={(e) => setQueueDate(e.target.value || toISODate())}
+            className="h-8 text-xs w-[150px]"
+            aria-label="Queue date"
+          />
+          {queueDate !== toISODate() && (
+            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setQueueDate(toISODate())}>
+              Today
+            </Button>
+          )}
           <Button size="sm" onClick={() => setIsBookModalOpen(true)} className="gap-1.5 text-xs font-semibold shadow-sm">
             <Plus className="h-3.5 w-3.5" />
             Book Patient (Online / Phone / Walk-in)
@@ -745,7 +941,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
               statusTab === "active" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Active Patient Queue ({appointments.filter((a) => a.status === "in_progress" || a.status === "checked_in" || a.status === "scheduled").length})
+            Active Patient Queue ({appointments.filter(isOnQueueDate).filter((a) => a.status === "in_progress" || a.status === "checked_in" || a.status === "scheduled").length})
           </button>
           <button
             onClick={() => setStatusTab("completed")}
@@ -753,7 +949,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
               statusTab === "completed" ? "bg-background text-foreground shadow-sm font-bold text-emerald-600" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Completed Today ({appointments.filter((a) => a.status === "completed").length})
+            Completed Today ({appointments.filter(isOnQueueDate).filter((a) => a.status === "completed").length})
           </button>
           <button
             onClick={() => setStatusTab("no_show")}
@@ -761,7 +957,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
               statusTab === "no_show" ? "bg-background text-foreground shadow-sm font-bold text-red-600" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            No Shows ({appointments.filter((a) => a.status === "no_show").length})
+            No Shows ({appointments.filter(isOnQueueDate).filter((a) => a.status === "no_show").length})
           </button>
           <button
             onClick={() => setStatusTab("all")}
@@ -769,7 +965,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
               statusTab === "all" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            All Bookings ({appointments.length})
+            All Bookings ({appointments.filter(isOnQueueDate).length})
           </button>
         </div>
 
@@ -891,31 +1087,26 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                         </>
                       )}
 
-                      {apt.status === "completed" && (
-                        <div className="flex items-center gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            asChild
-                            className="h-7 text-[10px] px-2 text-primary border-primary/30"
-                          >
-                            <Link href="/prescriptions">
-                              <Pill className="h-3 w-3 mr-1" />
-                              Write Rx
-                            </Link>
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            asChild
-                            className="h-7 text-[10px] px-2 text-emerald-700 border-emerald-300"
-                          >
-                            <Link href="/billing">
+                      {apt.status === "completed" && nextStepFor(apt) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          asChild
+                          className={`h-7 text-[10px] px-2 ${
+                            apt.stage === "done"
+                              ? "text-muted-foreground"
+                              : "text-primary border-primary/30"
+                          }`}
+                        >
+                          <Link href={nextStepFor(apt)!.href}>
+                            {apt.stage === "billing" || apt.stage === "done" ? (
                               <Receipt className="h-3 w-3 mr-1" />
-                              Bill Patient
-                            </Link>
-                          </Button>
-                        </div>
+                            ) : (
+                              <Pill className="h-3 w-3 mr-1" />
+                            )}
+                            {nextStepFor(apt)!.label}
+                          </Link>
+                        </Button>
                       )}
                     </div>
                   </td>
@@ -1093,29 +1284,25 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                       <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
                       <span>Clinical Session Completed! Handover generated for {selectedAppointment.patient}.</span>
                     </div>
-                    <p className="text-xs text-emerald-700 dark:text-emerald-300 pl-7">
-                      This patient's consultation notes, provisional diagnosis, and lab orders are now synced and available in Today's Completed Queue. Click below to continue:
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 pt-1 pl-7">
-                      <Button
-                        size="sm"
-                        onClick={() => router.push(`/prescriptions?patientId=${selectedAppointment.id}`)}
-                        className="text-xs bg-primary hover:bg-primary/90 text-white h-9 px-4 gap-2 font-bold shadow-xs"
-                      >
-                        <Pill className="h-4 w-4" />
-                        Open Prescription Studio ({selectedAppointment.patient})
-                        <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => router.push(`/billing?patientId=${selectedAppointment.id}`)}
-                        className="text-xs border-emerald-400 text-emerald-900 hover:bg-emerald-100 dark:text-emerald-200 dark:hover:bg-emerald-900/40 h-9 px-4 gap-2 font-bold"
-                      >
-                        <Receipt className="h-4 w-4 text-emerald-600" />
-                        Open Billing Studio (Invoice Ready)
-                      </Button>
+                    <div className="pl-7">
+                      <VisitStepper
+                        visitId={selectedAppointment.id}
+                        current="notes"
+                        reached={selectedAppointment.stage}
+                      />
                     </div>
+                    {nextStepFor(selectedAppointment) && (
+                      <div className="flex flex-wrap items-center gap-2 pt-1 pl-7">
+                        <Button
+                          size="sm"
+                          onClick={() => router.push(nextStepFor(selectedAppointment)!.href)}
+                          className="text-xs bg-primary hover:bg-primary/90 text-white h-9 px-4 gap-2 font-bold shadow-xs"
+                        >
+                          Continue: {nextStepFor(selectedAppointment)!.label}
+                          <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1124,6 +1311,9 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                   {/* ─── LEFT COLUMN (col-span-5): Patient Voice & Symptoms & Vitals ─── */}
                   <div className="col-span-12 lg:col-span-5 space-y-4">
+                    {/* Patient history, health issues & precautions */}
+                    <PatientContextPanel visit={selectedAppointment} hideTodaySummary />
+
                     {/* 1. Listen to Patient: Chief Complaint & Pain Score */}
                     <Card className="border shadow-xs">
                       <CardHeader className="py-3 px-4 border-b bg-muted/20">
@@ -1984,11 +2174,22 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
 
                   <Button
                     size="sm"
-                    onClick={handleMarkCompletedAndHandover}
+                    variant="outline"
+                    onClick={() => handleCompleteNotes("procedure")}
+                    className="text-xs h-9 px-4 gap-1.5 font-bold border-primary text-primary"
+                  >
+                    <ToothIcon className="h-4 w-4" />
+                    Needs Procedure / Surgery
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleCompleteNotes("prescription")}
                     className="text-xs h-9 px-4 gap-1.5 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                   >
-                    <CheckCircle2 className="h-4 w-4" />
-                    Mark Completed & Move to Rx / Billing
+                    <Pill className="h-4 w-4" />
+                    No Procedure: Go to Prescription
+                    <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
@@ -2025,6 +2226,60 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
               </Select>
             </div>
 
+            {/* Returning patient lookup: avoids duplicate records and keeps one history */}
+            {linkedPatient ? (
+              <div className="p-2.5 rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-between gap-2">
+                <div>
+                  <p className="font-bold text-emerald-900 dark:text-emerald-200">
+                    Returning patient: {linkedPatient.name}
+                  </p>
+                  <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-mono">
+                    {linkedPatient.customId} · {linkedPatient.phone}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-[11px]"
+                  onClick={resetBookingForm}
+                >
+                  Change
+                </Button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Label className="text-xs font-semibold">Find returning patient (name, phone or ID)</Label>
+                <Input
+                  value={patientQuery}
+                  onChange={(e) => setPatientQuery(e.target.value)}
+                  placeholder="Search before registering a new patient…"
+                  className="h-8 text-xs mt-1"
+                />
+                {patientMatches.length > 0 && (
+                  <div className="absolute z-20 mt-1 w-full rounded-lg border bg-popover shadow-lg max-h-48 overflow-y-auto">
+                    {patientMatches.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => linkExistingPatient(p)}
+                        className="w-full text-left px-3 py-2 hover:bg-muted text-xs border-b last:border-b-0"
+                      >
+                        <span className="font-semibold">{p.name}</span>{" "}
+                        <span className="font-mono text-muted-foreground">{p.customId}</span>
+                        <span className="block text-[11px] text-muted-foreground">{p.phone}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {patientQuery.trim().length >= 2 && patientMatches.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    No match. Fill in the details below to register a new patient. An ID is generated on booking.
+                  </p>
+                )}
+              </div>
+            )}
+
             <div>
               <Label className="text-xs font-semibold">Patient Full Name *</Label>
               <Input
@@ -2032,6 +2287,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                 onChange={(e) => setNewPatientName(e.target.value)}
                 placeholder="e.g. Farhana Chowdhury"
                 required
+                disabled={!!linkedPatient}
                 className="h-8 text-xs mt-1"
               />
             </div>
@@ -2044,6 +2300,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                   onChange={(e) => setNewPhone(e.target.value)}
                   placeholder="+880 1711-000000"
                   required
+                  disabled={!!linkedPatient}
                   className="h-8 text-xs mt-1 font-mono"
                 />
               </div>
@@ -2053,13 +2310,14 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                   <Input
                     type="number"
                     value={newAge}
-                    onChange={(e) => setNewAge(Number(e.target.value))}
+                    onChange={(e) => setNewAge(e.target.value === "" ? "" : Number(e.target.value))}
+                    disabled={!!linkedPatient}
                     className="h-8 text-xs mt-1"
                   />
                 </div>
                 <div>
                   <Label className="text-xs font-semibold">Gender</Label>
-                  <Select value={newGender} onValueChange={setNewGender}>
+                  <Select value={newGender} onValueChange={setNewGender} disabled={!!linkedPatient}>
                     <SelectTrigger className="h-8 text-xs mt-1">
                       <SelectValue />
                     </SelectTrigger>
@@ -2093,6 +2351,50 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
               />
             </div>
 
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs font-semibold">Doctor</Label>
+                <Select value={newDoctor} onValueChange={setNewDoctor}>
+                  <SelectTrigger className="h-8 text-xs mt-1">
+                    <SelectValue placeholder="Select doctor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clinicDoctors.map((d) => (
+                      <SelectItem key={d} value={d}>
+                        {d}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold">Date</Label>
+                <Input
+                  type="date"
+                  value={newChannel === "walk_in" ? toISODate() : newDate}
+                  min={toISODate()}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  disabled={newChannel === "walk_in"}
+                  className="h-8 text-xs mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold">Time</Label>
+                <Input
+                  type="time"
+                  value={newTime ? to24h(newTime) : ""}
+                  onChange={(e) => setNewTime(e.target.value ? from24h(e.target.value) : "")}
+                  disabled={newChannel === "walk_in"}
+                  className="h-8 text-xs mt-1"
+                />
+              </div>
+            </div>
+            {newChannel !== "walk_in" && !newTime && (
+              <p className="text-[11px] text-muted-foreground -mt-2">
+                Leave the time empty to book the doctor&apos;s earliest free slot on that date.
+              </p>
+            )}
+
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs font-semibold">Initial Operatory Chair</Label>
@@ -2115,13 +2417,18 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                   value={newAlerts}
                   onChange={(e) => setNewAlerts(e.target.value)}
                   placeholder="e.g. Penicillin, Latex"
+                  disabled={!!linkedPatient}
                   className="h-8 text-xs mt-1 border-red-200"
                 />
               </div>
             </div>
 
             <div className="p-2.5 bg-muted/40 rounded-lg border text-[11px] text-muted-foreground">
-              Queue Position: Assigned as <strong>Serial #{appointments.length + 1}</strong>.
+              Queue position:{" "}
+              <strong>
+                Serial #{nextSerialForDate(newChannel === "walk_in" ? toISODate() : newDate, appointments)}
+              </strong>{" "}
+              on {newChannel === "walk_in" ? "today" : newDate}.
             </div>
 
             <DialogFooter className="border-t pt-3">

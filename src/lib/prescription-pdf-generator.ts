@@ -45,6 +45,46 @@ export interface PrescriptionPdfData {
     bloodSugar?: string;
     temp?: string;
   };
+  // Clinical summary for the day (from the visit record)
+  chiefComplaint?: string;
+  keyFindings?: string[];
+  proceduresDone?: string[];
+  medicalHistory?: string[];
+  toothNumber?: string;
+}
+
+/** Escape text before putting it into the print HTML. */
+function esc(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function renderClinicalSummary(data: PrescriptionPdfData): string {
+  const vitals = data.vitals
+    ? [
+        data.vitals.bp && `BP ${esc(data.vitals.bp)}`,
+        data.vitals.pulse && `Pulse ${esc(data.vitals.pulse)}`,
+        data.vitals.bloodSugar && `RBS ${esc(data.vitals.bloodSugar)}`,
+        data.vitals.temp && `Temp ${esc(data.vitals.temp)}`,
+      ].filter(Boolean)
+    : [];
+  const block = (title: string, body: string) => `
+        <div style="margin-bottom: 10px;">
+          <div class="section-title"><span>${title}</span></div>
+          <div style="font-size: 10px; color: #334155; line-height: 1.4;">${body}</div>
+        </div>`;
+  const list = (items: string[]) => items.map((i) => `<div>• ${esc(i)}</div>`).join("");
+
+  let html = "";
+  if (data.chiefComplaint) html += block("Chief Complaint (C/C)", esc(data.chiefComplaint));
+  if (data.keyFindings && data.keyFindings.length > 0) html += block("Key Findings (O/E)", list(data.keyFindings));
+  if (vitals.length > 0) html += block("Vitals", vitals.join(" · "));
+  if (data.proceduresDone && data.proceduresDone.length > 0) html += block("Done Today", list(data.proceduresDone));
+  if (data.medicalHistory && data.medicalHistory.length > 0) html += block("Medical History", list(data.medicalHistory));
+  return html;
 }
 
 export function generatePrescriptionHtml(data: PrescriptionPdfData): string {
@@ -487,13 +527,20 @@ export function generatePrescriptionHtml(data: PrescriptionPdfData): string {
     <div class="content-grid">
       <!-- Left Column: Clinical Margin (Diagnosis, Tests, Advice, Follow-up) -->
       <div class="left-col">
+        <!-- Today's clinical summary & history -->
+        ${renderClinicalSummary(data)}
+
         <!-- Diagnosis -->
         <div style="margin-bottom: 12px;">
           <div class="section-title">
             <span>Diagnosis / Impression</span>
           </div>
-          <div style="font-weight: 800; color: #0f172a; font-size: 11px; line-height: 1.35;">${data.diagnosis}</div>
-          <div style="font-size: 9.5px; color: #64748b; font-family: monospace; margin-top: 1px;">Tooth: #19 (FDI 36)</div>
+          <div style="font-weight: 800; color: #0f172a; font-size: 11px; line-height: 1.35;">${esc(data.diagnosis)}</div>
+          ${
+            data.toothNumber
+              ? `<div style="font-size: 9.5px; color: #64748b; font-family: monospace; margin-top: 1px;">Tooth: ${esc(data.toothNumber)}</div>`
+              : ""
+          }
         </div>
 
         <!-- Investigations -->
@@ -534,9 +581,7 @@ export function generatePrescriptionHtml(data: PrescriptionPdfData): string {
                 <div style="margin-bottom: 2px;">• ${sentence}.</div>`
                     )
                     .join("")
-                : `<div>• Maintain soft diet for 48 hours.</div>
-                   <div>• Avoid chewing hard food on left side.</div>
-                   <div>• Maintain gentle oral hygiene.</div>`
+                : `<div style="color: #94a3b8; font-style: italic;">• As advised</div>`
             }
           </div>
         </div>

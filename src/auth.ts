@@ -3,9 +3,29 @@ import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { db } from "@/db";
+import { db, isDatabaseConfigured } from "@/db";
 import { users, accounts, sessions, verificationTokens } from "@/db/schema";
 import { eq } from "drizzle-orm";
+
+/**
+ * Local demo login: only in development AND only when no DATABASE_URL is set.
+ * Mirrors the users created by src/db/seed.js so the login page's demo buttons
+ * work without a database. Never active in production or once a database is configured.
+ */
+const DEMO_MODE = !isDatabaseConfigured && process.env.NODE_ENV !== "production";
+const DEMO_PASSWORD = "DentAI2026!";
+const DEMO_CLINIC_ID = "11111111-1111-1111-1111-111111111111";
+const DEMO_USERS = [
+  { id: "33333333-3333-3333-3333-333333333333", email: "dr.smith@dentai.com", name: "Dr. Sarah Smith, BDS, FCPS", role: "clinic_owner" },
+  { id: "55555555-5555-5555-5555-555555555555", email: "dr.tanvir@dentai.com", name: "Dr. Tanvir Ahmed, BDS (DU), FCPS (Oral Surgery)", role: "clinic_owner" },
+  { id: "44444444-4444-4444-4444-444444444444", email: "reception@dentai.com", name: "Rumana Akter", role: "receptionist" },
+];
+
+if (DEMO_MODE) {
+  console.warn(
+    "⚠️ [DentalOS1 Auth] No DATABASE_URL: local demo login enabled (dr.smith@dentai.com, dr.tanvir@dentai.com, reception@dentai.com)."
+  );
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret:
@@ -35,6 +55,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+
+        if (DEMO_MODE) {
+          const demo = DEMO_USERS.find(
+            (u) => u.email === String(credentials.email).trim().toLowerCase()
+          );
+          if (!demo || credentials.password !== DEMO_PASSWORD) return null;
+          return { ...demo, clinicId: DEMO_CLINIC_ID };
+        }
 
         const [user] = await db
           .select()

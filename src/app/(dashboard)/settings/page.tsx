@@ -9,7 +9,9 @@ import {
   Pill,
   Microscope,
   Layers,
+  Receipt,
 } from "lucide-react";
+import { ProceduresSettingsTab } from "@/components/settings/procedures-settings-tab";
 import { ClinicSetupTab } from "@/components/settings/clinic-setup-tab";
 import { MedicationsSettingsTab } from "@/components/settings/medications-settings-tab";
 import { InvestigationsSettingsTab } from "@/components/settings/investigations-settings-tab";
@@ -39,11 +41,17 @@ function SettingsContent() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
-        <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full sm:w-auto h-auto p-1 bg-muted/60 rounded-xl border gap-1">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full sm:w-auto h-auto p-1 bg-muted/60 rounded-xl border gap-1">
           {/* Tab 1: Clinic Setup */}
           <TabsTrigger value="clinic-setup" className="text-xs gap-1.5 py-1.5 font-semibold">
             <Building2 className="h-3.5 w-3.5 text-primary" />
             Clinic Setup
+          </TabsTrigger>
+
+          {/* Procedure & fee price list */}
+          <TabsTrigger value="procedures" className="text-xs gap-1.5 py-1.5 font-semibold">
+            <Receipt className="h-3.5 w-3.5 text-primary" />
+            Procedures & Fees
           </TabsTrigger>
 
           {/* Tab 2: Medications Catalog */}
@@ -68,6 +76,10 @@ function SettingsContent() {
         {/* Tab 1 Content: Clinic Setup */}
         <TabsContent value="clinic-setup" className="space-y-4">
           <ClinicSetupTab />
+        </TabsContent>
+
+        <TabsContent value="procedures" className="space-y-4">
+          <ProceduresSettingsTab />
         </TabsContent>
 
         {/* Tab 2 Content: Medications Catalog */}

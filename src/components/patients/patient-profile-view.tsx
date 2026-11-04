@@ -13,7 +13,6 @@ import { EditPatientDialog } from "@/components/patients/edit-patient-dialog";
 import {
   PatientProfile,
   getPatientById,
-  INITIAL_PATIENTS,
   formatDobDisplay,
 } from "@/lib/patients-store";
 import {
@@ -44,17 +43,16 @@ interface PatientProfileViewProps {
 }
 
 export function PatientProfileView({ initialPatientId }: PatientProfileViewProps) {
-  const [patient, setPatient] = useState<PatientProfile>(() => {
-    return getPatientById(initialPatientId) || INITIAL_PATIENTS[0];
-  });
+  // Patients live in browser storage, so look them up after mount.
+  // Never fall back to another patient's record.
+  const [patient, setPatient] = useState<PatientProfile | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // Sync with localStorage store and listen to updates
   useEffect(() => {
-    const loaded = getPatientById(initialPatientId);
-    if (loaded) {
-      setPatient(loaded);
-    }
+    setPatient(getPatientById(initialPatientId) || null);
+    setHasLoaded(true);
 
     const handleUpdate = (e: Event) => {
       const customEvent = e as CustomEvent<{ patient: PatientProfile }>;
@@ -75,6 +73,26 @@ export function PatientProfileView({ initialPatientId }: PatientProfileViewProps
       window.removeEventListener("dentalos1-patients-updated", handleUpdate);
     };
   }, [initialPatientId]);
+
+  if (!patient) {
+    return (
+      <div className="p-10 text-center space-y-3">
+        {hasLoaded ? (
+          <>
+            <p className="text-sm font-semibold">Patient not found</p>
+            <p className="text-xs text-muted-foreground">
+              No patient with ID <span className="font-mono">{initialPatientId}</span> is registered on this device.
+            </p>
+            <Link href="/patients" className="text-xs text-primary hover:underline">
+              Back to patients
+            </Link>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">Loading patient…</p>
+        )}
+      </div>
+    );
+  }
 
   // Generate initials for avatar
   const initials = patient.name
@@ -173,33 +191,10 @@ export function PatientProfileView({ initialPatientId }: PatientProfileViewProps
               asChild
               className="gap-1.5 text-xs flex-1 sm:flex-initial"
             >
-              <Link href="/clinical">
+              {/* Every visit starts with a booking, so notes, Rx and billing all attach to it */}
+              <Link href={`/appointments?new=true&bookFor=${encodeURIComponent(patient.id)}`}>
                 <Stethoscope className="h-3.5 w-3.5" />
-                Encounter
-              </Link>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="gap-1.5 text-xs flex-1 sm:flex-initial"
-            >
-              <Link href="/prescriptions">
-                <Pill className="h-3.5 w-3.5" />
-                Write Rx
-              </Link>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="gap-1.5 text-xs flex-1 sm:flex-initial"
-            >
-              <Link href="/billing">
-                <Receipt className="h-3.5 w-3.5" />
-                Billing
+                Book Visit
               </Link>
             </Button>
           </div>

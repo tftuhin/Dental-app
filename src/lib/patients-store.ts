@@ -148,6 +148,23 @@ export const INITIAL_PATIENTS: PatientProfile[] = [
 
 const STORAGE_KEY = "dentalos1-patients-registry-v1";
 
+const BLANK_PATIENT: Omit<PatientProfile, "id" | "customId" | "name"> = {
+  dob: "",
+  age: 0,
+  gender: "",
+  phone: "",
+  email: "",
+  address: "",
+  emergencyContact: "",
+  bloodGroup: "",
+  allergies: [],
+  medicalConditions: [],
+  status: "new",
+  lastVisit: "First Visit",
+  outstandingBalance: "৳0.00",
+  tags: [],
+};
+
 /**
  * Calculate age from YYYY-MM-DD birthdate string
  */
@@ -206,13 +223,91 @@ export function getAllPatients(): PatientProfile[] {
  */
 export function getPatientById(idOrCustomId: string): PatientProfile | undefined {
   const all = getAllPatients();
-  const found = all.find(
-    (p) => p.id === idOrCustomId || p.customId === idOrCustomId
+  if (!idOrCustomId) return undefined;
+  return all.find((p) => p.id === idOrCustomId || p.customId === idOrCustomId);
+}
+
+/** Normalise a phone number to its digits for matching ("+880 1711-234891" → "8801711234891"). */
+function phoneDigits(phone: string): string {
+  return (phone || "").replace(/\D/g, "");
+}
+
+/**
+ * Search the registry by name, patient ID or phone. Used by the booking
+ * desk to find a returning patient before creating a new record.
+ */
+export function searchPatients(query: string, limit = 8): PatientProfile[] {
+  const q = query.trim().toLowerCase();
+  if (q.length < 2) return [];
+  const qDigits = phoneDigits(q);
+  return getAllPatients()
+    .filter((p) => {
+      if (p.name.toLowerCase().includes(q)) return true;
+      if (p.customId.toLowerCase().includes(q)) return true;
+      if (qDigits.length >= 4) {
+        const digits = [p.phone, p.phone2 || ""].map(phoneDigits);
+        // Compare on the trailing digits so "01711..." matches "+880 1711..."
+        const tail = qDigits.slice(-10);
+        return digits.some((d) => d && (d.includes(qDigits) || d.endsWith(tail)));
+      }
+      return false;
+    })
+    .slice(0, limit);
+}
+
+/** Exact phone match, used to stop duplicate registrations. */
+export function findPatientByPhone(phone: string): PatientProfile | undefined {
+  const tail = phoneDigits(phone).slice(-10);
+  if (tail.length < 10) return undefined;
+  return getAllPatients().find((p) =>
+    [p.phone, p.phone2 || ""].some((ph) => phoneDigits(ph).endsWith(tail))
   );
-  if (found) return found;
-  // Fallback to first patient if looking for generic or test ID
-  if (idOrCustomId === "pat-1" || !idOrCustomId) return all[0];
-  return undefined;
+}
+
+/**
+ * Generate the next patient ID from the clinic's pattern
+ * (Settings → Services & Patient ID). Tokens: {YYYY}, {YY}, {MM}, {SEQ:N}.
+ * The sequence continues from the highest existing ID with the same prefix,
+ * so deleting or reordering patients never produces a duplicate.
+ */
+export function generateNextPatientId(): string {
+  let pattern = "DENT-{YYYY}-{SEQ:5}";
+  let sequenceStart = 1;
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem("dentalos1-services-settings");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.patientIdPattern === "string" && parsed.patientIdPattern.includes("{SEQ")) {
+          pattern = parsed.patientIdPattern;
+        }
+        const start = parseInt(parsed.patientIdSequenceStart, 10);
+        if (!isNaN(start) && start > 0) sequenceStart = start;
+      }
+    } catch {
+      // keep defaults
+    }
+  }
+
+  const now = new Date();
+  const yyyy = String(now.getFullYear());
+  const resolved = pattern
+    .replace("{YYYY}", yyyy)
+    .replace("{YY}", yyyy.slice(-2))
+    .replace("{MM}", String(now.getMonth() + 1).padStart(2, "0"));
+
+  const seqMatch = resolved.match(/\{SEQ:(\d+)\}/);
+  const width = seqMatch ? parseInt(seqMatch[1], 10) : 5;
+  const [prefix, suffix = ""] = resolved.split(/\{SEQ:\d+\}/);
+
+  let maxSeq = sequenceStart - 1;
+  for (const p of getAllPatients()) {
+    if (p.customId.startsWith(prefix) && p.customId.endsWith(suffix)) {
+      const n = parseInt(p.customId.slice(prefix.length, p.customId.length - suffix.length), 10);
+      if (!isNaN(n) && n > maxSeq) maxSeq = n;
+    }
+  }
+  return `${prefix}${String(maxSeq + 1).padStart(width, "0")}${suffix}`;
 }
 
 /**
@@ -251,11 +346,13 @@ export function updatePatient(
   if (!updatedPatient) {
     // If patient was not in list, create one
     const newId = id.startsWith("pat-") ? id : `pat-${Date.now()}`;
+    // Never copy another patient's clinical data into a new record
     updatedPatient = {
-      ...INITIAL_PATIENTS[0],
+      ...BLANK_PATIENT,
+      customId: generateNextPatientId(),
       ...updates,
       id: newId,
-      name: updates.name || "Updated Patient",
+      name: updates.name || "Unnamed Patient",
     };
     nextList.push(updatedPatient);
   }
@@ -282,9 +379,7 @@ export function createPatient(
   }
 ): PatientProfile {
   const all = getAllPatients();
-  const nextSeq = all.length + 43;
-  const customId =
-    patientData.customId || `DENT-2026-${String(nextSeq).padStart(5, "0")}`;
+  const customId = patientData.customId || generateNextPatientId();
   const id = patientData.id || `pat-${Date.now()}`;
 
   const age =

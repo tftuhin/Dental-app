@@ -52,6 +52,103 @@ export interface ClinicalQueuePatient {
   suggestedFee?: number;
   followUpDate?: string;
   followUpSerial?: number;
+
+  // ─── Visit record (one per appointment, carried through every stage) ───
+  /** Appointment date, YYYY-MM-DD. */
+  date?: string;
+  /** Internal id of the patient in the patient registry (patients-store). */
+  patientRecordId?: string;
+  /** Where the patient currently is in the flow. */
+  stage?: VisitStage;
+  /** True when this appointment was auto-booked as a follow-up. */
+  isFollowUp?: boolean;
+  examinationFindings?: {
+    targetTooth?: string;
+    painScore?: number;
+    percussion?: string;
+    coldTest?: string;
+    mobility?: string;
+  };
+  /** Examinations, procedures and surgeries done (from the catalog, with preset prices). */
+  procedures?: VisitLineItem[];
+  /** Medicines and disposables used in the chair that need billing. */
+  consumables?: VisitLineItem[];
+  procedureNotes?: string;
+  /** Snapshot of the issued prescription. */
+  prescription?: VisitPrescription;
+  /** Invoice once payment is recorded. */
+  invoice?: VisitInvoice;
+}
+
+export type VisitStage = "waiting" | "notes" | "procedure" | "prescription" | "billing" | "done";
+
+export interface VisitLineItem {
+  id: string;
+  catalogId?: string;
+  code: string;
+  name: string;
+  category: "consultation" | "examination" | "procedure" | "surgery" | "consumable";
+  toothNumber?: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface VisitPrescription {
+  rxNumber: string;
+  issuedAt: string;
+  diagnosis: string;
+  medicines: Array<{
+    brandName: string;
+    genericName?: string;
+    strength?: string;
+    dosageForm?: string;
+    frequency?: string;
+    duration?: string;
+    timing?: string;
+    instructions?: string;
+  }>;
+  tests: string[];
+  advice?: string;
+  followUpDate?: string;
+  followUpAppointmentId?: string;
+}
+
+export interface VisitInvoice {
+  invoiceNumber: string;
+  receiptNumber: string;
+  subtotal: number;
+  discountAmount: number;
+  discountType?: string;
+  taxAmount?: number;
+  taxRate?: number;
+  total: number;
+  /** Sum of all payments. */
+  paidAmount: number;
+  balanceDue: number;
+  /** Method of the first payment (kept for older records). */
+  paymentMethod: string;
+  paidAt: string;
+  diagnosis?: string;
+  /** Bill lines exactly as issued, so a due bill can be reprinted later. */
+  items?: Array<{
+    code: string;
+    description: string;
+    toothNumber?: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
+  /** Every payment against this bill: the first one at billing, then due payments. */
+  payments?: VisitPayment[];
+}
+
+export interface VisitPayment {
+  id: string;
+  amount: number;
+  method: string;
+  trxId?: string;
+  /** ISO timestamp */
+  paidAt: string;
+  receiptNumber: string;
 }
 
 export interface PatientTimelineEvent {
@@ -650,17 +747,46 @@ const STORAGE_KEY = "dentai_appointments_patient_queue_v2";
 const TIMELINE_STORAGE_KEY = "dentai_patient_timelines_v2";
 
 // Helpers for localStorage sync across tabs and pages
+/** Local date as YYYY-MM-DD (not UTC, so late-evening visits stay on the right day). */
+export function toISODate(d: Date = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Give every stored appointment a date and a stage so all pages can rely on them. */
+function normaliseAppointments(list: ClinicalQueuePatient[]): { list: ClinicalQueuePatient[]; changed: boolean } {
+  let changed = false;
+  const today = toISODate();
+  const next = list.map((a) => {
+    if (a.date && a.stage) return a;
+    changed = true;
+    const stage: VisitStage =
+      a.stage ||
+      (a.billed
+        ? "done"
+        : a.prescriptionDone
+        ? "billing"
+        : a.status === "completed"
+        ? "prescription"
+        : a.status === "in_progress"
+        ? "notes"
+        : "waiting");
+    return { ...a, date: a.date || today, stage };
+  });
+  return { list: next, changed };
+}
+
 export function getStoredAppointments(): ClinicalQueuePatient[] {
   if (typeof window === "undefined") return INITIAL_APPOINTMENTS;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_APPOINTMENTS));
-      return INITIAL_APPOINTMENTS;
-    }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
+    const source: ClinicalQueuePatient[] = raw ? JSON.parse(raw) : INITIAL_APPOINTMENTS;
+    if (Array.isArray(source)) {
+      const { list, changed } = normaliseAppointments(source);
+      if (changed || !raw) localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      return list;
     }
     return INITIAL_APPOINTMENTS;
   } catch (e) {
@@ -715,8 +841,8 @@ export function logPatientActivity(event: PatientTimelineEvent): void {
         allEvents = parsed;
       }
     }
-    // Prepend new activity
-    const updated = [event, ...allEvents];
+    // Prepend new activity; an event with the same id (e.g. a re-signed prescription) replaces the old one
+    const updated = [event, ...allEvents.filter((e) => e.id !== event.id)];
     localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent("dentai-timeline-updated", { detail: event }));
   } catch (e) {
@@ -724,51 +850,207 @@ export function logPatientActivity(event: PatientTimelineEvent): void {
   }
 }
 
-// Automatically schedule a follow-up appointment on given date with next available serial
-export function scheduleFollowUpAppointment(
-  patientId: string,
-  followUpDate: string,
-  serviceOrReason = "Follow-up Consultation & Review"
-): { appointment: ClinicalQueuePatient; serialNumber: number } {
-  const appointments = getStoredAppointments();
-  const patient = appointments.find((a) => a.patientId === patientId || a.id === patientId) || {
-    patient: "Anika Tabassum",
-    phone: "+880 1712-345678",
-    age: 34,
-    gender: "Female",
-    address: "Dhaka",
-    alerts: [],
+// ─── Visit helpers ───────────────────────────────────────────
+
+export function getVisit(visitId: string): ClinicalQueuePatient | undefined {
+  if (!visitId) return undefined;
+  return getStoredAppointments().find((a) => a.id === visitId);
+}
+
+/** Merge changes into one visit and persist. Returns the updated visit. */
+export function updateVisit(
+  visitId: string,
+  patch: Partial<ClinicalQueuePatient>
+): ClinicalQueuePatient | undefined {
+  let updated: ClinicalQueuePatient | undefined;
+  const list = getStoredAppointments().map((a) => {
+    if (a.id !== visitId) return a;
+    updated = { ...a, ...patch };
+    return updated;
+  });
+  if (updated) saveStoredAppointments(list);
+  return updated;
+}
+
+/** Visits that are waiting at a given stage today (used by each stage's picker). */
+export function getVisitsAtStage(stage: VisitStage, date: string = toISODate()): ClinicalQueuePatient[] {
+  return getStoredAppointments()
+    .filter((a) => a.stage === stage && (a.date || toISODate()) === date)
+    .sort((a, b) => (a.fifoSerial || 0) - (b.fifoSerial || 0));
+}
+
+/** Next queue serial for a given day. */
+export function nextSerialForDate(date: string, list: ClinicalQueuePatient[] = getStoredAppointments()): number {
+  return (
+    list
+      .filter((a) => (a.date || toISODate()) === date)
+      .reduce((max, a) => Math.max(max, a.fifoSerial || a.serialNumber || 0), 0) + 1
+  );
+}
+
+// ─── Slot finding ────────────────────────────────────────────
+
+const SLOT_MINUTES = 30;
+
+/** "10:30 AM" → minutes since midnight. Returns NaN when unparseable. */
+export function parseTimeToMinutes(time: string): number {
+  const m = (time || "").trim().match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])?$/);
+  if (!m) return NaN;
+  let h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  const ap = m[3]?.toUpperCase();
+  if (ap === "PM" && h < 12) h += 12;
+  if (ap === "AM" && h === 12) h = 0;
+  return h * 60 + min;
+}
+
+export function formatMinutesAsTime(total: number): string {
+  const h24 = Math.floor(total / 60);
+  const min = total % 60;
+  const ap = h24 >= 12 ? "PM" : "AM";
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${String(h12).padStart(2, "0")}:${String(min).padStart(2, "0")} ${ap}`;
+}
+
+function durationMinutes(d?: string): number {
+  const n = parseInt((d || "").replace(/\D/g, ""), 10);
+  return isNaN(n) || n <= 0 ? SLOT_MINUTES : n;
+}
+
+interface ClinicHours {
+  openDays: string[];
+  openingTime: string;
+  closingTime: string;
+  breakStartTime: string;
+  breakEndTime: string;
+}
+
+function readClinicHours(): ClinicHours {
+  const fallback: ClinicHours = {
+    openDays: ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"],
+    openingTime: "09:00 AM",
+    closingTime: "09:00 PM",
+    breakStartTime: "01:30 PM",
+    breakEndTime: "02:30 PM",
   };
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem("dentai_clinic_setup_v1");
+    if (!raw) return fallback;
+    const p = JSON.parse(raw);
+    return {
+      openDays: Array.isArray(p.openDays) && p.openDays.length > 0 ? p.openDays : fallback.openDays,
+      openingTime: p.openingTime || fallback.openingTime,
+      closingTime: p.closingTime || fallback.closingTime,
+      breakStartTime: p.breakStartTime || "",
+      breakEndTime: p.breakEndTime || "",
+    };
+  } catch {
+    return fallback;
+  }
+}
 
-  // Calculate next available serial number on schedule
-  const nextSerial =
-    appointments.reduce((max, a) => Math.max(max, a.fifoSerial || a.serialNumber || 0), 0) + 1;
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+/**
+ * Earliest free slot for a doctor on a date, respecting clinic open days,
+ * opening/closing hours, the break, and that doctor's existing bookings.
+ * If the date is closed or fully booked, moves forward day by day (up to 30 days).
+ * For today, slots that have already passed are skipped.
+ */
+export function findEarliestSlot(
+  requestedDate: string,
+  doctor: string,
+  list: ClinicalQueuePatient[] = getStoredAppointments()
+): { date: string; time: string; movedFromRequested: boolean } | null {
+  const hours = readClinicHours();
+  const open = parseTimeToMinutes(hours.openingTime);
+  const close = parseTimeToMinutes(hours.closingTime);
+  const breakStart = parseTimeToMinutes(hours.breakStartTime);
+  const breakEnd = parseTimeToMinutes(hours.breakEndTime);
+  if (isNaN(open) || isNaN(close) || close <= open) return null;
+
+  const [y, m, d] = requestedDate.split("-").map((n) => parseInt(n, 10));
+  const cursor = new Date(y, (m || 1) - 1, d || 1);
+  const now = new Date();
+  const today = toISODate(now);
+
+  for (let dayOffset = 0; dayOffset < 30; dayOffset++) {
+    const date = toISODate(cursor);
+    const weekday = WEEKDAYS[cursor.getDay()];
+
+    if (hours.openDays.includes(weekday)) {
+      const busy = list
+        .filter(
+          (a) =>
+            (a.date || today) === date &&
+            a.doctor === doctor &&
+            a.status !== "no_show"
+        )
+        .map((a) => {
+          const start = parseTimeToMinutes(a.time);
+          return { start, end: start + durationMinutes(a.duration) };
+        })
+        .filter((b) => !isNaN(b.start));
+
+      const earliest = date === today ? now.getHours() * 60 + now.getMinutes() : -1;
+
+      for (let t = open; t + SLOT_MINUTES <= close; t += SLOT_MINUTES) {
+        if (t < earliest) continue;
+        const end = t + SLOT_MINUTES;
+        if (!isNaN(breakStart) && !isNaN(breakEnd) && t < breakEnd && end > breakStart) continue;
+        if (busy.some((b) => t < b.end && end > b.start)) continue;
+        return { date, time: formatMinutesAsTime(t), movedFromRequested: date !== requestedDate };
+      }
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return null;
+}
+
+/**
+ * Book the follow-up visit requested on the prescription at the earliest
+ * free slot with the same doctor on (or after) the requested date.
+ */
+export function scheduleFollowUpAppointment(
+  visit: ClinicalQueuePatient,
+  followUpDate: string,
+  reason = "Follow-up Consultation & Review"
+): { appointment: ClinicalQueuePatient; serialNumber: number; movedFromRequested: boolean } | null {
+  const appointments = getStoredAppointments();
+  const slot = findEarliestSlot(followUpDate, visit.doctor, appointments);
+  if (!slot) return null;
+
+  const serial = nextSerialForDate(slot.date, appointments);
   const newAppointment: ClinicalQueuePatient = {
     id: `apt-followup-${Date.now()}`,
-    token: `A-0${nextSerial + 15}`,
-    fifoSerial: nextSerial,
-    serialNumber: nextSerial,
-    bookingChannel: "walk_in",
-    patient: patient.patient,
-    patientId: patientId,
-    phone: patient.phone,
-    age: patient.age,
-    gender: patient.gender,
-    address: patient.address,
-    chair: "Chair 1",
-    doctor: "Dr. Sarah Smith, BDS, FCPS",
-    time: "10:30 AM",
-    duration: "30m",
-    service: serviceOrReason,
+    token: `F-${String(serial).padStart(3, "0")}`,
+    fifoSerial: serial,
+    serialNumber: serial,
+    bookingChannel: "phone",
+    patient: visit.patient,
+    patientId: visit.patientId,
+    patientRecordId: visit.patientRecordId,
+    phone: visit.phone,
+    age: visit.age,
+    gender: visit.gender,
+    address: visit.address,
+    chair: visit.chair,
+    doctor: visit.doctor,
+    date: slot.date,
+    time: slot.time,
+    duration: `${SLOT_MINUTES}m`,
+    service: reason,
     status: "scheduled",
-    alerts: patient.alerts || [],
-    clinicalNotes: `Scheduled follow-up for ${followUpDate}.`,
-    followUpDate: followUpDate,
+    stage: "waiting",
+    isFollowUp: true,
+    alerts: visit.alerts || [],
+    chiefComplaint: reason,
+    followUpDate: slot.date,
   };
 
   saveStoredAppointments([...appointments, newAppointment]);
-  return { appointment: newAppointment, serialNumber: nextSerial };
+  return { appointment: newAppointment, serialNumber: serial, movedFromRequested: slot.movedFromRequested };
 }
 
 // Search historical prescriptions by query (Patient name, ID, or phone)

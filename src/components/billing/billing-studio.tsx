@@ -50,11 +50,17 @@ import {
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
   ClinicalQueuePatient,
-  PatientTimelineEvent,
   getStoredAppointments,
-  saveStoredAppointments,
   logPatientActivity,
+  getVisit,
+  updateVisit,
+  toISODate,
 } from "@/lib/clinical-flow-store";
+import { getPatientById, updatePatient } from "@/lib/patients-store";
+import { buildReceiptFromInvoice, recalcPatientOutstanding } from "@/lib/billing-store";
+import { DuePayments, CollectDueDialog } from "@/components/billing/due-payments";
+import { getDefaultConsultationItem } from "@/lib/procedures-catalog-store";
+import { VisitStepper } from "@/components/clinical/visit-stepper";
 import { formatBDT, numberToWordsBDT } from "@/lib/currency";
 import { getClinicSetup, ClinicSetupData } from "@/lib/clinic-setup-store";
 import { printReceiptWindow, downloadReceiptPdf, ReceiptPdfData } from "@/lib/receipt-pdf-generator";
@@ -321,357 +327,171 @@ export function BillingStudio() {
   const clinicPhone = clinic?.phone || "+880 1712-345678";
   const clinicLicense = clinic?.bmdcLicense || "DGHS/DH-2024/9912 · BMDC Approved";
 
-  // Queue of patients awaiting billing from clinical store
+  // Today's visits that reached billing (or were billed today)
   const [queuePatients, setQueuePatients] = useState<ClinicalQueuePatient[]>([]);
-  const [selectedQueuePatientId, setSelectedQueuePatientId] = useState<string>("apt-1");
+  const [selectedQueuePatientId, setSelectedQueuePatientId] = useState<string>("");
+  const [visit, setVisit] = useState<ClinicalQueuePatient | undefined>();
 
+  // Patient on the bill. Starts empty until a visit is selected.
   const [patient, setPatient] = useState({
-    name: "Anika Tabassum",
-    customId: "DENT-2026-00042",
-    age: 34,
-    gender: "Female",
-    phone: "+880 1712-345678",
-    address: "House 42, Road 7A, Dhanmondi R/A, Dhaka-1209",
-    dateOfBirth: "1992-10-14", // Birthday this month!
-    isBirthdayMonth: true,
+    name: "",
+    customId: "",
+    age: 0,
+    gender: "",
+    phone: "",
+    address: "",
+    dateOfBirth: "",
+    isBirthdayMonth: false,
   });
 
-  const [primaryDiagnosis, setPrimaryDiagnosis] = useState(
-    "Symptomatic Irreversible Pulpitis with Acute Apical Periodontitis (Tooth #19)"
-  );
+  const [primaryDiagnosis, setPrimaryDiagnosis] = useState("");
 
   // Add Procedure Blank Form Dialog State
   const [isAddProcedureOpen, setIsAddProcedureOpen] = useState(false);
   const [newProcedureForm, setNewProcedureForm] = useState<Omit<InvoiceLineItem, "id">>({
-    cdtCode: "D2392",
+    cdtCode: "",
     description: "",
     toothNumber: "",
     category: "procedure",
     quantity: 1,
-    unitPrice: 1500,
+    unitPrice: 0,
   });
 
   // Edit Existing Procedure Dialog State
   const [isEditProcedureOpen, setIsEditProcedureOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InvoiceLineItem | null>(null);
 
-  const [invoiceNumber] = useState("INV-2026-00412");
+  const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate] = useState(new Date().toISOString().split("T")[0]);
 
-  const [items, setItems] = useState<InvoiceLineItem[]>([
-    {
-      id: "item-1",
-      cdtCode: "D3330",
-      description: "Endodontic Therapy - Molar (Tooth #19, Complete Rotary)",
-      toothNumber: "#19",
-      category: "procedure",
-      quantity: 1,
-      unitPrice: 8500.0,
-    },
-    {
-      id: "item-2",
-      cdtCode: "D0140",
-      description: "Comprehensive Oral Examination & Specialist Consultation",
-      toothNumber: "",
-      category: "consultation",
-      quantity: 1,
-      unitPrice: 800.0,
-    },
-    {
-      id: "item-3",
-      cdtCode: "D0220",
-      description: "Digital Intraoral Periapical (IOPA) Radiograph",
-      toothNumber: "#19",
-      category: "procedure",
-      quantity: 1,
-      unitPrice: 400.0,
-    },
-    {
-      id: "item-4",
-      cdtCode: "D9630",
-      description: "Prescribed Dental Pharmacotherapy Pack (Torax, Amodis, Maxpro, Clohex)",
-      toothNumber: "",
-      category: "medicine",
-      quantity: 1,
-      unitPrice: 480.0,
-    },
-  ]);
+  const [items, setItems] = useState<InvoiceLineItem[]>([]);
 
-  const [discountType, setDiscountType] = useState<"none" | "fixed" | "percentage" | "birthday">("birthday");
-  const [discountValue, setDiscountValue] = useState<number>(patient.age);
+  const [discountType, setDiscountType] = useState<"none" | "fixed" | "percentage" | "birthday">("none");
+  const [discountValue, setDiscountValue] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
-  const [paidAmount, setPaidAmount] = useState<number>(5000);
-  const [paymentMethod, setPaymentMethod] = useState("bkash");
-  const [trxId, setTrxId] = useState("BK-94829184");
+  const [paidAmount, setPaidAmount] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [trxId, setTrxId] = useState("");
   const [isFinalized, setIsFinalized] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [collectDueOpen, setCollectDueOpen] = useState(false);
 
-  // Sync with clinical store on mount & check query params
+  const loadQueue = () => {
+    const today = toISODate();
+    setQueuePatients(
+      getStoredAppointments()
+        .filter((a) => (a.date || today) === today && (a.stage === "billing" || a.stage === "done"))
+        .sort((a, b) => (a.fifoSerial || 0) - (b.fifoSerial || 0))
+    );
+  };
+
+  // Sync with the visit store and open the visit from the link (?visitId=)
   useEffect(() => {
-    const list = getStoredAppointments();
-    setQueuePatients(list);
-
-    const paramPatientId = searchParams?.get("patientId");
-    if (paramPatientId) {
-      setSelectedQueuePatientId(paramPatientId);
-      const chosen = list.find((a) => a.id === paramPatientId);
-      if (chosen) {
-        setPatient({
-          name: chosen.patient,
-          customId: chosen.patientId,
-          age: chosen.age,
-          gender: (chosen as any).gender || (chosen.patient.includes("Tabassum") || chosen.patient.includes("Begum") || chosen.patient.includes("Fatima") || chosen.patient.includes("Nusrat") ? "Female" : "Male"),
-          phone: chosen.phone,
-          address: chosen.address,
-          dateOfBirth: "1992-10-14",
-          isBirthdayMonth: true,
-        });
-
-        if (chosen.provisionalDiagnosis) {
-          setPrimaryDiagnosis(chosen.provisionalDiagnosis);
-        } else {
-          setPrimaryDiagnosis(`${chosen.service} - Clinical Operatory Procedure`);
-        }
-
-        const newItems: InvoiceLineItem[] = [
-          {
-            id: "item-cons-" + Date.now(),
-            cdtCode: "D0140",
-            description: "Comprehensive Oral Examination & Specialist Consultation",
-            toothNumber: "",
-            category: "consultation",
-            quantity: 1,
-            unitPrice: 800.0,
-          },
-        ];
-
-        if (chosen.service.toLowerCase().includes("pulpectomy") || chosen.service.toLowerCase().includes("rct")) {
-          newItems.push({
-            id: "item-rct-" + Date.now(),
-            cdtCode: "D3330",
-            description: "Endodontic Therapy - Molar (Tooth #19, Complete Rotary)",
-            toothNumber: "#19",
-            category: "procedure",
-            quantity: 1,
-            unitPrice: 8500.0,
-          });
-          newItems.push({
-            id: "item-xray-" + Date.now(),
-            cdtCode: "D0220",
-            description: "Digital Intraoral Periapical (IOPA) Radiograph",
-            toothNumber: "#19",
-            category: "procedure",
-            quantity: 1,
-            unitPrice: 400.0,
-          });
-          newItems.push({
-            id: "item-med-" + Date.now(),
-            cdtCode: "D9630",
-            description: "Prescribed Dental Pharmacotherapy Pack (Torax, Amodis, Maxpro, Clohex)",
-            toothNumber: "",
-            category: "medicine",
-            quantity: 1,
-            unitPrice: 480.0,
-          });
-        } else if (chosen.service.toLowerCase().includes("crown")) {
-          newItems.push({
-            id: "item-crw-" + Date.now(),
-            cdtCode: "D2740",
-            description: "Full Contour Monolithic Zirconia Crown (#30 CAD/CAM)",
-            toothNumber: "#30",
-            category: "procedure",
-            quantity: 1,
-            unitPrice: 12000.0,
-          });
-        } else if (chosen.service.toLowerCase().includes("scaling") || chosen.service.toLowerCase().includes("perio")) {
-          newItems.push({
-            id: "item-scl-" + Date.now(),
-            cdtCode: "D1110",
-            description: "Prophylaxis - Adult Full Mouth Ultrasonic Scaling & Polish",
-            toothNumber: "",
-            category: "procedure",
-            quantity: 1,
-            unitPrice: 2500.0,
-          });
-        } else {
-          newItems.push({
-            id: "item-gen-" + Date.now(),
-            cdtCode: "D9999",
-            description: `${chosen.service} - Operatory Session`,
-            toothNumber: "",
-            category: "procedure",
-            quantity: 1,
-            unitPrice: chosen.suggestedFee || 1500.0,
-          });
-        }
-
-        if (chosen.labProceduresRecommended) {
-          chosen.labProceduresRecommended.forEach((proc, idx) => {
-            if (!newItems.some((it) => it.description.toLowerCase().includes(proc.toLowerCase()))) {
-              newItems.push({
-                id: `item-lab-${idx}-${Date.now()}`,
-                cdtCode: "D0220",
-                description: `${proc} (Ordered during session)`,
-                toothNumber: "",
-                category: "lab",
-                quantity: 1,
-                unitPrice: 450.0,
-              });
-            }
-          });
-        }
-
-        setItems(newItems);
-        toast.success(`Loaded billing items for ${chosen.patient}!`);
-      }
+    loadQueue();
+    const paramVisitId = searchParams?.get("visitId") || searchParams?.get("patientId");
+    if (paramVisitId) {
+      const chosen = getVisit(paramVisitId);
+      if (chosen) loadVisitForBilling(chosen);
     }
-
-    const handleSync = () => {
-      setQueuePatients(getStoredAppointments());
-    };
-    window.addEventListener("dentai-appointments-updated", handleSync);
-    return () => window.removeEventListener("dentai-appointments-updated", handleSync);
+    window.addEventListener("dentai-appointments-updated", loadQueue);
+    return () => window.removeEventListener("dentai-appointments-updated", loadQueue);
   }, [searchParams]);
 
-  // Handle selecting a completed patient from the dropdown
-  const handleSelectPatient = (patientId: string) => {
-    setSelectedQueuePatientId(patientId);
-    const chosen = queuePatients.find((a) => a.id === patientId);
-    if (!chosen) return;
+  const handleSelectPatient = (visitId: string) => {
+    const chosen = getVisit(visitId);
+    if (chosen) loadVisitForBilling(chosen);
+  };
 
+  /**
+   * The bill is built only from what was recorded in the visit:
+   * consultation fee + examinations/procedures/surgery + medicines & disposables used.
+   */
+  function loadVisitForBilling(chosen: ClinicalQueuePatient) {
+    const record = getPatientById(chosen.patientRecordId || chosen.patientId);
+    const dob = record?.dob || "";
+    const isBirthdayMonth = !!dob && new Date(dob).getMonth() === new Date().getMonth();
+
+    setVisit(chosen);
+    setSelectedQueuePatientId(chosen.id);
     setPatient({
       name: chosen.patient,
       customId: chosen.patientId,
       age: chosen.age,
-      gender: (chosen as any).gender || (chosen.patient.includes("Tabassum") || chosen.patient.includes("Begum") || chosen.patient.includes("Fatima") || chosen.patient.includes("Nusrat") ? "Female" : "Male"),
+      gender: chosen.gender || record?.gender || "",
       phone: chosen.phone,
       address: chosen.address,
-      dateOfBirth: "1992-10-14",
-      isBirthdayMonth: true,
+      dateOfBirth: dob,
+      isBirthdayMonth,
     });
+    setPrimaryDiagnosis(chosen.prescription?.diagnosis || chosen.provisionalDiagnosis || "");
 
-    if (chosen.provisionalDiagnosis) {
-      setPrimaryDiagnosis(chosen.provisionalDiagnosis);
-    } else {
-      setPrimaryDiagnosis(`${chosen.service} - Clinical Operatory Procedure`);
-    }
-
-    // Generate appropriate line items based on their service & lab procedures
-    const newItems: InvoiceLineItem[] = [
-      {
-        id: "item-cons-" + Date.now(),
-        cdtCode: "D0140",
-        description: "Comprehensive Oral Examination & Specialist Consultation",
+    const lines: InvoiceLineItem[] = [];
+    const consult = getDefaultConsultationItem(!!chosen.isFollowUp);
+    if (consult) {
+      lines.push({
+        id: `item-${chosen.id}-consult`,
+        cdtCode: consult.code,
+        description: consult.name,
         toothNumber: "",
         category: "consultation",
         quantity: 1,
-        unitPrice: 800.0,
-      },
-    ];
-
-    if (chosen.service.toLowerCase().includes("pulpectomy") || chosen.service.toLowerCase().includes("rct")) {
-      newItems.push({
-        id: "item-rct-" + Date.now(),
-        cdtCode: "D3330",
-        description: "Endodontic Therapy - Molar (Tooth #19, Complete Rotary)",
-        toothNumber: "#19",
-        category: "procedure",
-        quantity: 1,
-        unitPrice: 8500.0,
-      });
-      newItems.push({
-        id: "item-xray-" + Date.now(),
-        cdtCode: "D0220",
-        description: "Digital Intraoral Periapical (IOPA) Radiograph",
-        toothNumber: "#19",
-        category: "procedure",
-        quantity: 1,
-        unitPrice: 400.0,
-      });
-      newItems.push({
-        id: "item-med-" + Date.now(),
-        cdtCode: "D9630",
-        description: "Prescribed Dental Pharmacotherapy Pack (Torax, Amodis, Maxpro, Clohex)",
-        toothNumber: "",
-        category: "medicine",
-        quantity: 1,
-        unitPrice: 480.0,
-      });
-    } else if (chosen.service.toLowerCase().includes("crown")) {
-      newItems.push({
-        id: "item-crw-" + Date.now(),
-        cdtCode: "D2740",
-        description: "Full Contour Monolithic Zirconia Crown (#30 CAD/CAM)",
-        toothNumber: "#30",
-        category: "procedure",
-        quantity: 1,
-        unitPrice: 12000.0,
-      });
-      newItems.push({
-        id: "item-post-" + Date.now(),
-        cdtCode: "D2950",
-        description: "Core Buildup with Fiber Post & Resin Cementation",
-        toothNumber: "#30",
-        category: "procedure",
-        quantity: 1,
-        unitPrice: 2500.0,
-      });
-    } else if (chosen.service.toLowerCase().includes("scaling") || chosen.service.toLowerCase().includes("perio")) {
-      newItems.push({
-        id: "item-scl-" + Date.now(),
-        cdtCode: "D1110",
-        description: "Full Mouth Ultrasonic Scaling & Subgingival Debridement",
-        toothNumber: "Full Arch",
-        category: "procedure",
-        quantity: 1,
-        unitPrice: 2500.0,
-      });
-      newItems.push({
-        id: "item-perio-" + Date.now(),
-        cdtCode: "D0180",
-        description: "Comprehensive 6-Point Periodontal Probing Depth Charting",
-        toothNumber: "",
-        category: "procedure",
-        quantity: 1,
-        unitPrice: 500.0,
-      });
-    } else if (chosen.service.toLowerCase().includes("extraction") || chosen.service.toLowerCase().includes("wisdom")) {
-      newItems.push({
-        id: "item-ext-" + Date.now(),
-        cdtCode: "D7230",
-        description: "Surgical Removal of Impacted Wisdom Tooth (#38)",
-        toothNumber: "#38",
-        category: "procedure",
-        quantity: 1,
-        unitPrice: 6500.0,
-      });
-      newItems.push({
-        id: "item-opg-" + Date.now(),
-        cdtCode: "D0330",
-        description: "Digital Panoramic Radiograph (OPG)",
-        toothNumber: "Full Arch",
-        category: "procedure",
-        quantity: 1,
-        unitPrice: 1200.0,
-      });
-    } else {
-      newItems.push({
-        id: "item-proc-" + Date.now(),
-        cdtCode: "D2392",
-        description: `${chosen.service} (Clinical Procedure)`,
-        toothNumber: "",
-        category: "procedure",
-        quantity: 1,
-        unitPrice: chosen.suggestedFee || 1500.0,
+        unitPrice: consult.price,
       });
     }
+    for (const p of chosen.procedures || []) {
+      lines.push({
+        id: p.id,
+        cdtCode: p.code,
+        description: p.name,
+        toothNumber: p.toothNumber || "",
+        category: "procedure",
+        quantity: p.quantity,
+        unitPrice: p.unitPrice,
+      });
+    }
+    for (const c of chosen.consumables || []) {
+      lines.push({
+        id: c.id,
+        cdtCode: c.code,
+        description: c.name,
+        toothNumber: "",
+        category: "medicine",
+        quantity: c.quantity,
+        unitPrice: c.unitPrice,
+      });
+    }
+    // A finalized bill reloads exactly as issued (catalog prices may have changed since)
+    const issued = chosen.invoice?.items;
+    setItems(
+      issued && issued.length > 0
+        ? issued.map((it, i) => ({
+            id: `item-issued-${i}`,
+            cdtCode: it.code,
+            description: it.description,
+            toothNumber: it.toothNumber || "",
+            category: "procedure" as const,
+            quantity: it.quantity,
+            unitPrice: it.unitPrice,
+          }))
+        : lines
+    );
 
-    setItems(newItems);
-    setDiscountValue(chosen.age);
-    setPaidAmount(0);
-    setIsFinalized(false);
-    toast.success(`Loaded billing profile for ${chosen.patient} (Serial #${chosen.fifoSerial || chosen.id})`);
-  };
+    const inv = chosen.invoice;
+    setInvoiceNumber(
+      inv?.invoiceNumber ||
+        `INV-${toISODate().replace(/-/g, "")}-${String(chosen.fifoSerial || 0).padStart(3, "0")}`
+    );
+    setDiscountType(inv && inv.discountAmount > 0 ? "fixed" : "none");
+    setDiscountValue(inv?.discountAmount || 0);
+    setPaidAmount(inv?.paidAmount || 0);
+    setPaymentMethod(inv?.paymentMethod || "cash");
+    setTrxId("");
+    setIsFinalized(!!inv);
+
+    if (!chosen.prescriptionDone) {
+      toast.warning(`${chosen.patient}'s prescription has not been signed yet.`);
+    }
+  }
 
   // Calculations in BDT
   const subtotal = items.reduce((acc, item) => acc + item.quantity * item.unitPrice, 0);
@@ -769,81 +589,123 @@ export function BillingStudio() {
     toast.info("Discount removed. Full fee applied.");
   };
 
+  // Record the payment, close the visit and log it to the patient's history
   const handleFinalizeInvoice = () => {
-    setIsFinalized(true);
+    if (!visit) {
+      toast.error("Select a patient to bill first.");
+      return;
+    }
+    if (visit.invoice) {
+      toast.error(
+        visit.invoice.balanceDue > 0
+          ? "This bill is already finalized. Use Collect Due Payment for the remaining amount."
+          : "This bill is already paid."
+      );
+      return;
+    }
+    if (items.length === 0) {
+      toast.error("The bill has no items.");
+      return;
+    }
+    if (!(paidAmount > 0)) {
+      toast.error("Enter the amount the patient paid before finalizing.");
+      return;
+    }
+    if (paidAmount < grandTotal && !confirm(`Patient is paying ${formatBDT(paidAmount)} of ${formatBDT(grandTotal)}. Record ${formatBDT(balanceDue)} as due?`)) {
+      return;
+    }
 
-    // Update patient in store as billed
-    const updated = queuePatients.map((a) =>
-      a.id === selectedQueuePatientId ? { ...a, billed: true } : a
-    );
-    setQueuePatients(updated);
-    saveStoredAppointments(updated);
+    const receiptNumber = "REC-" + invoiceNumber.replace(/^INV-/, "");
+    const paidAt = new Date().toLocaleString("en-BD", { dateStyle: "medium", timeStyle: "short" });
 
-    // Save complete procedure & billing log under patient's history timeline
-    const apt = queuePatients.find((a) => a.id === selectedQueuePatientId);
-    const activityEvent: PatientTimelineEvent = {
-      id: "ev-" + Date.now(),
-      patientId: patient.customId,
+    updateVisit(visit.id, {
+      billed: true,
+      stage: "done",
+      invoice: {
+        invoiceNumber,
+        receiptNumber,
+        subtotal,
+        discountAmount,
+        discountType,
+        taxAmount,
+        taxRate,
+        total: grandTotal,
+        paidAmount,
+        balanceDue,
+        paymentMethod,
+        paidAt,
+        diagnosis: primaryDiagnosis,
+        items: items.map((it) => ({
+          code: it.cdtCode,
+          description: it.description,
+          toothNumber: it.toothNumber,
+          quantity: it.quantity,
+          unitPrice: it.unitPrice,
+        })),
+        payments: [
+          {
+            id: "pay-initial",
+            amount: paidAmount,
+            method: paymentMethod,
+            trxId: trxId || undefined,
+            paidAt: new Date().toISOString(),
+            receiptNumber,
+          },
+        ],
+      },
+    });
+    const saved = getVisit(visit.id);
+    setVisit(saved);
+
+    // Patient's outstanding balance = sum of all their unpaid bills
+    if (saved) recalcPatientOutstanding(saved);
+    const record = getPatientById(visit.patientRecordId || visit.patientId);
+    if (record) updatePatient(record.id, { status: "active" });
+
+    logPatientActivity({
+      id: `ev-${visit.id}-invoice`,
+      patientId: visit.patientId,
       date: new Date().toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
       timestamp: Date.now(),
       type: "invoice",
-      title: `${apt?.service || "Dental Procedure"} & Official Billing Receipt`,
-      doctor: apt?.doctor || "Dr. Sarah Smith, BDS, FCPS",
-      chair: apt?.chair || "Chair 1",
-      chiefComplaint: apt?.chiefComplaint || "Dental examination and operatory procedure completed.",
-      selectedSymptoms: apt?.selectedSymptoms || ["Throbbing pain", "Cold sensitivity"],
-      targetTooth: apt?.service?.match(/#\d+/)?.[0] || "#19",
-      clinicalNotes: apt?.clinicalNotes || "Comprehensive dental examination, pulp treatment and tooth restoration completed.",
-      provisionalDiagnosis: apt?.provisionalDiagnosis || "Symptomatic Irreversible Pulpitis #19 with Periapical Periodontitis",
-      examinationFindings: {
-        percussion: "Tender (+)",
-        coldTest: "Lingering pain",
-        mobility: "Gr-0 (Normal)",
-        vitals: apt?.vitals || { bp: "120/80", pulse: "74", bloodSugar: "6.2 mmol/L", temp: "98.6°F" },
-      },
-      labProcedures: apt?.labProceduresRecommended || ["Digital IOPA Radiograph (#19)"],
-      uploadedFiles: apt?.uploadedFiles || [
-        {
-          id: "f-1",
-          name: "Digital_IOPA_Tooth_19.jpg",
-          type: "image",
-          size: "1.4 MB",
-          url: "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=800&q=80",
-          uploadedAt: "10:20 AM",
-          notes: "Pre-op IOPA radiograph showing periapical lesion tooth #19",
-        },
-      ],
-      prescribedMedicines: [
-        { brandName: "Torax 10mg", dosageForm: "Tablet", frequency: "1+0+1", duration: "3 days" },
-        { brandName: "Amodis 400mg", dosageForm: "Tablet", frequency: "1+1+1", duration: "5 days" },
-        { brandName: "Maxpro 20mg", dosageForm: "Capsule", frequency: "1+0+1", duration: "5 days" },
-        { brandName: "Clohex 0.2%", dosageForm: "Oral Rinse", frequency: "1+0+1", duration: "7 days" },
-      ],
+      title: `Bill paid (${invoiceNumber})`,
+      doctor: visit.doctor,
+      chair: visit.chair,
+      chiefComplaint: visit.chiefComplaint || undefined,
+      provisionalDiagnosis: primaryDiagnosis || undefined,
+      prescribedMedicines: visit.prescription?.medicines,
       billingDetails: {
         invoiceNumber,
         totalAmount: grandTotal,
         discountAmount,
         paidAmount,
         paymentMethod: paymentMethod.toUpperCase(),
-        paidAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        receiptNumber: "REC-" + invoiceNumber.replace("INV-", ""),
+        paidAt,
+        receiptNumber,
       },
-      badge: "Paid & Logged",
-      badgeColor: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
-    };
+      badge: balanceDue > 0 ? "Part Paid" : "Paid",
+      badgeColor:
+        balanceDue > 0
+          ? "bg-amber-500/10 text-amber-700 border-amber-500/30"
+          : "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
+    });
 
-    logPatientActivity(activityEvent);
-
-    // Open receipt modal for printing
+    setIsFinalized(true);
     setShowReceiptModal(true);
-
+    loadQueue();
     toast.success(
-      `Invoice #${invoiceNumber} finalized! Payment of ${formatBDT(paidAmount)} recorded via ${paymentMethod.toUpperCase()}. Complete activity logged to Patient History!`
+      `Payment of ${formatBDT(paidAmount)} recorded for ${visit.patient}.${balanceDue > 0 ? ` Due: ${formatBDT(balanceDue)}.` : ""}`
     );
   };
 
   const getReceiptData = (): ReceiptPdfData => {
-    const apt = queuePatients.find((a) => a.id === selectedQueuePatientId);
+    if (visit?.invoice) {
+      const fromInvoice = buildReceiptFromInvoice(visit);
+      if (fromInvoice) return fromInvoice;
+    }
+    // The visit's doctor, with degree and registration from Settings → Clinic Setup
+    const doctorName = visit?.doctor?.split(",")[0]?.trim() || "";
+    const doctor = clinic?.doctors?.find((d) => d.name === doctorName);
     return {
       invoiceNumber,
       receiptNumber: "REC-" + invoiceNumber.replace(/^INV-/, ""),
@@ -854,13 +716,13 @@ export function BillingStudio() {
       clinicAddress,
       clinicPhone,
       clinicLicense,
-      doctorName: apt?.doctor?.split(",")?.[0] || "Dr. Sarah Smith",
-      doctorDegree: apt?.doctor?.split(",").slice(1).join(",").trim() || "BDS (DU), FCPS (Oral & Maxillofacial Surgery)",
-      bmdcReg: "BMDC-DS-18492",
+      doctorName: doctorName,
+      doctorDegree: doctor?.degree || visit?.doctor?.split(",").slice(1).join(",").trim() || "",
+      bmdcReg: doctor?.bmdcReg || "",
       patientName: patient.name,
       patientId: patient.customId,
       age: patient.age,
-      gender: (patient as any).gender || (patient.name.includes("Tabassum") ? "Female" : "Male"),
+      gender: patient.gender,
       phone: patient.phone,
       address: patient.address,
       diagnosis: primaryDiagnosis,
@@ -887,11 +749,20 @@ export function BillingStudio() {
     };
   };
 
+  // The receipt is printed only after the payment is recorded
   const handlePrintMoneyReceipt = () => {
+    if (!isFinalized) {
+      toast.error("Record the payment first. The receipt prints after the bill is finalized.");
+      return;
+    }
     printReceiptWindow(getReceiptData());
   };
 
   const handleDownloadMoneyReceipt = () => {
+    if (!isFinalized) {
+      toast.error("Record the payment first. The receipt prints after the bill is finalized.");
+      return;
+    }
     downloadReceiptPdf(getReceiptData());
   };
 
@@ -925,7 +796,7 @@ export function BillingStudio() {
             className="gap-1.5 text-xs bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 font-medium flex-1 sm:flex-initial"
           >
             <Printer className="h-3.5 w-3.5" />
-            Print 2-Copy A4 Receipt
+            Print Receipt (2 Copies, Landscape)
           </Button>
           <Button
             size="sm"
@@ -933,7 +804,7 @@ export function BillingStudio() {
             className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm w-full sm:w-auto"
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
-            Finalize Invoice & Dispatch SMS
+            Record Payment & Finalize
           </Button>
         </div>
       </div>
@@ -957,20 +828,59 @@ export function BillingStudio() {
                 <SelectValue placeholder="Select patient awaiting billing..." />
               </SelectTrigger>
               <SelectContent>
+                {queuePatients.length === 0 && !visit && (
+                  <div className="px-3 py-2 text-xs text-muted-foreground">No patients waiting for billing today.</div>
+                )}
                 {queuePatients.map((apt) => (
                   <SelectItem key={apt.id} value={apt.id} className="text-xs">
                     <span className="font-bold text-emerald-700 mr-1.5">
                       Serial #{apt.fifoSerial}:
                     </span>
-                    {apt.patient} · {apt.service}
-                    {apt.status === "completed" ? " (Completed)" : " (In Chair)"}
+                    {apt.patient} ({apt.patientId})
+                    {apt.stage === "done" ? " · Paid" : " · Awaiting payment"}
                   </SelectItem>
                 ))}
+                {visit && !queuePatients.some((a) => a.id === visit.id) && (
+                  <SelectItem value={visit.id} className="text-xs">
+                    Serial #{visit.fifoSerial}: {visit.patient} ({visit.patientId})
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
         </div>
+        {visit && (
+          <div className="mt-3 pt-3 border-t border-emerald-500/20">
+            <VisitStepper
+              visitId={visit.id}
+              current="billing"
+              reached={visit.stage}
+              skippedProcedure={(visit.procedures?.length ?? 0) === 0}
+            />
+          </div>
+        )}
       </Card>
+
+      {/* Bills with money still owed, from any day */}
+      <DuePayments onOpenBill={(id) => handleSelectPatient(id)} />
+
+      {visit?.invoice && visit.invoice.balanceDue > 0 && (
+        <CollectDueDialog
+          visitId={visit.id}
+          open={collectDueOpen}
+          onOpenChange={setCollectDueOpen}
+          onPaid={() => {
+            const fresh = getVisit(visit.id);
+            if (fresh) loadVisitForBilling(fresh);
+          }}
+        />
+      )}
+
+      {!visit && (
+        <Card className="border-dashed p-8 text-center text-sm text-muted-foreground">
+          Select a patient above. Their bill is built from today&apos;s consultation, procedures and items used.
+        </Card>
+      )}
 
       {/* SUCCESS CONFIRMATION BANNER */}
       {isFinalized && (
@@ -978,13 +888,26 @@ export function BillingStudio() {
           <div className="flex items-center gap-2.5">
             <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
             <div>
-              <span className="font-bold block">Invoice #{invoiceNumber} Paid & Patient Discharged!</span>
+              <span className="font-bold block">
+                {visit?.invoice && visit.invoice.balanceDue > 0
+                  ? `Invoice #${invoiceNumber} partly paid · ${formatBDT(visit.invoice.balanceDue)} still due`
+                  : `Invoice #${invoiceNumber} paid in full`}
+              </span>
               <span>
-                Payment of {formatBDT(paidAmount)} verified via {paymentMethod.toUpperCase()} (TrxID: {trxId || "N/A"}). Balance due: {formatBDT(balanceDue)}.
+                Paid so far: {formatBDT(visit?.invoice?.paidAmount ?? paidAmount)} of {formatBDT(visit?.invoice?.total ?? grandTotal)}.
               </span>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {visit?.invoice && visit.invoice.balanceDue > 0 && (
+              <Button
+                size="sm"
+                onClick={() => setCollectDueOpen(true)}
+                className="text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+              >
+                Collect Due Payment
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -999,7 +922,7 @@ export function BillingStudio() {
               className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
             >
               <Printer className="h-3.5 w-3.5" />
-              Print 2-Copy A4 Receipt
+              Print Receipt (2 Copies, Landscape)
             </Button>
           </div>
         </div>
@@ -1466,16 +1389,16 @@ export function BillingStudio() {
 
       {/* PRINTABLE BILL RECEIPT MODAL */}
       <Dialog open={showReceiptModal} onOpenChange={setShowReceiptModal}>
-        <DialogContent className="sm:max-w-4xl max-h-[92vh] overflow-y-auto p-0 bg-background border shadow-2xl">
+        <DialogContent className="sm:max-w-4xl xl:max-w-[1400px] max-h-[92vh] overflow-y-auto p-0 bg-background border shadow-2xl">
           <DialogHeader className="p-4 sm:p-5 border-b bg-muted/20">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <DialogTitle className="text-base font-bold flex items-center gap-2">
                   <Receipt className="h-5 w-5 text-emerald-600" />
-                  Official Money Receipt (2-Copy Duplicate A4 Layout)
+                  Official Money Receipt (2 Copies, A4 Landscape)
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                  Single A4 portrait sheet formatted with Patient Copy (Top) and Office Copy (Bottom) separated by a perforation cut line with manual signature placeholders.
+                  One A4 landscape sheet: Patient Copy on the left, Office Copy on the right, with a cut line down the middle.
                 </DialogDescription>
               </div>
               <Badge className="bg-emerald-600 text-white text-[10px] uppercase font-bold self-start sm:self-auto shrink-0">
@@ -1484,26 +1407,26 @@ export function BillingStudio() {
             </div>
           </DialogHeader>
 
-          <div className="p-4 sm:p-6 space-y-4 bg-muted/10">
-            {/* TOP HALF: PATIENT COPY */}
+          <div className="p-4 sm:p-6 bg-muted/10 grid grid-cols-1 xl:grid-cols-[1fr_auto_1fr] gap-4 items-stretch">
+            {/* LEFT: PATIENT COPY */}
             <ModalReceiptSlip
               copyTitle="PATIENT COPY"
               badgeBg="bg-emerald-600 text-white"
               data={getReceiptData()}
             />
 
-            {/* PERFORATION CUT LINE DIVIDER */}
-            <div className="flex items-center gap-3 py-1 text-xs font-mono text-muted-foreground select-none">
-              <div className="flex-1 border-t-2 border-dashed border-muted-foreground/40" />
-              <div className="flex items-center gap-2 px-3 py-1 bg-background border rounded-full text-[10px] uppercase font-bold tracking-widest text-muted-foreground shadow-2xs">
+            {/* CUT LINE: vertical when side by side (wide screens), horizontal when stacked */}
+            <div className="flex xl:flex-col items-center gap-3 py-1 xl:py-0 xl:px-1 text-xs font-mono text-muted-foreground select-none">
+              <div className="flex-1 border-t-2 xl:border-t-0 xl:border-l-2 border-dashed border-muted-foreground/40 xl:self-center xl:w-0" />
+              <div className="flex xl:flex-col items-center gap-2 px-3 py-1 xl:px-1 xl:py-3 bg-background border rounded-full text-[10px] uppercase font-bold tracking-widest text-muted-foreground shadow-2xs">
                 <Scissors className="h-3.5 w-3.5 text-emerald-600" />
-                <span>✂ Cut or Tear Here · Patient Copy (Top) / Office Copy (Bottom) ✂</span>
+                <span className="xl:[writing-mode:vertical-rl] whitespace-nowrap">Cut here · Patient (left) / Office (right)</span>
                 <Scissors className="h-3.5 w-3.5 text-emerald-600 rotate-180" />
               </div>
-              <div className="flex-1 border-t-2 border-dashed border-muted-foreground/40" />
+              <div className="flex-1 border-t-2 xl:border-t-0 xl:border-l-2 border-dashed border-muted-foreground/40 xl:self-center xl:w-0" />
             </div>
 
-            {/* BOTTOM HALF: OFFICE / CLINIC COPY */}
+            {/* RIGHT: OFFICE / CLINIC COPY */}
             <ModalReceiptSlip
               copyTitle="OFFICE / CLINIC COPY"
               badgeBg="bg-slate-700 text-white dark:bg-slate-800"
@@ -1531,7 +1454,7 @@ export function BillingStudio() {
                 className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"
               >
                 <Printer className="h-3.5 w-3.5" />
-                Print 2-Copy A4 Money Receipt
+                Print Receipt (2 Copies, Landscape)
               </Button>
             </div>
           </DialogFooter>

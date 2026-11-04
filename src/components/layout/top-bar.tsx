@@ -120,7 +120,7 @@ export function TopBar({ clinicName, onToggleMobile }: TopBarProps) {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/clinical/new" className="flex items-center gap-2 cursor-pointer">
+              <Link href="/appointments?session=active" className="flex items-center gap-2 cursor-pointer">
                 <Stethoscope className="h-4 w-4 text-teal-600" />
                 <span>Start Encounter</span>
               </Link>

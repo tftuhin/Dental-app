@@ -51,6 +51,7 @@ import {
   Eye,
   Calendar,
   Stethoscope,
+  Loader2,
 } from "lucide-react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
@@ -61,8 +62,14 @@ import {
   searchHistoricalPrescriptions,
   scheduleFollowUpAppointment,
   logPatientActivity,
+  getVisit,
+  updateVisit,
+  toISODate,
 } from "@/lib/clinical-flow-store";
-import { downloadPrescriptionPdf } from "@/lib/prescription-pdf-generator";
+import { downloadPrescriptionPdf, PrescriptionPdfData } from "@/lib/prescription-pdf-generator";
+import { getPatientById } from "@/lib/patients-store";
+import { PatientContextPanel } from "@/components/clinical/patient-context-panel";
+import { VisitStepper } from "@/components/clinical/visit-stepper";
 import { formatBDT } from "@/lib/currency";
 import { toast } from "sonner";
 
@@ -135,85 +142,35 @@ export function PrescriptionStudio() {
 
   // Today's completed patients queue from store
   const [todayQueue, setTodayQueue] = useState<ClinicalQueuePatient[]>([]);
-  const [selectedQueuePatientId, setSelectedQueuePatientId] = useState<string>("apt-1");
+  const [selectedQueuePatientId, setSelectedQueuePatientId] = useState<string>("");
+  // The visit this prescription belongs to (carries notes, procedures, vitals)
+  const [visit, setVisit] = useState<ClinicalQueuePatient | undefined>();
 
-  // Bangladeshi patient context
+  // Patient on the prescription. Starts empty until a visit is selected.
   const [patient, setPatient] = useState({
-    id: "pat-1",
-    name: "Anika Tabassum",
-    customId: "DENT-2026-00042",
-    age: 34,
-    gender: "Female",
-    phone: "+880 1712-345678",
-    address: "House 42, Road 7A, Dhanmondi R/A, Dhaka-1209",
-    allergies: ["Penicillin (Severe Rash/Anaphylaxis)"],
+    id: "",
+    name: "",
+    customId: "",
+    age: 0 as number,
+    gender: "",
+    phone: "",
+    address: "",
+    allergies: [] as string[],
     date: new Date().toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
   });
 
-  const [diagnosis, setDiagnosis] = useState(
-    "Symptomatic Irreversible Pulpitis with Acute Apical Periodontitis (Tooth #19)"
-  );
+  const [diagnosis, setDiagnosis] = useState("");
 
   // Prescribed medicines
-  const [medicines, setMedicines] = useState<PrescriptionMedicine[]>([
-    {
-      id: "med-1",
-      brandName: "Torax",
-      genericName: "Ketorolac Tromethamine",
-      strength: "10 mg",
-      dosageForm: "Tablet",
-      frequency: "1+0+1",
-      duration: "3 days",
-      timing: "After food",
-      instructions: "Take for breakthrough pain. Do not exceed 5 days.",
-    },
-    {
-      id: "med-2",
-      brandName: "Amodis",
-      genericName: "Metronidazole",
-      strength: "400 mg",
-      dosageForm: "Tablet",
-      frequency: "1+1+1",
-      duration: "5 days",
-      timing: "After food",
-      instructions: "Do not consume alcohol. Take full 5-day course.",
-    },
-    {
-      id: "med-3",
-      brandName: "Maxpro",
-      genericName: "Esomeprazole Magnesium",
-      strength: "20 mg",
-      dosageForm: "Capsule",
-      frequency: "1+0+1",
-      duration: "5 days",
-      timing: "30 mins before food",
-      instructions: "Gastric mucosa protection during NSAID therapy.",
-    },
-    {
-      id: "med-4",
-      brandName: "Clohex",
-      genericName: "Chlorhexidine Gluconate 0.2%",
-      strength: "100 ml",
-      dosageForm: "Oral Rinse",
-      frequency: "1+0+1",
-      duration: "7 days",
-      timing: "After tooth brushing",
-      instructions: "Swish vigorously for 60 seconds then spit out. Do not swallow.",
-    },
-  ]);
+  const [medicines, setMedicines] = useState<PrescriptionMedicine[]>([]);
 
-  const [tests, setTests] = useState<PrescriptionTest[]>([
-    {
-      id: "t-1",
-      testName: "Digital IOPA Radiograph (Tooth #19)",
-      toothNumbers: "#19",
-      indication: "Evaluate root canal curvature and periapical lesion extent",
-    },
-  ]);
+  const [tests, setTests] = useState<PrescriptionTest[]>([]);
 
-  const [additionalAdvice, setAdditionalAdvice] = useState(
-    "Soft diet for 48 hours. Avoid chewing hard food on left side. Maintain gentle flossing around Dhanmondi clinic recall."
-  );
+  const [additionalAdvice, setAdditionalAdvice] = useState("");
+
+  // AI pre-fill
+  const [isAiPrefilling, setIsAiPrefilling] = useState(false);
+  const [aiRationale, setAiRationale] = useState("");
 
   // Medicine Search & Add State
   const [isAddingMedicine, setIsAddingMedicine] = useState(false);
@@ -293,41 +250,10 @@ export function PrescriptionStudio() {
     // Initial search results
     setHistoricalResults(searchHistoricalPrescriptions(""));
 
-    const paramPatientId = searchParams?.get("patientId");
-    if (paramPatientId) {
-      const chosen = list.find((a) => a.id === paramPatientId);
-      if (chosen) {
-        setSelectedQueuePatientId(paramPatientId);
-        setPatient({
-          id: chosen.id,
-          name: chosen.patient,
-          customId: chosen.patientId,
-          age: chosen.age,
-          gender: chosen.gender,
-          phone: chosen.phone,
-          address: chosen.address,
-          allergies: chosen.alerts || [],
-          date: new Date().toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
-        });
-        if (chosen.provisionalDiagnosis) {
-          setDiagnosis(chosen.provisionalDiagnosis);
-        } else {
-          setDiagnosis(`${chosen.service} - Clinical Consultation`);
-        }
-        if (chosen.labProceduresRecommended && chosen.labProceduresRecommended.length > 0) {
-          setTests(
-            chosen.labProceduresRecommended.map((test, idx) => ({
-              id: `t-${idx}-${Date.now()}`,
-              testName: test,
-              indication: "Recommended during today's clinical consultation",
-            }))
-          );
-        }
-        if (chosen.clinicalNotes) {
-          setAdditionalAdvice(`Consultation note: ${chosen.clinicalNotes.slice(0, 100)}... Maintain oral hygiene & follow prescribed course.`);
-        }
-        toast.success(`Loaded completed patient: ${chosen.patient} (Serial #${chosen.fifoSerial})`);
-      }
+    const paramVisitId = searchParams?.get("visitId") || searchParams?.get("patientId");
+    if (paramVisitId) {
+      const chosen = list.find((a) => a.id === paramVisitId);
+      if (chosen) loadVisitIntoPad(chosen);
     }
 
     const handleSync = () => {
@@ -384,10 +310,18 @@ export function PrescriptionStudio() {
 
   // Select a patient from Today's Completed Patients Dropdown
   const handleSelectTodayCompletedPatient = (appointmentId: string) => {
-    setSelectedQueuePatientId(appointmentId);
-    const chosen = todayQueue.find((a) => a.id === appointmentId);
-    if (!chosen) return;
+    const chosen = getVisit(appointmentId) || todayQueue.find((a) => a.id === appointmentId);
+    if (chosen) loadVisitIntoPad(chosen);
+  };
 
+  /**
+   * Fill the pad from the visit. If a prescription was already issued for this
+   * visit, reload it; otherwise start from today's diagnosis and ordered tests.
+   */
+  function loadVisitIntoPad(chosen: ClinicalQueuePatient) {
+    const record = getPatientById(chosen.patientRecordId || chosen.patientId);
+    setVisit(chosen);
+    setSelectedQueuePatientId(chosen.id);
     setPatient({
       id: chosen.id,
       name: chosen.patient,
@@ -396,33 +330,121 @@ export function PrescriptionStudio() {
       gender: chosen.gender,
       phone: chosen.phone,
       address: chosen.address,
-      allergies: chosen.alerts || [],
+      allergies: Array.from(new Set([...(record?.allergies || []), ...(chosen.alerts || [])])),
       date: new Date().toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
     });
 
-    if (chosen.provisionalDiagnosis) {
-      setDiagnosis(chosen.provisionalDiagnosis);
-    } else {
-      setDiagnosis(`${chosen.service} - Clinical Consultation`);
-    }
-
-    if (chosen.labProceduresRecommended && chosen.labProceduresRecommended.length > 0) {
-      setTests(
-        chosen.labProceduresRecommended.map((test, idx) => ({
-          id: `t-${idx}-${Date.now()}`,
-          testName: test,
-          indication: "Recommended during today's clinical consultation",
+    const rx = chosen.prescription;
+    if (rx) {
+      setDiagnosis(rx.diagnosis);
+      setMedicines(
+        rx.medicines.map((m, idx) => ({
+          id: `med-saved-${idx}-${Date.now()}`,
+          brandName: m.brandName,
+          genericName: m.genericName || "",
+          strength: m.strength || "",
+          dosageForm: m.dosageForm || "",
+          frequency: m.frequency || "",
+          duration: m.duration || "",
+          timing: m.timing || "",
+          instructions: m.instructions || "",
         }))
       );
+      setTests(rx.tests.map((t, idx) => ({ id: `t-saved-${idx}`, testName: t })));
+      setAdditionalAdvice(rx.advice || "");
+      setFollowUpDate(rx.followUpDate || "");
+    } else {
+      setDiagnosis(chosen.provisionalDiagnosis || "");
+      setMedicines([]);
+      setTests(
+        (chosen.labProceduresRecommended || []).map((test, idx) => ({
+          id: `t-${idx}-${Date.now()}`,
+          testName: test,
+          indication: "Ordered during today's consultation",
+        }))
+      );
+      setAdditionalAdvice("");
+      setFollowUpDate("");
     }
+    setAiRationale("");
+    setIsSignedAndReadyForBilling(!!rx);
+  }
 
-    // Set clinical advice
-    if (chosen.clinicalNotes) {
-      setAdditionalAdvice(`Consultation note: ${chosen.clinicalNotes.slice(0, 100)}... Maintain oral hygiene & follow prescribed course.`);
+  /** Ask the AI to draft the prescription from today's notes, procedures and history. */
+  const handleAiPrefill = async () => {
+    if (!visit) {
+      toast.error("Select a patient first.");
+      return;
     }
+    const record = getPatientById(visit.patientRecordId || visit.patientId);
+    setIsAiPrefilling(true);
+    try {
+      const res = await fetch("/api/ai/prescription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient: {
+            age: visit.age,
+            gender: visit.gender,
+            allergies: patient.allergies,
+            medicalConditions: record?.medicalConditions || [],
+          },
+          chiefComplaint: visit.chiefComplaint,
+          symptoms: visit.selectedSymptoms,
+          clinicalNotes: visit.clinicalNotes,
+          diagnosis: diagnosis || visit.provisionalDiagnosis,
+          findings: visit.examinationFindings,
+          vitals: visit.vitals,
+          procedures: (visit.procedures || []).map((p) => p.name + (p.toothNumber ? ` (${p.toothNumber})` : "")),
+          procedureNotes: visit.procedureNotes,
+          // Give the model the clinic's catalog so it suggests brands the clinic can find in the dropdown
+          catalog: catalogMedicines.slice(0, 300).map((m) => ({
+            brandName: m.brandName,
+            genericName: m.genericName,
+            strength: m.strength,
+            dosageForm: m.dosageForm,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
 
-    setIsSignedAndReadyForBilling(false);
-    toast.success(`Loaded completed patient: ${chosen.patient} (Serial #${chosen.fifoSerial})`);
+      if (data.diagnosis && !diagnosis.trim()) setDiagnosis(data.diagnosis);
+      const drafted: PrescriptionMedicine[] = (data.medicines || []).map(
+        (m: Partial<PrescriptionMedicine>, idx: number) => ({
+          id: `med-ai-${idx}-${Date.now()}`,
+          brandName: m.brandName || m.genericName || "",
+          genericName: m.genericName || "",
+          strength: m.strength || "",
+          dosageForm: m.dosageForm || "",
+          frequency: m.frequency || "",
+          duration: m.duration || "",
+          timing: m.timing || "",
+          instructions: m.instructions || "",
+        })
+      );
+      // Keep anything the doctor already added; add AI drafts that aren't on the list yet
+      setMedicines((prev) => [
+        ...prev,
+        ...drafted.filter(
+          (d) => d.brandName && !prev.some((p) => p.brandName.toLowerCase() === d.brandName.toLowerCase())
+        ),
+      ]);
+      const draftedTests: string[] = data.tests || [];
+      setTests((prev) => [
+        ...prev,
+        ...draftedTests
+          .filter((t) => !prev.some((p) => p.testName.toLowerCase() === t.toLowerCase()))
+          .map((t, idx) => ({ id: `t-ai-${idx}-${Date.now()}`, testName: t, indication: "Suggested by AI" })),
+      ]);
+      if (data.advice && !additionalAdvice.trim()) setAdditionalAdvice(data.advice);
+      setAiRationale(data.rationale || "");
+      toast.success("AI draft added. Review every medicine before signing.");
+    } catch (err) {
+      toast.error(`AI pre-fill failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsAiPrefilling(false);
+    }
   };
 
   // Select a medicine from dropdown / search
@@ -607,35 +629,23 @@ export function PrescriptionStudio() {
     };
   };
 
-  // Archive to patient timeline and download PDF
-  const handleArchiveAndDownloadPdf = () => {
-    const pdfDoc = createPrescriptionPdfDoc();
-
-    // Archive to patient profile timeline
-    logPatientActivity({
-      id: `tl-rx-${Date.now()}`,
-      patientId: patient.customId || patient.id || "DENT-2026-00042",
-      date: new Date().toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
-      timestamp: Date.now(),
-      type: "prescription",
-      title: `e-Prescription Issued (${pdfDoc.rxNumber})`,
-      doctor: `${primaryDoctor.name}, ${primaryDoctor.degree}`,
-      clinicalNotes: `Prescribed ${medicines.length} medications and ${tests.length} diagnostic investigations. Primary Diagnosis: ${diagnosis}`,
-      provisionalDiagnosis: diagnosis,
-      prescribedMedicines: medicines.map((m) => ({
-        brandName: m.brandName,
-        dosageForm: m.dosageForm,
-        frequency: m.frequency,
-        duration: m.duration,
-      })),
-      prescriptionPdfDoc: pdfDoc,
-      badge: "Rx Issued",
-      badgeColor: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
-    });
-
-    // Trigger download with full executive letterhead details
-    downloadPrescriptionPdf({
-      rxNumber: pdfDoc.rxNumber,
+  /** Everything printed on the prescription, taken from the visit record (no sample values). */
+  const buildPdfData = (rxNumber: string, pdfMedicines: PrescriptionPdfDocument["medicines"]): PrescriptionPdfData => {
+    const record = visit ? getPatientById(visit.patientRecordId || visit.patientId) : undefined;
+    const f = visit?.examinationFindings;
+    const keyFindings: string[] = [];
+    if (visit?.selectedSymptoms && visit.selectedSymptoms.length > 0) keyFindings.push(visit.selectedSymptoms.join(", "));
+    if (f?.targetTooth) {
+      const bits = [
+        f.percussion && `percussion ${f.percussion}`,
+        f.coldTest && `cold test ${f.coldTest.replace("_", " ")}`,
+        f.mobility && f.mobility !== "gr0" && `mobility ${f.mobility.replace("gr", "grade ")}`,
+        f.painScore ? `pain ${f.painScore}/10` : "",
+      ].filter(Boolean);
+      keyFindings.push(`Tooth ${f.targetTooth}${bits.length ? ": " + bits.join(", ") : ""}`);
+    }
+    return {
+      rxNumber,
       patientName: patient.name,
       patientId: patient.customId || patient.id,
       age: patient.age,
@@ -652,22 +662,30 @@ export function PrescriptionStudio() {
       clinicTagline: clinicTagline,
       clinicAddress: clinicAddress,
       clinicPhone: clinicPhone,
-      clinicEmail: clinic?.email || "reception@dentai-clinic.bd",
+      clinicEmail: clinic?.email || "",
       diagnosis: diagnosis,
-      medicines: pdfDoc.medicines,
+      medicines: pdfMedicines,
       tests: tests.map((t) => ({ testName: t.testName, indication: t.indication })),
       followUpDate: followUpDate || undefined,
       followUpNotes: followUpNotes || undefined,
       advice: additionalAdvice,
-      vitals: {
-        bp: "120/80 mmHg",
-        pulse: "74 bpm",
-        bloodSugar: "5.8 mmol/L",
-        temp: "98.4 °F",
-      },
-    });
+      vitals: visit?.vitals,
+      chiefComplaint: visit?.chiefComplaint,
+      keyFindings,
+      proceduresDone: (visit?.procedures || []).map((p) => p.name + (p.toothNumber ? ` (${p.toothNumber})` : "")),
+      medicalHistory: record?.medicalConditions || [],
+      toothNumber: f?.targetTooth || undefined,
+    };
+  };
 
-    toast.success(`Prescription archived to ${patient.name}'s profile and downloaded as PDF!`);
+  // Print / save as PDF (does not sign; the timeline entry is written on signing)
+  const handleArchiveAndDownloadPdf = () => {
+    if (!patient.name) {
+      toast.error("Select a patient first.");
+      return;
+    }
+    const pdfDoc = createPrescriptionPdfDoc();
+    downloadPrescriptionPdf(buildPdfData(visit?.prescription?.rxNumber || pdfDoc.rxNumber, pdfDoc.medicines));
   };
 
   // Select an investigation from catalog dropdown
@@ -677,7 +695,7 @@ export function PrescriptionStudio() {
     if (item) {
       setCustomInvIndication(item.indication || item.defaultIndication || "");
       if ((item.category === "radiology" || item.category === "Radiographs & Imaging") && !customInvTooth) {
-        setCustomInvTooth("#19");
+        setCustomInvTooth(visit?.examinationFindings?.targetTooth || "");
       }
     }
   };
@@ -768,78 +786,97 @@ export function PrescriptionStudio() {
   };
 
   const handlePrint = () => {
-    const pdfDoc = createPrescriptionPdfDoc();
-    downloadPrescriptionPdf({
-      rxNumber: pdfDoc.rxNumber,
-      patientName: patient.name,
-      patientId: patient.customId || patient.id,
-      age: patient.age,
-      gender: patient.gender,
-      phone: patient.phone,
-      address: patient.address,
-      allergies: patient.allergies,
-      date: patient.date,
-      doctorName: primaryDoctor.name,
-      doctorDegree: primaryDoctor.degree,
-      bmdcReg: primaryDoctor.bmdcReg,
-      visitingHours: primaryDoctor.visitingHours,
-      clinicName: clinicName,
-      clinicTagline: clinicTagline,
-      clinicAddress: clinicAddress,
-      clinicPhone: clinicPhone,
-      clinicEmail: clinic?.email || "reception@dentai-clinic.bd",
-      diagnosis: diagnosis,
-      medicines: pdfDoc.medicines,
-      tests: tests.map((t) => ({ testName: t.testName, indication: t.indication })),
-      followUpDate: followUpDate || undefined,
-      followUpNotes: followUpNotes || undefined,
-      advice: additionalAdvice,
-    });
+    handleArchiveAndDownloadPdf();
   };
 
+  /**
+   * Sign the prescription: save it to the visit, add it to the patient's
+   * timeline, book the follow-up at the earliest free slot, and send the
+   * patient to Billing. Signing again updates the same prescription.
+   */
   const handleSignAndFinalizeRx = () => {
-    setIsSignedAndReadyForBilling(true);
+    if (!visit) {
+      toast.error("Select today's patient before signing.");
+      return;
+    }
+    if (!diagnosis.trim()) {
+      toast.error("Add a diagnosis before signing.");
+      return;
+    }
+    if (medicines.length === 0 && tests.length === 0 && !additionalAdvice.trim()) {
+      toast.error("The prescription is empty. Add medicines, tests or advice.");
+      return;
+    }
 
     const pdfDoc = createPrescriptionPdfDoc();
+    const rxNumber = visit.prescription?.rxNumber || pdfDoc.rxNumber;
+    pdfDoc.rxNumber = rxNumber;
 
-    // Automatically archive into patient profile timeline
-    logPatientActivity({
-      id: `tl-final-${Date.now()}`,
-      patientId: patient.customId || patient.id || "DENT-2026-00042",
-      date: new Date().toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
-      timestamp: Date.now(),
-      type: "prescription",
-      title: `e-Prescription Finalized (${pdfDoc.rxNumber})`,
-      doctor: "Dr. Sarah Smith, BDS, FCPS",
-      clinicalNotes: `Digitally signed e-Prescription with ${medicines.length} medications. Primary Diagnosis: ${diagnosis}`,
-      provisionalDiagnosis: diagnosis,
-      prescribedMedicines: medicines.map((m) => ({
-        brandName: m.brandName,
-        dosageForm: m.dosageForm,
-        frequency: m.frequency,
-        duration: m.duration,
-      })),
-      prescriptionPdfDoc: pdfDoc,
-      badge: "Rx Finalized",
-      badgeColor: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
-    });
-
-    // Auto schedule appointment if follow-up date is set
-    if (followUpDate && autoScheduleFollowUp) {
+    // Book the follow-up once per visit (re-signing doesn't book a second one)
+    let followUpAppointmentId = visit.prescription?.followUpAppointmentId;
+    let followUpSerial: number | undefined;
+    let bookedFollowUpDate = visit.prescription?.followUpDate;
+    if (followUpDate && autoScheduleFollowUp && !followUpAppointmentId) {
       const scheduled = scheduleFollowUpAppointment(
-        patient.id,
+        visit,
         followUpDate,
-        followUpNotes || "Post-treatment clinical follow-up & review"
+        followUpNotes || "Post-treatment follow-up & review"
       );
       if (scheduled) {
+        followUpAppointmentId = scheduled.appointment.id;
+        followUpSerial = scheduled.serialNumber;
+        bookedFollowUpDate = scheduled.appointment.date;
         toast.success(
-          `Follow-up appointment automatically booked for ${patient.name} on ${followUpDate}! Assigned Serial #${scheduled.serialNumber} (${scheduled.appointment.time}).`,
-          { duration: 7000 }
+          `Follow-up booked for ${patient.name}: ${scheduled.appointment.date} at ${scheduled.appointment.time} with ${scheduled.appointment.doctor} (Serial #${scheduled.serialNumber}).` +
+            (scheduled.movedFromRequested ? ` ${followUpDate} had no free slot.` : ""),
+          { duration: 8000 }
         );
+      } else {
+        toast.error("Could not find a free follow-up slot in the next 30 days. Book it manually from Appointments.");
       }
     }
 
-    toast.success(`e-Prescription signed & archived to ${patient.name}'s profile! Ready for Billing.`);
+    updateVisit(visit.id, {
+      prescriptionDone: true,
+      stage: visit.stage === "done" ? "done" : "billing",
+      prescription: {
+        rxNumber,
+        issuedAt: new Date().toISOString(),
+        diagnosis,
+        medicines: pdfDoc.medicines,
+        tests: tests.map((t) => t.testName),
+        advice: additionalAdvice || undefined,
+        followUpDate: bookedFollowUpDate || followUpDate || undefined,
+        followUpAppointmentId,
+      },
+    });
+    setVisit(getVisit(visit.id));
+
+    // One timeline entry per visit prescription; re-signing replaces it
+    logPatientActivity({
+      id: `ev-${visit.id}-rx`,
+      patientId: visit.patientId,
+      date: new Date().toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
+      timestamp: Date.now(),
+      type: "prescription",
+      title: `Prescription issued (${rxNumber})`,
+      doctor: visit.doctor,
+      chiefComplaint: visit.chiefComplaint,
+      clinicalNotes: `${medicines.length} medicine(s), ${tests.length} test(s).`,
+      provisionalDiagnosis: diagnosis,
+      prescribedMedicines: pdfDoc.medicines,
+      labProcedures: tests.map((t) => t.testName),
+      followUpScheduled:
+        followUpSerial !== undefined && bookedFollowUpDate
+          ? { date: bookedFollowUpDate, serialNumber: followUpSerial, reason: followUpNotes || "Follow-up" }
+          : undefined,
+      prescriptionPdfDoc: pdfDoc,
+      badge: "Rx Issued",
+      badgeColor: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+    });
+
+    setIsSignedAndReadyForBilling(true);
+    toast.success(`Prescription signed for ${patient.name}. Ready for billing.`);
   };
 
   // Load a historical prescription back into the Studio
@@ -888,8 +925,23 @@ export function PrescriptionStudio() {
       customGeneric.toLowerCase().includes("penicillin")) &&
     patient.allergies.some((a) => a.toLowerCase().includes("penicillin"));
 
-  // Completed patients list for dropdown
-  const completedPatients = todayQueue.filter((a) => a.status === "completed" || a.status === "in_progress");
+  // Vitals and tooth shown on the pad come from the visit, never sample values
+  const padVitals =
+    [
+      visit?.vitals?.bp && `BP ${visit.vitals.bp}`,
+      visit?.vitals?.pulse && `Pulse ${visit.vitals.pulse}`,
+      visit?.vitals?.bloodSugar && `RBS ${visit.vitals.bloodSugar}`,
+    ]
+      .filter(Boolean)
+      .join(" · ") || "—";
+  const padTooth = visit?.examinationFindings?.targetTooth || "";
+
+  // Today's patients who have finished notes (and procedure, if any)
+  const completedPatients = todayQueue.filter(
+    (a) =>
+      (a.date || toISODate()) === toISODate() &&
+      (a.stage === "prescription" || a.stage === "billing" || a.stage === "done")
+  );
 
   return (
     <div className="space-y-6">
@@ -990,6 +1042,40 @@ export function PrescriptionStudio() {
                 </Select>
               </div>
             </div>
+
+            {visit && (
+              <div className="mt-3 pt-3 border-t border-primary/20 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <VisitStepper
+                  visitId={visit.id}
+                  current="prescription"
+                  reached={visit.stage}
+                  skippedProcedure={(visit.procedures?.length ?? 0) === 0}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleAiPrefill}
+                  disabled={isAiPrefilling}
+                  className="gap-1.5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white"
+                >
+                  {isAiPrefilling ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  {isAiPrefilling ? "Drafting…" : "AI Pre-fill from Notes & Procedures"}
+                </Button>
+              </div>
+            )}
+            {aiRationale && (
+              <div className="mt-3 p-3 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 text-xs space-y-1">
+                <p className="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  AI draft: review before signing
+                </p>
+                <p className="text-amber-900/90 dark:text-amber-100/90 whitespace-pre-line">{aiRationale}</p>
+              </div>
+            )}
           </Card>
 
           {/* 2. PROCEED TO BILLING CALLOUT BANNER (When Signed) */}
@@ -1013,7 +1099,7 @@ export function PrescriptionStudio() {
                 asChild
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 text-xs h-10 px-4 shadow-sm shrink-0"
               >
-                <Link href="/billing">
+                <Link href={visit ? `/billing?visitId=${visit.id}` : "/billing"}>
                   <Receipt className="h-4 w-4" />
                   Proceed to Billing & Collect Payment
                   <ArrowRight className="h-4 w-4 ml-0.5" />
@@ -1023,7 +1109,8 @@ export function PrescriptionStudio() {
           )}
 
                     {/* 3. Interactive Prescription Pad with Integrated Controls */}
-          <div className="max-w-5xl mx-auto space-y-4">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+          <div className="xl:col-span-8 space-y-4">
             <Card className="printable-prescription-pad border-2 shadow-xl bg-card p-6 sm:p-10 space-y-6 print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none relative overflow-hidden">
               
               {/* Subtle Dental Watermark in Background */}
@@ -1101,7 +1188,7 @@ export function PrescriptionStudio() {
                   </div>
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Vitals:</span>
-                    <span className="font-mono text-foreground font-semibold">BP 120/80 · Pulse 74</span>
+                    <span className="font-mono text-foreground font-semibold">{padVitals}</span>
                   </div>
                   <div className="sm:col-span-2 flex items-baseline gap-1.5">
                     <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Address:</span>
@@ -1143,7 +1230,7 @@ export function PrescriptionStudio() {
                     <p className="font-bold text-foreground text-xs leading-snug pt-0.5">
                       {diagnosis}
                     </p>
-                    <span className="text-[10px] text-muted-foreground font-mono block">Tooth: #19 (FDI 36)</span>
+                    {padTooth && <span className="text-[10px] text-muted-foreground font-mono block">Tooth: {padTooth}</span>}
                   </div>
 
                   {/* 2. Investigations & Lab Requisition */}
@@ -1798,20 +1885,36 @@ export function PrescriptionStudio() {
                   </Button>
                 </div>
 
-                <Button
-                  size="sm"
-                  asChild
-                  className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2"
-                >
-                  <Link href={`/billing?patientId=${patient.id}`}>
-                    <Receipt className="h-3.5 w-3.5" />
-                    Proceed to Billing Studio
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </Button>
+                {isSignedAndReadyForBilling && visit ? (
+                  <Button
+                    size="sm"
+                    asChild
+                    className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2"
+                  >
+                    <Link href={`/billing?visitId=${visit.id}`}>
+                      <Receipt className="h-3.5 w-3.5" />
+                      Proceed to Billing
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground">Sign the prescription to continue to billing.</span>
+                )}
               </div>
 
             </Card>
+            </div>
+
+            {/* History, health issues & precautions for this patient */}
+            <div className="xl:col-span-4 print:hidden">
+              {visit ? (
+                <PatientContextPanel visit={visit} className="xl:sticky xl:top-4" />
+              ) : (
+                <Card className="border-dashed p-6 text-xs text-muted-foreground">
+                  Select a patient to see their history, alerts and precautions.
+                </Card>
+              )}
+            </div>
           </div>
 
         </div>
@@ -2565,7 +2668,7 @@ export function PrescriptionStudio() {
                       </div>
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-slate-500 text-[9.5px] uppercase font-bold tracking-wider">Vitals:</span>
-                        <span className="font-mono text-slate-900 font-semibold">BP 120/80 · Pulse 74</span>
+                        <span className="font-mono text-slate-900 font-semibold">{padVitals}</span>
                       </div>
                       <div className="sm:col-span-2 flex items-baseline gap-1.5">
                         <span className="text-slate-500 text-[9.5px] uppercase font-bold tracking-wider">Address:</span>
@@ -2597,7 +2700,7 @@ export function PrescriptionStudio() {
                         <p className="font-bold text-slate-900 text-xs leading-snug pt-0.5">
                           {diagnosis}
                         </p>
-                        <span className="text-[10px] text-slate-500 font-mono block">Tooth: #19 (FDI 36)</span>
+                        {padTooth && <span className="text-[10px] text-slate-500 font-mono block">Tooth: {padTooth}</span>}
                       </div>
 
                       {/* Investigations */}
@@ -2978,7 +3081,7 @@ export function PrescriptionStudio() {
                 asChild
                 className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5"
               >
-                <Link href={`/billing?patientId=${patient.id}`}>
+                <Link href={`/billing?visitId=${patient.id}`}>
                   <Receipt className="h-3.5 w-3.5" />
                   Proceed to Billing Studio
                   <ArrowRight className="h-3.5 w-3.5" />

@@ -1,6 +1,6 @@
 import { streamText } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
-import { openai } from "@ai-sdk/openai";
+import { auth } from "@/auth";
+import { getClinicalModel } from "@/lib/ai-model";
 
 
 interface CopilotContext {
@@ -84,15 +84,16 @@ End your response with a brief **Clinical Reasoning Summary** paragraph.`;
 }
 
 export async function POST(req: Request) {
+  // AI calls cost money: only signed-in staff may use them
+  const session = await auth();
+  if (!session?.user) {
+    return new Response("Not signed in", { status: 401 });
+  }
+
   const body = await req.json();
   const ctx = body as CopilotContext;
 
-  const provider = process.env.AI_PROVIDER ?? "anthropic";
-
-  const model =
-    provider === "openai"
-      ? openai("gpt-4o")
-      : anthropic("claude-3-5-sonnet-20241022");
+  const model = getClinicalModel();
 
   const result = streamText({
     model,

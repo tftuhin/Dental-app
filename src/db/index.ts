@@ -12,6 +12,9 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+/** False when running without a real database (the placeholder URL above is in use). */
+export const isDatabaseConfigured = !!process.env.DATABASE_URL;
+
 const sql = neon(databaseUrl);
 export const db = drizzle(sql, { schema });
 
