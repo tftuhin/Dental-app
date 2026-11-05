@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSidebar } from "./app-sidebar";
 import { SiteHeader } from "./site-header";
 import { OnlineBookingSync } from "./online-booking-sync";
+import { CrossTabSync } from "./cross-tab-sync";
 
 interface DashboardShellProps {
   clinicName: string;
@@ -22,6 +23,7 @@ interface DashboardShellProps {
 export function DashboardShell({ clinicName, clinicSlug, children }: DashboardShellProps) {
   return (
     <TooltipProvider delay={0}>
+      <CrossTabSync />
       <OnlineBookingSync />
       <SidebarProvider>
         <AppSidebar clinicName={clinicName} clinicSlug={clinicSlug} />

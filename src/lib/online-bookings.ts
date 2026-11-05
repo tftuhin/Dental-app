@@ -3,8 +3,8 @@
 // ============================================================
 // DENTALOS1 — Online bookings → appointment queue
 // Bookings from the public /book page are saved in the database.
-// Signed-in staff browsers claim them (each booking exactly once)
-// and add them to the local queue like a phone booking: linked to
+// Every signed-in staff browser fetches them and adds the ones it
+// doesn't have yet to its local queue, like a phone booking: linked to
 // the existing patient with that phone number, or registered as new.
 // ============================================================
 
@@ -41,26 +41,29 @@ export interface ImportedBooking {
 
 let inflight: Promise<ImportedBooking[]> | null = null;
 
-/** Pull new online bookings into the queue. Safe to call often; returns what was added. */
+/** Add online bookings this browser doesn't have yet to the queue. Safe to call often; returns what was added. */
 export function importOnlineBookings(): Promise<ImportedBooking[]> {
   if (!inflight) {
-    inflight = claimAndImport().finally(() => {
+    inflight = syncAndImport().finally(() => {
       inflight = null;
     });
   }
   return inflight;
 }
 
-async function claimAndImport(): Promise<ImportedBooking[]> {
+async function syncAndImport(): Promise<ImportedBooking[]> {
   let requests: OnlineBookingRequest[] = [];
   try {
-    const res = await fetch("/api/bookings/claim", { method: "POST" });
+    const res = await fetch("/api/bookings/sync", { method: "POST" });
     if (!res.ok) return [];
     const data = await res.json();
     requests = Array.isArray(data.bookings) ? data.bookings : [];
   } catch {
     return [];
   }
+  // Already in this browser's queue (in any state, so a no-show isn't re-added)
+  const existing = new Set(getStoredAppointments().map((a) => a.onlineBookingId).filter(Boolean));
+  requests = requests.filter((r) => !existing.has(r.id));
   if (requests.length === 0) return [];
 
   const setup = getClinicSetup();

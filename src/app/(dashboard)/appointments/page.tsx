@@ -325,6 +325,31 @@ export default function AppointmentsPage() {
 
   // Sorted active queue: strictly sorted by serial (lowest first)
   const isOnQueueDate = (a: ClinicalQueuePatient) => (a.date || toISODate()) === queueDate;
+
+  // Future days that have scheduled visits (next 7 such days)
+  const upcomingDays = (() => {
+    const today = toISODate();
+    const byDate = new Map<string, { count: number; online: number }>();
+    for (const a of appointments) {
+      if (!a.date || a.date <= today || a.status === "no_show") continue;
+      const entry = byDate.get(a.date) || { count: 0, online: 0 };
+      entry.count += 1;
+      if (a.bookingChannel === "online") entry.online += 1;
+      byDate.set(a.date, entry);
+    }
+    return [...byDate.entries()]
+      .sort(([x], [y]) => x.localeCompare(y))
+      .slice(0, 7)
+      .map(([date, v]) => {
+        const [y, m, d] = date.split("-").map(Number);
+        const label = new Date(y, m - 1, d).toLocaleDateString("en-GB", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+        });
+        return { date, label, ...v };
+      });
+  })();
   const activeQueue = appointments
     .filter(isOnQueueDate)
     .filter((a) => a.status === "in_progress" || a.status === "checked_in" || a.status === "scheduled")
@@ -776,6 +801,30 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
           </>
         }
       />
+
+      {/* Upcoming days with bookings, so future (e.g. online) bookings are easy to find */}
+      {upcomingDays.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-xs -mt-2">
+          <span className="text-muted-foreground font-medium">Upcoming:</span>
+          {upcomingDays.map((d) => (
+            <Button
+              key={d.date}
+              size="sm"
+              variant={d.date === queueDate ? "default" : "outline"}
+              className="h-7 gap-1.5 text-xs"
+              onClick={() => setQueueDate(d.date)}
+            >
+              {d.label}
+              <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
+                {d.count}
+              </Badge>
+              {d.online > 0 && (
+                <span className="text-emerald-600 dark:text-emerald-400">{d.online} online</span>
+              )}
+            </Button>
+          ))}
+        </div>
+      )}
 
       {/* Next patient in the queue */}
       {nextInQueue && (
