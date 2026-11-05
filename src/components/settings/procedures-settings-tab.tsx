@@ -22,6 +22,7 @@ import {
   getCatalog,
   saveCatalog,
 } from "@/lib/procedures-catalog-store";
+import { getClinicSetup, saveClinicSetup } from "@/lib/clinic-setup-store";
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as CatalogCategory[];
 
@@ -29,10 +30,22 @@ const CATEGORIES = Object.keys(CATEGORY_LABELS) as CatalogCategory[];
 export function ProceduresSettingsTab() {
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [dirty, setDirty] = useState(false);
+  const [prepaid, setPrepaid] = useState(true);
 
   useEffect(() => {
     setItems(getCatalog());
+    setPrepaid(getClinicSetup().prepaidConsultation !== false);
   }, []);
+
+  const togglePrepaid = (on: boolean) => {
+    setPrepaid(on);
+    saveClinicSetup({ prepaidConsultation: on });
+    toast.success(
+      on
+        ? "Consultation fee will be collected at check-in."
+        : "Consultation fee will be billed at the end with the other charges."
+    );
+  };
 
   const update = (id: string, patch: Partial<CatalogItem>) => {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
@@ -71,6 +84,22 @@ export function ProceduresSettingsTab() {
 
   return (
     <div className="space-y-4">
+      <Card className="shadow-xs">
+        <CardContent className="p-4 flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <label htmlFor="prepaid-consultation" className="text-sm font-semibold cursor-pointer">
+              Collect consultation fee at check-in
+            </label>
+            <p className="text-xs text-muted-foreground max-w-xl">
+              {prepaid
+                ? "On: the patient pays the consultation fee when they check in and gets a receipt. Procedures, medicines and other charges are billed at the end."
+                : "Off: patients check in without paying. The consultation fee is billed at the end together with procedures, medicines and other charges."}
+            </p>
+          </div>
+          <Switch id="prepaid-consultation" checked={prepaid} onCheckedChange={togglePrepaid} />
+        </CardContent>
+      </Card>
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground max-w-xl">
           These prices are used in the Examination & Procedure stage and added to the bill automatically. The first

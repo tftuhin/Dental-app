@@ -64,6 +64,13 @@ export interface ClinicalQueuePatient {
   isFollowUp?: boolean;
   /** Set when this appointment came from the public booking page (booking_requests.id). */
   onlineBookingId?: string;
+  /** ISO time the patient confirmed they had arrived. */
+  checkedInAt?: string;
+  /** Consultation fee collected at check-in (when prepaid consultation is on). Separate from the final bill. */
+  checkInInvoice?: VisitInvoice;
+  /** Why the visit is a no-show: marked by staff, or automatically for arriving too late. */
+  noShowReason?: "manual" | "late";
+  noShowAt?: string;
   examinationFindings?: {
     targetTooth?: string;
     painScore?: number;
@@ -84,12 +91,15 @@ export interface ClinicalQueuePatient {
 
 export type VisitStage = "waiting" | "notes" | "procedure" | "prescription" | "billing" | "done";
 
+/** Revenue groups used for reports (same as the price list's categories). */
+export type BillSegment = "consultation" | "examination" | "procedure" | "surgery" | "consumable";
+
 export interface VisitLineItem {
   id: string;
   catalogId?: string;
   code: string;
   name: string;
-  category: "consultation" | "examination" | "procedure" | "surgery" | "consumable";
+  category: BillSegment;
   toothNumber?: string;
   quantity: number;
   unitPrice: number;
@@ -138,6 +148,8 @@ export interface VisitInvoice {
     toothNumber?: string;
     quantity: number;
     unitPrice: number;
+    /** Revenue group, for collection reports. Older bills may not have it. */
+    category?: BillSegment;
   }>;
   /** Every payment against this bill: the first one at billing, then due payments. */
   payments?: VisitPayment[];
@@ -895,6 +907,40 @@ export function nextSerialForDate(date: string, list: ClinicalQueuePatient[] = g
       .filter((a) => (a.date || toISODate()) === date)
       .reduce((max, a) => Math.max(max, a.fifoSerial || a.serialNumber || 0), 0) + 1
   );
+}
+
+// ─── Late arrivals ───────────────────────────────────────────
+
+/** A booked patient who hasn't checked in this long after their appointment time is a no-show. */
+export const NO_SHOW_AFTER_MINUTES = 180;
+
+/** Appointment start as a local Date, or null when the date/time can't be read. */
+export function appointmentStart(a: Pick<ClinicalQueuePatient, "date" | "time">): Date | null {
+  if (!a.date) return null;
+  const [y, m, d] = a.date.split("-").map((n) => parseInt(n, 10));
+  const minutes = parseTimeToMinutes(a.time);
+  if (!y || !m || !d || isNaN(minutes)) return null;
+  return new Date(y, m - 1, d, Math.floor(minutes / 60), minutes % 60);
+}
+
+/**
+ * Mark booked patients who still haven't checked in 3 hours after their
+ * appointment time as no-shows. Returns the visits that were changed.
+ */
+export function markLateNoShows(now: Date = new Date()): ClinicalQueuePatient[] {
+  if (typeof window === "undefined") return [];
+  const cutoff = now.getTime() - NO_SHOW_AFTER_MINUTES * 60_000;
+  const changed: ClinicalQueuePatient[] = [];
+  const list = getStoredAppointments().map((a) => {
+    if (a.status !== "scheduled") return a;
+    const start = appointmentStart(a);
+    if (!start || start.getTime() > cutoff) return a;
+    const next = { ...a, status: "no_show" as const, noShowReason: "late" as const, noShowAt: now.toISOString() };
+    changed.push(next);
+    return next;
+  });
+  if (changed.length > 0) saveStoredAppointments(list);
+  return changed;
 }
 
 // ─── Slot finding ────────────────────────────────────────────

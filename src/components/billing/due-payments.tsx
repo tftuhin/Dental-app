@@ -33,7 +33,7 @@ import {
 import { printReceiptWindow } from "@/lib/receipt-pdf-generator";
 import { formatBDT } from "@/lib/currency";
 
-const METHODS = [
+export const PAYMENT_METHODS = [
   { value: "cash", label: "Cash" },
   { value: "bkash", label: "bKash" },
   { value: "nagad", label: "Nagad" },
@@ -308,7 +308,7 @@ function CollectDueDialogInner({ visitId, open, onOpenChange, onPaid }: CollectD
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {METHODS.map((m) => (
+                    {PAYMENT_METHODS.map((m) => (
                       <SelectItem key={m.value} value={m.value}>
                         {m.label}
                       </SelectItem>

@@ -27,29 +27,20 @@ import {
   toISODate,
 } from "@/lib/clinical-flow-store";
 import { getAllPatients } from "@/lib/patients-store";
-import { getOutstandingVisits, getPayments } from "@/lib/billing-store";
+import { getOutstandingVisits, summariseCollections } from "@/lib/billing-store";
+import { CollectionsReport } from "@/components/dashboard/collections-report";
 import { formatBDT } from "@/lib/currency";
 import { PageHeader } from "@/components/layout/page-header";
 
 /** Today's collections and all outstanding dues, from the saved bills. */
 function computeMoney() {
+  // Includes consultation fees paid at check-in
   const today = toISODate();
-  let collectedToday = 0;
-  let paymentsToday = 0;
-  for (const v of getStoredAppointments()) {
-    if (!v.invoice) continue;
-    for (const p of getPayments(v.invoice)) {
-      const d = new Date(p.paidAt);
-      if (!isNaN(d.getTime()) && toISODate(d) === today) {
-        collectedToday += p.amount;
-        paymentsToday++;
-      }
-    }
-  }
+  const todays = summariseCollections(today, today);
   const dues = getOutstandingVisits();
   return {
-    collectedToday,
-    paymentsToday,
+    collectedToday: todays.total,
+    paymentsToday: todays.payments,
     dueTotal: dues.reduce((sum, v) => sum + (v.invoice?.balanceDue || 0), 0),
     dueBills: dues.length,
   };
@@ -145,7 +136,8 @@ export function DashboardView({ userName }: DashboardViewProps) {
       // Find patient whose assigned chair matches this chair's name or label
       const activePatient = appointments.find(
         (apt) =>
-          (apt.status === "in_progress" || apt.status === "checked_in") &&
+          // Checked-in patients are in the waiting room; only a started session occupies a chair
+          apt.status === "in_progress" &&
           isChairMatch(chair.name, apt.chair)
       );
 
@@ -248,6 +240,9 @@ export function DashboardView({ userName }: DashboardViewProps) {
           </Link>
         ))}
       </div>
+
+      {/* Daily / monthly collections by doctor and service group */}
+      <CollectionsReport />
 
       {/* Middle Section: Chair Operatory Status & Live Queue */}
       <div className="grid gap-6 lg:grid-cols-7">
@@ -507,8 +502,10 @@ export function DashboardView({ userName }: DashboardViewProps) {
                         {item.status === "in_progress"
                           ? "In Chair"
                           : item.status === "checked_in"
-                          ? "Checked In"
-                          : "Scheduled"}
+                          ? item.checkInInvoice
+                            ? "Checked In · Paid"
+                            : "Checked In"
+                          : "Not arrived"}
                       </span>
                     </div>
 

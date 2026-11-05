@@ -25,6 +25,7 @@ import {
 import { Receipt, Plus, Trash2, Cake, Printer, CreditCard, Banknote, Percent, CheckCircle2, ShieldCheck, Smartphone, Clock, FileText, Edit, Stethoscope, Scissors, Download, X } from "lucide-react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
+  BillSegment,
   ClinicalQueuePatient,
   getStoredAppointments,
   logPatientActivity,
@@ -34,6 +35,7 @@ import {
 } from "@/lib/clinical-flow-store";
 import { getPatientById, updatePatient } from "@/lib/patients-store";
 import { buildReceiptFromInvoice, recalcPatientOutstanding } from "@/lib/billing-store";
+import { CATEGORY_LABELS } from "@/lib/procedures-catalog-store";
 import { DuePayments, CollectDueDialog } from "@/components/billing/due-payments";
 import { PageHeader } from "@/components/layout/page-header";
 import { getDefaultConsultationItem } from "@/lib/procedures-catalog-store";
@@ -51,6 +53,25 @@ export interface InvoiceLineItem {
   category: "procedure" | "consultation" | "medicine" | "lab" | "other";
   quantity: number;
   unitPrice: number;
+  /** Revenue group for reports (examination, surgery, ...), when known from the visit. */
+  segment?: BillSegment;
+}
+
+/** Bill-editor category for a revenue group. */
+function uiCategoryOf(seg: BillSegment): InvoiceLineItem["category"] {
+  if (seg === "consultation") return "consultation";
+  if (seg === "consumable") return "medicine";
+  if (seg === "examination") return "lab";
+  return "procedure";
+}
+
+/** Revenue group of a bill line; follows the category if staff changed it. */
+function segmentFor(it: InvoiceLineItem): BillSegment {
+  if (it.segment && uiCategoryOf(it.segment) === it.category) return it.segment;
+  if (it.category === "consultation") return "consultation";
+  if (it.category === "medicine") return "consumable";
+  if (it.category === "lab") return "examination";
+  return "procedure";
 }
 
 function ModalReceiptSlip({
@@ -403,7 +424,8 @@ export function BillingStudio() {
     setPrimaryDiagnosis(chosen.prescription?.diagnosis || chosen.provisionalDiagnosis || "");
 
     const lines: InvoiceLineItem[] = [];
-    const consult = getDefaultConsultationItem(!!chosen.isFollowUp);
+    // Paid at check-in: the consultation already has its own bill
+    const consult = chosen.checkInInvoice ? undefined : getDefaultConsultationItem(!!chosen.isFollowUp);
     if (consult) {
       lines.push({
         id: `item-${chosen.id}-consult`,
@@ -411,6 +433,7 @@ export function BillingStudio() {
         description: consult.name,
         toothNumber: "",
         category: "consultation",
+        segment: "consultation",
         quantity: 1,
         unitPrice: consult.price,
       });
@@ -421,7 +444,8 @@ export function BillingStudio() {
         cdtCode: p.code,
         description: p.name,
         toothNumber: p.toothNumber || "",
-        category: "procedure",
+        category: uiCategoryOf(p.category),
+        segment: p.category,
         quantity: p.quantity,
         unitPrice: p.unitPrice,
       });
@@ -433,6 +457,7 @@ export function BillingStudio() {
         description: c.name,
         toothNumber: "",
         category: "medicine",
+        segment: "consumable",
         quantity: c.quantity,
         unitPrice: c.unitPrice,
       });
@@ -446,7 +471,8 @@ export function BillingStudio() {
             cdtCode: it.code,
             description: it.description,
             toothNumber: it.toothNumber || "",
-            category: "procedure" as const,
+            category: it.category ? uiCategoryOf(it.category) : ("procedure" as const),
+            segment: it.category,
             quantity: it.quantity,
             unitPrice: it.unitPrice,
           }))
@@ -581,10 +607,18 @@ export function BillingStudio() {
       return;
     }
     if (items.length === 0) {
+      if (visit.checkInInvoice) {
+        // Only the consultation, already paid at check-in: nothing more to bill
+        updateVisit(visit.id, { billed: true, stage: "done" });
+        setVisit(getVisit(visit.id));
+        loadQueue();
+        toast.success(`${visit.patient}'s visit is complete. The consultation fee was paid at check-in.`);
+        return;
+      }
       toast.error("The bill has no items.");
       return;
     }
-    if (!(paidAmount > 0)) {
+    if (!(paidAmount > 0) && grandTotal > 0) {
       toast.error("Enter the amount the patient paid before finalizing.");
       return;
     }
@@ -618,6 +652,7 @@ export function BillingStudio() {
           toothNumber: it.toothNumber,
           quantity: it.quantity,
           unitPrice: it.unitPrice,
+          category: segmentFor(it),
         })),
         payments: [
           {
@@ -763,7 +798,7 @@ export function BillingStudio() {
               ) : (
                 <Button size="sm" onClick={handleFinalizeInvoice} className="gap-1.5">
                   <CheckCircle2 className="h-4 w-4" />
-                  Record payment & finalize
+                  {items.length === 0 && visit.checkInInvoice ? "Complete visit" : "Record payment & finalize"}
                 </Button>
               )}
             </>
@@ -928,6 +963,28 @@ export function BillingStudio() {
                 </Badge>
               </div>
 
+              {visit.checkInInvoice && (
+                <div className="p-3 rounded-xl border border-sky-500/30 bg-sky-50/60 dark:bg-sky-950/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <span>
+                    <strong>Consultation fee {formatBDT(visit.checkInInvoice.total)} paid at check-in</strong>{" "}
+                    <span className="font-mono text-muted-foreground">({visit.checkInInvoice.invoiceNumber})</span>. This
+                    bill covers the other charges only.
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[11px] gap-1 bg-background shrink-0"
+                    onClick={() => {
+                      const r = buildReceiptFromInvoice(visit, undefined, visit.checkInInvoice);
+                      if (r) printReceiptWindow(r);
+                    }}
+                  >
+                    <Printer className="h-3 w-3" />
+                    Check-in receipt
+                  </Button>
+                </div>
+              )}
+
               {/* Items Table */}
               <div className="overflow-x-auto border rounded-lg">
                 <table className="w-full text-xs">
@@ -951,7 +1008,7 @@ export function BillingStudio() {
                         <td className="py-2.5 px-3 font-medium text-foreground">
                           {item.description}
                           <Badge variant="secondary" className="ml-2 text-[9px] uppercase">
-                            {item.category}
+                            {CATEGORY_LABELS[segmentFor(item)].split(" ")[0]}
                           </Badge>
                         </td>
                         <td className="py-2.5 px-2 text-center font-mono text-muted-foreground">
@@ -1340,7 +1397,7 @@ export function BillingStudio() {
                 className="w-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-10 shadow-sm"
               >
                 <CheckCircle2 className="h-4 w-4" />
-                Collect Payment & Complete Visit
+                {items.length === 0 && visit.checkInInvoice ? "Complete Visit (nothing more to bill)" : "Collect Payment & Complete Visit"}
               </Button>
             </CardContent>
           </Card>

@@ -6,6 +6,7 @@ import { AppSidebar } from "./app-sidebar";
 import { SiteHeader } from "./site-header";
 import { OnlineBookingSync } from "./online-booking-sync";
 import { CrossTabSync } from "./cross-tab-sync";
+import { LateNoShowWatch } from "./late-no-show-watch";
 
 interface DashboardShellProps {
   clinicName: string;
@@ -25,6 +26,7 @@ export function DashboardShell({ clinicName, clinicSlug, children }: DashboardSh
     <TooltipProvider delay={0}>
       <CrossTabSync />
       <OnlineBookingSync />
+      <LateNoShowWatch />
       <SidebarProvider>
         <AppSidebar clinicName={clinicName} clinicSlug={clinicSlug} />
         <SidebarInset className="min-w-0">

@@ -9,6 +9,7 @@
 // ============================================================
 
 import {
+  BillSegment,
   ClinicalQueuePatient,
   VisitInvoice,
   VisitPayment,
@@ -16,7 +17,9 @@ import {
   getVisit,
   updateVisit,
   logPatientActivity,
+  toISODate,
 } from "@/lib/clinical-flow-store";
+import { CatalogItem, getCatalog } from "@/lib/procedures-catalog-store";
 import { getPatientById, updatePatient } from "@/lib/patients-store";
 import { getClinicSetup } from "@/lib/clinic-setup-store";
 import { formatBDT } from "@/lib/currency";
@@ -133,9 +136,10 @@ export function recordDuePayment(
  */
 export function buildReceiptFromInvoice(
   visit: ClinicalQueuePatient,
-  payment?: VisitPayment
+  payment?: VisitPayment,
+  invoice: VisitInvoice | undefined = visit.invoice
 ): ReceiptPdfData | null {
-  const inv = visit.invoice;
+  const inv = invoice;
   if (!inv) return null;
   const clinic = getClinicSetup();
   const record = getPatientById(visit.patientRecordId || visit.patientId);
@@ -193,4 +197,231 @@ export function buildReceiptFromInvoice(
     previouslyPaid: payment && previouslyPaid > 0 ? previouslyPaid : undefined,
     thisPayment: payment && previouslyPaid > 0 ? payment.amount : undefined,
   };
+}
+
+// ─── Collection reports ──────────────────────────────────────
+
+export const BILL_SEGMENTS: BillSegment[] = ["consultation", "examination", "procedure", "surgery", "consumable"];
+
+/** Revenue group of a bill line. Older bills didn't store it, so it's worked out from the price list or the code. */
+export function segmentOfLine(
+  item: { code?: string; description?: string; category?: BillSegment },
+  catalog: CatalogItem[] = getCatalog()
+): BillSegment {
+  if (item.category) return item.category;
+  const code = (item.code || "").trim().toUpperCase();
+  const listed = code ? catalog.find((c) => c.code.trim().toUpperCase() === code) : undefined;
+  if (listed) return listed.category;
+  const name = item.description || "";
+  if (/^D93/.test(code) || /consult|counsel/i.test(name)) return "consultation";
+  if (/^(MED|DSP|RX)/.test(code) || /medicine|disposable|anaesthe|suture/i.test(name)) return "consumable";
+  if (/^D0/.test(code) || /x-?ray|radiograph|exam|opg|cbct|test/i.test(name)) return "examination";
+  if (/^D[67]/.test(code) || /extraction|surg|implant|incision/i.test(name)) return "surgery";
+  return "procedure";
+}
+
+/** Each group's share of a bill (shares add up to 1). A discount reduces every group in proportion. */
+function invoiceShares(inv: VisitInvoice, catalog: CatalogItem[]): Array<[BillSegment, number]> {
+  const gross = new Map<BillSegment, number>();
+  for (const it of inv.items || []) {
+    const seg = segmentOfLine(it, catalog);
+    gross.set(seg, (gross.get(seg) || 0) + it.quantity * it.unitPrice);
+  }
+  const sum = [...gross.values()].reduce((s, n) => s + n, 0);
+  if (sum <= 0) return [["procedure", 1]];
+  return [...gross.entries()].filter(([, n]) => n > 0).map(([seg, n]) => [seg, n / sum]);
+}
+
+export interface CollectionEntry {
+  /** Day the money was received, YYYY-MM-DD. */
+  date: string;
+  doctor: string;
+  segment: BillSegment;
+  amount: number;
+  visitId: string;
+  paymentKey: string;
+}
+
+/** Day a payment was received. Very old payments have no readable time, so they count on the visit day. */
+function paymentDay(p: VisitPayment, visit: ClinicalQueuePatient): string {
+  const d = new Date(p.paidAt);
+  return isNaN(d.getTime()) ? visit.date || toISODate() : toISODate(d);
+}
+
+/** Every payment received (check-in fees, bills and due payments), split by doctor and revenue group. */
+export function getCollectionEntries(visits: ClinicalQueuePatient[] = getStoredAppointments()): CollectionEntry[] {
+  const catalog = getCatalog();
+  const entries: CollectionEntry[] = [];
+  for (const visit of visits) {
+    const doctor = visit.doctor?.split(",")[0]?.trim() || "Unassigned";
+    for (const inv of [visit.checkInInvoice, visit.invoice]) {
+      if (!inv) continue;
+      const shares = invoiceShares(inv, catalog);
+      for (const p of getPayments(inv)) {
+        if (!(p.amount > 0)) continue;
+        const date = paymentDay(p, visit);
+        const paymentKey = `${visit.id}:${inv.invoiceNumber}:${p.id}`;
+        let left = money(p.amount);
+        shares.forEach(([segment, share], i) => {
+          const amount = i === shares.length - 1 ? left : money(p.amount * share);
+          left = money(left - amount);
+          entries.push({ date, doctor, segment, amount, visitId: visit.id, paymentKey });
+        });
+      }
+    }
+  }
+  return entries;
+}
+
+export type SegmentTotals = Record<BillSegment, number>;
+
+const emptyTotals = (): SegmentTotals => ({ consultation: 0, examination: 0, procedure: 0, surgery: 0, consumable: 0 });
+
+export interface DoctorCollection {
+  doctor: string;
+  total: number;
+  patients: number;
+  bySegment: SegmentTotals;
+}
+
+export interface CollectionSummary {
+  total: number;
+  payments: number;
+  bySegment: SegmentTotals;
+  doctors: DoctorCollection[];
+}
+
+/** Money received between two days (inclusive, YYYY-MM-DD), by doctor and revenue group. */
+export function summariseCollections(
+  from: string,
+  to: string,
+  entries: CollectionEntry[] = getCollectionEntries()
+): CollectionSummary {
+  const bySegment = emptyTotals();
+  const doctors = new Map<string, DoctorCollection & { visits: Set<string> }>();
+  const payments = new Set<string>();
+  let total = 0;
+  for (const e of entries) {
+    if (e.date < from || e.date > to) continue;
+    total += e.amount;
+    bySegment[e.segment] += e.amount;
+    payments.add(e.paymentKey);
+    let row = doctors.get(e.doctor);
+    if (!row) {
+      row = { doctor: e.doctor, total: 0, patients: 0, bySegment: emptyTotals(), visits: new Set() };
+      doctors.set(e.doctor, row);
+    }
+    row.total += e.amount;
+    row.bySegment[e.segment] += e.amount;
+    row.visits.add(e.visitId);
+  }
+  const round = (t: SegmentTotals) => {
+    for (const k of BILL_SEGMENTS) t[k] = money(t[k]);
+    return t;
+  };
+  return {
+    total: money(total),
+    payments: payments.size,
+    bySegment: round(bySegment),
+    doctors: [...doctors.values()]
+      .map(({ visits, ...row }) => ({ ...row, total: money(row.total), patients: visits.size, bySegment: round(row.bySegment) }))
+      .sort((a, b) => b.total - a.total),
+  };
+}
+
+// ─── Check-in ────────────────────────────────────────────────
+
+/** True when the consultation fee is collected at check-in (Settings → Procedures & Fees). */
+export function isPrepaidConsultationOn(): boolean {
+  return getClinicSetup().prepaidConsultation !== false;
+}
+
+export interface CheckInFee {
+  code: string;
+  name: string;
+  amount: number;
+  method: string;
+  trxId?: string;
+}
+
+/**
+ * Mark a booked patient as arrived. With `fee`, the consultation fee is
+ * collected now as its own paid bill, and the final bill leaves it out.
+ */
+export function checkInVisit(
+  visitId: string,
+  fee?: CheckInFee
+): { visit: ClinicalQueuePatient } | { error: string } {
+  const visit = getVisit(visitId);
+  if (!visit) return { error: "Appointment not found." };
+  if (visit.status !== "scheduled") {
+    return {
+      error: visit.status === "no_show" ? "This visit is marked as a no-show." : `${visit.patient} is already checked in.`,
+    };
+  }
+
+  const now = new Date();
+  let checkInInvoice: VisitInvoice | undefined;
+  if (fee) {
+    const amount = money(Number(fee.amount));
+    if (!(amount > 0)) return { error: "Enter the consultation fee." };
+    if ((fee.method === "bkash" || fee.method === "nagad") && !fee.trxId?.trim()) {
+      return { error: "Enter the transaction ID." };
+    }
+    const day = (visit.date || toISODate(now)).replace(/-/g, "");
+    const invoiceNumber = `INV-${day}-${String(visit.fifoSerial || 0).padStart(3, "0")}-C`;
+    const receiptNumber = invoiceNumber.replace(/^INV-/, "REC-");
+    checkInInvoice = {
+      invoiceNumber,
+      receiptNumber,
+      subtotal: amount,
+      discountAmount: 0,
+      total: amount,
+      paidAmount: amount,
+      balanceDue: 0,
+      paymentMethod: fee.method,
+      paidAt: now.toLocaleString("en-BD", { dateStyle: "medium", timeStyle: "short" }),
+      items: [{ code: fee.code, description: fee.name, quantity: 1, unitPrice: amount, category: "consultation" }],
+      payments: [
+        {
+          id: "pay-checkin",
+          amount,
+          method: fee.method,
+          trxId: fee.trxId?.trim() || undefined,
+          paidAt: now.toISOString(),
+          receiptNumber,
+        },
+      ],
+    };
+  }
+
+  const updated = updateVisit(visit.id, {
+    status: "checked_in",
+    checkedInAt: now.toISOString(),
+    ...(checkInInvoice ? { checkInInvoice } : {}),
+  });
+  if (!updated) return { error: "Could not save the check-in." };
+
+  if (checkInInvoice && fee) {
+    logPatientActivity({
+      id: `ev-${visit.id}-checkin`,
+      patientId: visit.patientId,
+      date: now.toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
+      timestamp: now.getTime(),
+      type: "invoice",
+      title: `Consultation fee paid at check-in (${checkInInvoice.invoiceNumber})`,
+      doctor: visit.doctor,
+      billingDetails: {
+        invoiceNumber: checkInInvoice.invoiceNumber,
+        totalAmount: checkInInvoice.total,
+        paidAmount: checkInInvoice.paidAmount,
+        paymentMethod: fee.method.toUpperCase(),
+        paidAt: checkInInvoice.paidAt,
+        receiptNumber: checkInInvoice.receiptNumber,
+      },
+      badge: "Paid",
+      badgeColor: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
+    });
+  }
+  return { visit: updated };
 }

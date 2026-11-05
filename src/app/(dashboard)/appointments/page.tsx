@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Plus, Clock, Stethoscope, CheckCircle2, AlertCircle, Phone, FileEdit, ArrowRight, Activity, HeartPulse, Sparkles, Save, Check, UserX, Play, Pill, Receipt, Globe, Footprints, Zap, Flame, ShieldAlert, Upload, FileUp, FileText, Paperclip, Eye, Trash2, Copy, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, Plus, Clock, Stethoscope, CheckCircle2, AlertCircle, Phone, FileEdit, ArrowRight, Activity, HeartPulse, Sparkles, Save, Check, UserX, Play, Pill, Receipt, Globe, Footprints, Zap, Flame, ShieldAlert, Upload, FileUp, FileText, Paperclip, Eye, Trash2, Copy, Loader2, ChevronLeft, ChevronRight, UserCheck } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Odontogram, PeriodontalChart } from "@/components/dental/lazy-charts";
 import { ToothIcon } from "@/components/icons/dental-icons";
@@ -51,6 +51,7 @@ import {
 import { PatientContextPanel } from "@/components/clinical/patient-context-panel";
 import { VisitStepper } from "@/components/clinical/visit-stepper";
 import { PageHeader } from "@/components/layout/page-header";
+import { CheckInDialog } from "@/components/appointments/check-in-dialog";
 
 // AI SDK + its validation library only load when the copilot tab is opened
 const CopilotPanel = dynamic(() => import("@/components/clinical/copilot-panel"), {
@@ -195,6 +196,8 @@ export default function AppointmentsPage() {
   const [clinicDoctors, setClinicDoctors] = useState<string[]>([]);
   // Queue date filter (today by default; also shows upcoming follow-ups)
   const [queueDate, setQueueDate] = useState(toISODate());
+  // Patient being checked in at reception
+  const [checkInFor, setCheckInFor] = useState<ClinicalQueuePatient | null>(null);
 
   // Clinical Briefing & Session Tabs ("briefing" | "odontogram" | "copilot")
   const [sessionTab, setSessionTab] = useState<"briefing" | "odontogram" | "copilot">("briefing");
@@ -304,10 +307,15 @@ export default function AppointmentsPage() {
           );
         }
         if (!targetApt && sessionParam === "active") {
+          // Only patients who have checked in can be seated
+          const today = toISODate();
+          const todays = initialList.filter((a) => (a.date || today) === today);
           targetApt =
-            initialList.find((a) => a.status === "in_progress") ||
-            initialList.find((a) => a.status === "checked_in" || a.status === "scheduled") ||
-            initialList[0];
+            todays.find((a) => a.status === "in_progress") ||
+            todays
+              .filter((a) => a.status === "checked_in")
+              .sort((a, b) => a.fifoSerial - b.fifoSerial)[0];
+          if (!targetApt) toast.info("No checked-in patient is waiting. Check a patient in first.");
         }
         if (targetApt) {
           setTimeout(() => {
@@ -329,7 +337,7 @@ export default function AppointmentsPage() {
 
   // ← / → move the queue a day back / forward (not while typing or with a dialog open)
   useEffect(() => {
-    if (isBookModalOpen || isSessionModalOpen) return;
+    if (isBookModalOpen || isSessionModalOpen || checkInFor) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.defaultPrevented) return;
@@ -340,7 +348,7 @@ export default function AppointmentsPage() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isBookModalOpen, isSessionModalOpen]);
+  }, [isBookModalOpen, isSessionModalOpen, checkInFor]);
 
   // Future days that have scheduled visits (next 7 such days)
   const upcomingDays = (() => {
@@ -371,8 +379,11 @@ export default function AppointmentsPage() {
     .filter((a) => a.status === "in_progress" || a.status === "checked_in" || a.status === "scheduled")
     .sort((a, b) => a.fifoSerial - b.fifoSerial);
 
-  // Next in queue
-  const nextInQueue = activeQueue.find((a) => a.status === "in_progress") || activeQueue[0];
+  // Next in queue: whoever is in the chair, else the first checked-in patient, else the next booking to arrive
+  const nextInQueue =
+    activeQueue.find((a) => a.status === "in_progress") ||
+    activeQueue.find((a) => a.status === "checked_in") ||
+    activeQueue[0];
 
   // Upload PDF or image file (X-ray, lab report)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -625,7 +636,9 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
   const handleMarkNoShow = (apt: ClinicalQueuePatient, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     const updatedList = appointments.map((a) =>
-      a.id === apt.id ? { ...a, status: "no_show" as const } : a
+      a.id === apt.id
+        ? { ...a, status: "no_show" as const, noShowReason: "manual" as const, noShowAt: new Date().toISOString() }
+        : a
     );
     setAppointments(updatedList);
     saveStoredAppointments(updatedList);
@@ -737,7 +750,8 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
       time,
       duration: "30m",
       service: newService.trim() || "Consultation",
-      status: isWalkIn ? "checked_in" : "scheduled",
+      // Everyone, walk-ins included, joins the waiting queue through check-in
+      status: "scheduled",
       stage: "waiting",
       alerts: record.allergies || [],
     };
@@ -751,6 +765,8 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
       `${linkedPatient ? "Returning patient" : "New patient " + record.customId} booked: ${newApt.patient}, ${finalDate} at ${time}, Serial #${serial}.`
     );
     resetBookingForm();
+    // A walk-in is already here: go straight to check-in
+    if (isWalkIn) setCheckInFor(newApt);
   };
 
   // Filter based on operatory & status tab
@@ -914,6 +930,11 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                   <FileEdit className="h-4 w-4" />
                   Continue session
                 </Button>
+              ) : nextInQueue.status === "scheduled" ? (
+                <Button className="gap-2" onClick={() => setCheckInFor(nextInQueue)}>
+                  <UserCheck className="h-4 w-4" />
+                  Check in
+                </Button>
               ) : (
                 <Button className="gap-2" onClick={() => openSessionModal(nextInQueue, true)}>
                   <Play className="h-4 w-4 fill-current" />
@@ -1054,21 +1075,40 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                           : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                       }`}
                     >
-                      {apt.status === "no_show" ? "No Show" : apt.status.replace("_", " ")}
+                      {apt.status === "no_show"
+                        ? apt.noShowReason === "late"
+                          ? "No Show (late)"
+                          : "No Show"
+                        : apt.status.replace("_", " ")}
                     </Badge>
+                    {apt.checkInInvoice && (
+                      <span
+                        className="block mt-1 text-[10px] font-medium text-emerald-700 dark:text-emerald-400"
+                        title={`${apt.checkInInvoice.invoiceNumber} · paid at check-in`}
+                      >
+                        Fee paid
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1.5">
                       {apt.status !== "completed" && apt.status !== "no_show" && (
                         <>
-                          <Button
-                            size="sm"
-                            className="h-8 gap-1"
-                            onClick={() => openSessionModal(apt, true)}
-                          >
-                            <Play className="h-3 w-3 fill-current" />
-                            Start
-                          </Button>
+                          {apt.status === "scheduled" ? (
+                            <Button size="sm" className="h-8 gap-1" onClick={() => setCheckInFor(apt)}>
+                              <UserCheck className="h-3 w-3" />
+                              Check in
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="h-8 gap-1"
+                              onClick={() => openSessionModal(apt, apt.status === "checked_in")}
+                            >
+                              <Play className="h-3 w-3 fill-current" />
+                              {apt.status === "in_progress" ? "Continue" : "Start"}
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -1110,6 +1150,12 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
           </table>
         </div>
       </Card>
+
+      <CheckInDialog
+        visit={checkInFor}
+        onOpenChange={(open) => !open && setCheckInFor(null)}
+        onCheckedIn={() => setAppointments(getStoredAppointments())}
+      />
 
       {/* ─── DOCTOR CLINICAL SESSION & HEALTH NOTES MODAL (PROPER STUDIO) ─── */}
       <Dialog open={isSessionModalOpen} onOpenChange={setIsSessionModalOpen}>

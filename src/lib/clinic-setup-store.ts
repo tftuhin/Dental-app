@@ -61,6 +61,13 @@ export interface ClinicSetupData {
   // Practice Defaults
   defaultCurrency: string;
   toothNotation: "universal" | "fdi";
+
+  /**
+   * On: the consultation fee is collected when the patient checks in, and the
+   * final bill covers only procedures, medicines and other charges.
+   * Off: the consultation fee is billed with everything else at the end.
+   */
+  prepaidConsultation: boolean;
 }
 
 export const ALL_DAYS_OF_WEEK = [
@@ -239,6 +246,7 @@ export const DEFAULT_CLINIC_SETUP: ClinicSetupData = {
 
   defaultCurrency: "BDT (৳)",
   toothNotation: "universal",
+  prepaidConsultation: true,
 };
 
 const STORAGE_KEY = "dentai_clinic_setup_v1";
