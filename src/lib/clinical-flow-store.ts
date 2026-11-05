@@ -71,6 +71,10 @@ export interface ClinicalQueuePatient {
   /** Why the visit is a no-show: marked by staff, or automatically for arriving too late. */
   noShowReason?: "manual" | "late";
   noShowAt?: string;
+  /** This visit replaces a missed (no-show) one. */
+  rescheduledFromId?: string;
+  /** This missed visit was rebooked as that appointment. */
+  rescheduledToId?: string;
   examinationFindings?: {
     targetTooth?: string;
     painScore?: number;

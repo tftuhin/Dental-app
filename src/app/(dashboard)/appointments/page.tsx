@@ -675,6 +675,51 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
     setNewTime("");
   };
 
+  /** Doctor's next free slot from the chosen date (or today), shown in the booking form. */
+  const pickNextFreeSlot = (doctor: string, fromDate: string, quiet = false) => {
+    const start = fromDate < toISODate() ? toISODate() : fromDate;
+    const slot = findEarliestSlot(start, doctor, getStoredAppointments());
+    if (!slot) {
+      if (!quiet) toast.error("No free slot for this doctor in the next 30 days. Check clinic hours in Settings.");
+      return;
+    }
+    setNewDate(slot.date);
+    setNewTime(slot.time);
+  };
+
+  // A no-show who turns up gets a new appointment: same patient and details, next free slot
+  const [rescheduleFrom, setRescheduleFrom] = useState<ClinicalQueuePatient | null>(null);
+  const openReschedule = (apt: ClinicalQueuePatient) => {
+    resetBookingForm();
+    const record =
+      getPatientById(apt.patientRecordId || apt.patientId) || findPatientByPhone(apt.phone) || null;
+    if (record) {
+      linkExistingPatient(record);
+    } else {
+      setNewPatientName(apt.patient);
+      setNewPhone(apt.phone);
+      setNewAge(apt.age || "");
+      setNewGender(apt.gender || "Female");
+      setNewAddress(apt.address || "");
+      setNewAlerts((apt.alerts || []).join(", "));
+    }
+    const doctorName = apt.doctor.split(",")[0].trim();
+    const doctor = clinicDoctors.find((d) => d === apt.doctor || d === doctorName) || clinicDoctors[0] || apt.doctor;
+    setNewDoctor(doctor);
+    setNewChair(apt.chair);
+    setNewService(apt.service);
+    // A walk-in has no booked time, so the new visit is booked like a phone booking
+    setNewChannel(apt.bookingChannel === "walk_in" ? "phone" : apt.bookingChannel);
+    pickNextFreeSlot(doctor, toISODate());
+    setRescheduleFrom(apt);
+    setIsBookModalOpen(true);
+  };
+
+  const onBookModalChange = (open: boolean) => {
+    setIsBookModalOpen(open);
+    if (!open) setRescheduleFrom(null);
+  };
+
   // Book a visit: link a returning patient or register a new one, then place it in the queue
   const handleBookAppointment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -754,16 +799,28 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
       status: "scheduled",
       stage: "waiting",
       alerts: record.allergies || [],
+      ...(rescheduleFrom ? { rescheduledFromId: rescheduleFrom.id } : {}),
     };
 
-    const updated = [...appointments, newApt];
+    // Rescheduling: link the missed visit to its new appointment
+    const missed = rescheduleFrom;
+    const updated = [
+      ...appointments.map((a) => (missed && a.id === missed.id ? { ...a, rescheduledToId: newApt.id } : a)),
+      newApt,
+    ];
     setAppointments(updated);
     saveStoredAppointments(updated);
     setIsBookModalOpen(false);
+    setRescheduleFrom(null);
     setQueueDate(finalDate);
-    toast.success(
-      `${linkedPatient ? "Returning patient" : "New patient " + record.customId} booked: ${newApt.patient}, ${finalDate} at ${time}, Serial #${serial}.`
-    );
+    if (missed) {
+      setStatusTab("active");
+      toast.success(`${newApt.patient} rescheduled to ${finalDate} at ${time}, Serial #${serial}.`);
+    } else {
+      toast.success(
+        `${linkedPatient ? "Returning patient" : "New patient " + record.customId} booked: ${newApt.patient}, ${finalDate} at ${time}, Serial #${serial}.`
+      );
+    }
     resetBookingForm();
     // A walk-in is already here: go straight to check-in
     if (isWalkIn) setCheckInFor(newApt);
@@ -1120,6 +1177,36 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                           </Button>
                         </>
                       )}
+
+                      {apt.status === "no_show" &&
+                        (() => {
+                          const next = apt.rescheduledToId
+                            ? appointments.find((a) => a.id === apt.rescheduledToId)
+                            : undefined;
+                          return next ? (
+                            <button
+                              type="button"
+                              className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+                              onClick={() => {
+                                setQueueDate(next.date || toISODate());
+                                setStatusTab("all");
+                              }}
+                              title="Show the new appointment"
+                            >
+                              Rescheduled → {next.date} {next.time}
+                            </button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 gap-1"
+                              onClick={() => openReschedule(apt)}
+                            >
+                              <CalendarDays className="h-3 w-3" />
+                              Reschedule
+                            </Button>
+                          );
+                        })()}
 
                       {apt.status === "completed" && nextStepFor(apt) && (
                         <Button
@@ -2119,15 +2206,17 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
       </Dialog>
 
       {/* ─── NEW APPOINTMENT BOOKING MODAL (Serial Assignment) ─── */}
-      <Dialog open={isBookModalOpen} onOpenChange={setIsBookModalOpen}>
+      <Dialog open={isBookModalOpen} onOpenChange={onBookModalChange}>
         <DialogContent className="max-w-md">
           <DialogHeader className="border-b pb-3">
             <DialogTitle className="text-base font-bold flex items-center gap-2">
               <CalendarDays className="h-5 w-5 text-primary" />
-              Book New Patient Appointment
+              {rescheduleFrom ? `Reschedule ${rescheduleFrom.patient}` : "Book New Patient Appointment"}
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Assigns the next automatic queue serial for today's clinic schedule
+              {rescheduleFrom
+                ? `Missed ${rescheduleFrom.date} at ${rescheduleFrom.time} (no-show). Details are filled in and the doctor's next free slot is selected. Change anything before confirming.`
+                : "Assigns the next automatic queue serial for today's clinic schedule"}
             </DialogDescription>
           </DialogHeader>
 
@@ -2309,10 +2398,21 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                 />
               </div>
             </div>
-            {newChannel !== "walk_in" && !newTime && (
-              <p className="text-[11px] text-muted-foreground -mt-2">
-                Leave the time empty to book the doctor&apos;s earliest free slot on that date.
-              </p>
+            {newChannel !== "walk_in" && (
+              <div className="-mt-2 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                <span>
+                  {newTime
+                    ? "Pick another date or time, or use the next free slot."
+                    : "Leave the time empty to book the doctor's earliest free slot on that date."}
+                </span>
+                <button
+                  type="button"
+                  className="shrink-0 font-medium text-primary hover:underline"
+                  onClick={() => pickNextFreeSlot(newDoctor || clinicDoctors[0] || "", newDate)}
+                >
+                  Next free slot
+                </button>
+              </div>
             )}
 
             <div className="grid grid-cols-2 gap-2">
@@ -2352,11 +2452,11 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
             </div>
 
             <DialogFooter className="border-t pt-3">
-              <Button type="button" variant="outline" size="sm" onClick={() => setIsBookModalOpen(false)} className="text-xs">
+              <Button type="button" variant="outline" size="sm" onClick={() => onBookModalChange(false)} className="text-xs">
                 Cancel
               </Button>
               <Button type="submit" size="sm" className="text-xs font-bold gap-1">
-                Confirm & Add to Queue
+                {rescheduleFrom ? "Confirm New Appointment" : "Confirm & Add to Queue"}
               </Button>
             </DialogFooter>
           </form>
