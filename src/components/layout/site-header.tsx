@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { GlobalSearch } from "./global-search";
 import { UserNav } from "./user-nav";
+import { NotificationBell } from "./notification-bell";
 import { useClinicName } from "@/hooks/use-clinic-name";
 
 const TITLES: Record<string, string> = {
@@ -82,6 +83,7 @@ export function SiteHeader({ clinicName: serverClinicName }: { clinicName: strin
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <NotificationBell />
         <UserNav />
       </div>
     </header>

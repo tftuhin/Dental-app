@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { toastWithLink } from "@/lib/notifications-store";
 import { markLateNoShows, NO_SHOW_AFTER_MINUTES } from "@/lib/clinical-flow-store";
 
 const CHECK_MS = 60_000;
@@ -19,7 +20,7 @@ export function LateNoShowWatch() {
       const today = new Date().toDateString();
       const recent = marked.filter((a) => a.date && new Date(`${a.date}T00:00:00`).toDateString() === today);
       if (recent.length === 0) return;
-      toast.warning(
+      toastWithLink("/appointments", () => toast.warning(
         recent.length === 1
           ? `${recent[0].patient} marked as no-show`
           : `${recent.length} patients marked as no-show`,
@@ -30,7 +31,7 @@ export function LateNoShowWatch() {
             .join(", ")}`,
           duration: 8_000,
         }
-      );
+      ));
     };
     check();
     const timer = window.setInterval(check, CHECK_MS);

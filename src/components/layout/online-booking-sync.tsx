@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { importOnlineBookings } from "@/lib/online-bookings";
+import { toastWithLink } from "@/lib/notifications-store";
 
 const POLL_MS = 60_000;
 
@@ -23,7 +24,7 @@ export function OnlineBookingSync() {
       if (cancelled) return;
       for (const { appointment, isNewPatient, movedFromRequested, request } of added) {
         const when = `${appointment.date} at ${appointment.time}`;
-        toast.success(`New online booking: ${appointment.patient}`, {
+        toastWithLink(`/appointments?date=${appointment.date}`, () => toast.success(`New online booking: ${appointment.patient}`, {
           description: [
             `${appointment.service} · ${when}`,
             movedFromRequested ? `(asked for ${request.preferredDate} ${request.preferredTime}, which was taken)` : "",
@@ -39,7 +40,7 @@ export function OnlineBookingSync() {
               window.dispatchEvent(new CustomEvent("dentai-show-queue-date", { detail: appointment.date }));
             },
           },
-        });
+        }));
       }
     };
 
