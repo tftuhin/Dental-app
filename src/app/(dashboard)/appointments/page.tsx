@@ -271,14 +271,23 @@ export default function AppointmentsPage() {
       setClinicChairs(updated.chairs || []);
     };
 
+    // "View" on a new-online-booking notification jumps the queue to that day
+    const handleShowDate = (e: Event) => {
+      const date = (e as CustomEvent<string>).detail;
+      if (date) setQueueDate(date);
+    };
+
     window.addEventListener("dentai-appointments-updated", handleSync);
     window.addEventListener("dentai-clinic-setup-updated", handleSetupSync);
+    window.addEventListener("dentai-show-queue-date", handleShowDate);
 
     // Auto-open session modal if redirected from Clinical Briefing or with active query param
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const sessionParam = params.get("session");
       const patientIdParam = params.get("visitId") || params.get("patientId");
+      const dateParam = params.get("date");
+      if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) setQueueDate(dateParam);
       if (params.get("new") === "true") {
         // Opened from a patient profile: book for that returning patient
         const bookFor = params.get("bookFor");
@@ -310,6 +319,7 @@ export default function AppointmentsPage() {
     return () => {
       window.removeEventListener("dentai-appointments-updated", handleSync);
       window.removeEventListener("dentai-clinic-setup-updated", handleSetupSync);
+      window.removeEventListener("dentai-show-queue-date", handleShowDate);
     };
   }, []);
 

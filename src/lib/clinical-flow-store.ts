@@ -62,6 +62,8 @@ export interface ClinicalQueuePatient {
   stage?: VisitStage;
   /** True when this appointment was auto-booked as a follow-up. */
   isFollowUp?: boolean;
+  /** Set when this appointment came from the public booking page (booking_requests.id). */
+  onlineBookingId?: string;
   examinationFindings?: {
     targetTooth?: string;
     painScore?: number;

@@ -15,15 +15,19 @@ export default async function DashboardLayout({
 
   const clinicId = session.user.clinicId ?? undefined;
   let clinicName = "My Clinic";
+  let clinicSlug: string | undefined;
 
   if (clinicId && isDatabaseConfigured) {
     try {
       const [clinic] = await db
-        .select({ name: clinics.name })
+        .select({ name: clinics.name, slug: clinics.slug })
         .from(clinics)
         .where(eq(clinics.id, clinicId))
         .limit(1);
-      if (clinic) clinicName = clinic.name;
+      if (clinic) {
+        clinicName = clinic.name;
+        clinicSlug = clinic.slug;
+      }
     } catch (err) {
       // Don't take the whole dashboard down if the clinic lookup fails
       console.error("Clinic name lookup failed:", err);
@@ -31,7 +35,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <DashboardShell clinicName={clinicName} clinicId={clinicId}>
+    <DashboardShell clinicName={clinicName} clinicId={clinicId} clinicSlug={clinicSlug}>
       {children}
     </DashboardShell>
   );

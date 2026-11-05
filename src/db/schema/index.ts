@@ -357,6 +357,35 @@ export const appointments = pgTable(
   ]
 );
 
+// ─── ONLINE BOOKING REQUESTS ──────────────────────────────────────────────────
+// Inbox for bookings made on the public /book page. The clinic's Appointments
+// page claims pending requests and turns them into queue entries.
+
+export const bookingRequests = pgTable(
+  "booking_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinics.id, { onDelete: "cascade" }),
+    reference: varchar("reference", { length: 20 }).notNull(),
+    patientName: varchar("patient_name", { length: 150 }).notNull(),
+    phone: varchar("phone", { length: 30 }).notNull(),
+    email: varchar("email", { length: 150 }),
+    service: varchar("service", { length: 200 }).notNull(),
+    preferredDate: varchar("preferred_date", { length: 10 }).notNull(), // YYYY-MM-DD
+    preferredTime: varchar("preferred_time", { length: 10 }).notNull(), // e.g. 10:00 AM
+    healthNotes: text("health_notes"),
+    status: varchar("status", { length: 20 }).default("pending").notNull(), // pending | imported
+    importedAt: timestamp("imported_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("booking_requests_clinic_status_idx").on(table.clinicId, table.status),
+    index("booking_requests_phone_idx").on(table.phone),
+  ]
+);
+
 // ─── CLINICAL ENCOUNTERS ──────────────────────────────────────────────────────
 
 export const clinicalEncounters = pgTable(

@@ -64,7 +64,13 @@ const NAV: Array<{ label?: string; items: NavItem[] }> = [
   },
 ];
 
-export function AppSidebar({ clinicName: serverClinicName }: { clinicName: string }) {
+export function AppSidebar({
+  clinicName: serverClinicName,
+  clinicSlug = "dhaka-dental",
+}: {
+  clinicName: string;
+  clinicSlug?: string;
+}) {
   const pathname = usePathname();
   const clinicName = useClinicName(serverClinicName);
   const { isMobile, setOpenMobile } = useSidebar();
@@ -125,7 +131,7 @@ export function AppSidebar({ clinicName: serverClinicName }: { clinicName: strin
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Public booking page"
-              render={<Link href="/book/dhaka-dental" target="_blank" rel="noopener" />}
+              render={<Link href={`/book/${clinicSlug}`} target="_blank" rel="noopener" />}
             >
               <Globe />
               <span>Public Booking</span>
