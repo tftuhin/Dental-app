@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Plus, Clock, Stethoscope, CheckCircle2, AlertCircle, Phone, FileEdit, ArrowRight, Activity, HeartPulse, Sparkles, Save, Check, UserX, Play, Pill, Receipt, Globe, Footprints, Zap, Flame, ShieldAlert, Upload, FileUp, FileText, Paperclip, Eye, Trash2, Copy, Loader2 } from "lucide-react";
+import { CalendarDays, Plus, Clock, Stethoscope, CheckCircle2, AlertCircle, Phone, FileEdit, ArrowRight, Activity, HeartPulse, Sparkles, Save, Check, UserX, Play, Pill, Receipt, Globe, Footprints, Zap, Flame, ShieldAlert, Upload, FileUp, FileText, Paperclip, Eye, Trash2, Copy, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Odontogram, PeriodontalChart } from "@/components/dental/lazy-charts";
 import { ToothIcon } from "@/components/icons/dental-icons";
@@ -36,6 +36,7 @@ import {
   saveStoredAppointments,
   logPatientActivity,
   toISODate,
+  shiftISODate,
   findEarliestSlot,
   nextSerialForDate,
 } from "@/lib/clinical-flow-store";
@@ -325,6 +326,21 @@ export default function AppointmentsPage() {
 
   // Sorted active queue: strictly sorted by serial (lowest first)
   const isOnQueueDate = (a: ClinicalQueuePatient) => (a.date || toISODate()) === queueDate;
+
+  // ← / → move the queue a day back / forward (not while typing or with a dialog open)
+  useEffect(() => {
+    if (isBookModalOpen || isSessionModalOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.defaultPrevented) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.closest("[role=dialog],[role=listbox],[role=menu],[role=tablist]"))) return;
+      e.preventDefault();
+      setQueueDate((d) => shiftISODate(d, e.key === "ArrowLeft" ? -1 : 1));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isBookModalOpen, isSessionModalOpen]);
 
   // Future days that have scheduled visits (next 7 such days)
   const upcomingDays = (() => {
@@ -782,13 +798,35 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
         description="Walk-in, phone and online bookings for the day, in queue order."
         actions={
           <>
-            <Input
-              type="date"
-              value={queueDate}
-              onChange={(e) => setQueueDate(e.target.value || toISODate())}
-              className="h-9 w-[150px]"
-              aria-label="Queue date"
-            />
+            <div className="flex items-center">
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-9 w-9 rounded-r-none"
+                onClick={() => setQueueDate(shiftISODate(queueDate, -1))}
+                aria-label="Previous day"
+                title="Previous day (←)"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Input
+                type="date"
+                value={queueDate}
+                onChange={(e) => setQueueDate(e.target.value || toISODate())}
+                className="h-9 w-[150px] rounded-none border-x-0 focus-visible:z-10"
+                aria-label="Queue date"
+              />
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-9 w-9 rounded-l-none"
+                onClick={() => setQueueDate(shiftISODate(queueDate, 1))}
+                aria-label="Next day"
+                title="Next day (→)"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
             {queueDate !== toISODate() && (
               <Button size="sm" variant="ghost" onClick={() => setQueueDate(toISODate())}>
                 Today

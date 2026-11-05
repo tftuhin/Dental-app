@@ -757,6 +757,13 @@ export function toISODate(d: Date = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
+/** A YYYY-MM-DD date moved by `days` (local calendar, safe across month ends and DST). */
+export function shiftISODate(date: string, days: number): string {
+  const [y, m, d] = date.split("-").map((n) => parseInt(n, 10));
+  if (!y || !m || !d) return toISODate();
+  return toISODate(new Date(y, m - 1, d + days));
+}
+
 /** Give every stored appointment a date and a stage so all pages can rely on them. */
 function normaliseAppointments(list: ClinicalQueuePatient[]): { list: ClinicalQueuePatient[]; changed: boolean } {
   let changed = false;
