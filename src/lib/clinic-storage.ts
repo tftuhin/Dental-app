@@ -33,12 +33,16 @@ const LIST_KEYS: Record<string, string> = {
   dentalos1_procedure_catalog_v1: "procedure_catalog",
   dentalos1_medicine_overrides_v1: "medicine_overrides",
   dentalos1_consent_templates_v1: "consent_templates",
+  dentalos1_message_templates_v1: "message_templates",
+  dentalos1_recalls_v1: "recalls",
+  dentalos1_message_log_v1: "message_log",
 };
 
 const DOC_KEYS: Record<string, string> = {
   dentai_clinic_setup_v1: "clinic_setup",
   "dentalos1-services-settings": "services",
   dentalos1_clinical_modules_v1: "clinical_modules",
+  dentalos1_messaging_settings_v1: "messaging",
 };
 
 /** Per-patient documents: key prefix → collection. The rest of the key is the record id. */
@@ -62,12 +66,16 @@ const COLLECTION_EVENTS: Record<string, string> = {
   perio: "dentai-perio-updated",
   ortho: "dentalos1-ortho-updated",
   prostho: "dentalos1-prostho-updated",
+  message_templates: "dentalos1-message-templates-updated",
+  recalls: "dentalos1-recalls-updated",
+  message_log: "dentalos1-message-log-updated",
 };
 
 const SETTINGS_EVENTS: Record<string, string> = {
   clinic_setup: "dentai-clinic-setup-updated",
   services: "dentalos1-services-updated",
   clinical_modules: "dentalos1-modules-updated",
+  messaging: "dentalos1-messaging-settings-updated",
 };
 
 function specFor(key: string): Spec | null {

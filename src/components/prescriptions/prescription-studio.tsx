@@ -24,7 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Printer, ShieldCheck, Pill, AlertCircle, Search, Sparkles, Database, CheckCircle2, Clock, Receipt, ArrowRight, History, FileText, RotateCcw, Edit, GripVertical, ChevronUp, ChevronDown, Download, Eye, Stethoscope, Loader2 } from "lucide-react";
+import { Plus, Trash2, Printer, ShieldCheck, Pill, AlertCircle, Search, Sparkles, Database, CheckCircle2, Clock, Receipt, ArrowRight, History, FileText, RotateCcw, Edit, GripVertical, ChevronUp, ChevronDown, Download, Eye, Stethoscope, Loader2, CalendarClock } from "lucide-react";
+import { NextPlanDialog } from "@/components/clinical/next-plan-dialog";
+import { getRecallForVisit } from "@/lib/messaging-store";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
   ClinicalQueuePatient,
@@ -204,6 +206,7 @@ export function PrescriptionStudio() {
 
   // Finalized Rx state
   const [isSignedAndReadyForBilling, setIsSignedAndReadyForBilling] = useState(false);
+  const [nextPlanOpen, setNextPlanOpen] = useState(false);
 
   // Edit Medication Modal state
   const [isEditMedModalOpen, setIsEditMedModalOpen] = useState(false);
@@ -855,6 +858,8 @@ export function PrescriptionStudio() {
 
     setIsSignedAndReadyForBilling(true);
     toast.success(`Prescription signed for ${patient.name}. Ready for billing.`);
+    // Ask for the next treatment once per visit
+    if (!getRecallForVisit(visit.id)) setNextPlanOpen(true);
   };
 
   // Load a historical prescription back into the Studio
@@ -1059,6 +1064,18 @@ export function PrescriptionStudio() {
                   </p>
                 </div>
               </div>
+              <div className="flex flex-wrap gap-2 shrink-0">
+              {visit && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setNextPlanOpen(true)}
+                  className="gap-2 text-xs h-10 px-4 bg-background"
+                >
+                  <CalendarClock className="h-4 w-4" />
+                  {getRecallForVisit(visit.id) ? "Edit next treatment" : "Plan next treatment"}
+                </Button>
+              )}
               <Button
                 size="sm"
                 asChild
@@ -1070,8 +1087,10 @@ export function PrescriptionStudio() {
                   <ArrowRight className="h-4 w-4 ml-0.5" />
                 </Link>
               </Button>
+              </div>
             </div>
           )}
+          {visit && <NextPlanDialog open={nextPlanOpen} onOpenChange={setNextPlanOpen} visit={visit} />}
 
                     {/* 3. Interactive Prescription Pad with Integrated Controls */}
           {!visit ? (

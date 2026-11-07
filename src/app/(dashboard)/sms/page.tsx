@@ -1,300 +1,230 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
+import { BellRing, Megaphone, History, CalendarClock, Search } from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Send, CheckCheck, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
-import { getServicesSettings } from "@/lib/services-store";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RecallApprovalList } from "@/components/messaging/recall-approvals";
+import { CampaignBuilder } from "@/components/messaging/campaign-builder";
+import {
+  CHANNEL_LABELS,
+  MESSAGE_LOG_EVENT,
+  RECALLS_EVENT,
+  Recall,
+  formatDisplayDate,
+  getMessageLog,
+  getRecalls,
+  recallsAwaitingFor,
+  refreshRecalls,
+  updateRecall,
+} from "@/lib/messaging-store";
 
-interface SmsLog {
-  id: string;
-  recipient: string;
-  phone: string;
-  event: string;
-  message: string;
-  status: "delivered" | "sent" | "failed";
-  time: string;
-  cost: string;
+const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
+  sent: { text: "Sent", cls: "bg-emerald-100 text-emerald-800" },
+  handed_over: { text: "Opened to send", cls: "bg-sky-100 text-sky-800" },
+  failed: { text: "Failed", cls: "bg-red-100 text-red-800" },
+};
+
+function useRecalls(): Recall[] {
+  const [list, setList] = useState(getRecalls);
+  useEffect(() => {
+    const load = () => setList(getRecalls());
+    window.addEventListener(RECALLS_EVENT, load);
+    return () => window.removeEventListener(RECALLS_EVENT, load);
+  }, []);
+  return list;
 }
 
-const INITIAL_LOGS: SmsLog[] = [
-  {
-    id: "log-1",
-    recipient: "Anika Tabassum",
-    phone: "+880 1711-234891",
-    event: "Queue Token",
-    message: "Dear Anika, your token is A-014. Dr. Sarah Smith is ready for you in Chair 1 at Dhaka Dental Care.",
-    status: "delivered",
-    time: "10:14 AM Today",
-    cost: "৳0.35",
-  },
-  {
-    id: "log-2",
-    recipient: "Kazi Nazrul Haque",
-    phone: "+880 1722-312778",
-    event: "Appointment Reminder",
-    message: "Dear Mr. Nazrul, your crown fitting at Dhaka Dental Care is scheduled for 10:45 AM today.",
-    status: "delivered",
-    time: "08:30 AM Today",
-    cost: "৳0.35",
-  },
-  {
-    id: "log-3",
-    recipient: "Nusrat Parveen",
-    phone: "+880 1819-872334",
-    event: "Recall Notice",
-    message: "Hi Nusrat, it is time for your 6-month dental hygiene recall & checkup at Dhaka Dental Care! Book online.",
-    status: "sent",
-    time: "Yesterday, 04:15 PM",
-    cost: "৳0.35",
-  },
-];
-
 export default function SmsPage() {
-  const [logs, setLogs] = useState<SmsLog[]>(INITIAL_LOGS);
+  const { data: session } = useSession();
+  const user = session?.user;
+  const canApprove = !!user?.role && user.role !== "receptionist";
+  const recalls = useRecalls();
 
-  // New quick SMS
-  const [toPhone, setToPhone] = useState("+880 1711-234891");
-  const [patientName, setPatientName] = useState("Anika Tabassum");
-  const [smsText, setSmsText] = useState(
-    "Dear Anika, thank you for visiting Dhaka Dental Care today. Please take your prescribed medication after meals as instructed. Call us at +880 1711-000000 for any emergency."
-  );
+  // Make sure overdue plans have their reminders drafted before showing the list
+  useEffect(() => {
+    refreshRecalls();
+  }, []);
 
-  const handleSendQuickSms = (e: React.FormEvent) => {
-    e.preventDefault();
-    const services = getServicesSettings();
-    if (!services.smsEnabled) {
-      toast.warning("SMS Messaging Service is currently disabled in Clinic Settings. Go to Settings > Services & Patient ID to activate.");
-      return;
-    }
-    const newLog: SmsLog = {
-      id: "log-" + Date.now(),
-      recipient: patientName,
-      phone: toPhone,
-      event: "Direct Message",
-      message: smsText,
-      status: "delivered",
-      time: "Just now",
-      cost: "৳0.35",
-    };
-    setLogs([newLog, ...logs]);
-    toast.success(`SMS successfully dispatched to ${patientName}!`);
-  };
+  const awaiting = recalls.filter((r) => r.status === "awaiting_approval");
+  const mine = user ? recallsAwaitingFor(user) : [];
+  const others = awaiting.filter((r) => !mine.some((m) => m.id === r.id));
+  const upcoming = recalls.filter((r) => r.status === "planned").sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
-  const isSmsActive = typeof window !== "undefined" ? getServicesSettings().smsEnabled : true;
+  const [log, setLog] = useState(getMessageLog);
+  const [logQuery, setLogQuery] = useState("");
+  useEffect(() => {
+    const load = () => setLog(getMessageLog());
+    window.addEventListener(MESSAGE_LOG_EVENT, load);
+    return () => window.removeEventListener(MESSAGE_LOG_EVENT, load);
+  }, []);
+  const filteredLog = useMemo(() => {
+    const q = logQuery.trim().toLowerCase();
+    return (q ? log.filter((m) => `${m.patientName} ${m.phone} ${m.campaign || ""} ${m.body}`.toLowerCase().includes(q)) : log).slice(0, 300);
+  }, [log, logQuery]);
 
   return (
     <div className="space-y-6">
-      {/* Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-primary" />
-            SMS Engine & Automated Patient Messaging
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Automated appointment reminders, chair queue tokens, post-treatment follow-ups, and recall marketing
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className={`text-xs ${
-              isSmsActive
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40"
-                : "bg-slate-100 text-slate-500 border-slate-300 dark:bg-slate-900"
-            }`}
-          >
-            {isSmsActive ? "SMS Service: Active · DentalOS1 Cloud Managed" : "SMS Service: Disabled in Clinic Settings"}
-          </Badge>
-        </div>
-      </div>
+      <PageHeader
+        title="SMS & Campaigns"
+        description="Reminders for patients who missed their planned treatment, campaigns to chosen patients, and every message sent."
+      />
 
-      {/* Metrics Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="border p-3.5 shadow-sm">
-          <span className="text-[11px] text-muted-foreground block font-medium">Messages Sent (30d)</span>
-          <span className="text-xl font-bold text-foreground">1,420</span>
-        </Card>
-        <Card className="border p-3.5 shadow-sm">
-          <span className="text-[11px] text-muted-foreground block font-medium">Delivery Rate</span>
-          <span className="text-xl font-bold text-emerald-600">99.4%</span>
-        </Card>
-        <Card className="border p-3.5 shadow-sm">
-          <span className="text-[11px] text-muted-foreground block font-medium">Recall Reactivations</span>
-          <span className="text-xl font-bold text-primary">42 Patients</span>
-        </Card>
-        <Card className="border p-3.5 shadow-sm">
-          <span className="text-[11px] text-muted-foreground block font-medium">SMS Spend This Month</span>
-          <span className="text-xl font-bold text-foreground">৳497.00</span>
-        </Card>
-      </div>
+      <Tabs defaultValue={awaiting.length > 0 ? "approvals" : "campaign"} className="space-y-4">
+        <TabsList className="w-full max-w-full justify-start overflow-x-auto sm:w-auto">
+          <TabsTrigger value="approvals" className="gap-1.5 text-xs">
+            <BellRing className="h-3.5 w-3.5" />
+            Reminders
+            {awaiting.length > 0 && <Badge className="ml-1 h-4 bg-amber-500 px-1.5 text-[10px] text-white">{awaiting.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="campaign" className="gap-1.5 text-xs">
+            <Megaphone className="h-3.5 w-3.5" />
+            Campaign
+          </TabsTrigger>
+          <TabsTrigger value="log" className="gap-1.5 text-xs">
+            <History className="h-3.5 w-3.5" />
+            Message log
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column (5 cols): Quick Dispatch & Templates */}
-        <div className="lg:col-span-5 space-y-4">
-          <Card className="border shadow-sm">
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Send className="h-4 w-4 text-primary" />
-                Quick Direct SMS Dispatch
+        <TabsContent value="approvals" className="space-y-4">
+          <Card className="shadow-xs">
+            <CardHeader className="border-b bg-muted/20 px-4 py-3">
+              <CardTitle className="text-xs font-bold">
+                {canApprove ? "Waiting for your approval" : "Waiting for the doctor's approval"} ({canApprove ? mine.length : awaiting.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
-              <form onSubmit={handleSendQuickSms} className="space-y-3 text-xs">
-                <div>
-                  <Label className="text-xs">Patient Name</Label>
-                  <Input
-                    value={patientName}
-                    onChange={(e) => setPatientName(e.target.value)}
-                    className="h-8 text-xs mt-1"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Recipient Phone Number</Label>
-                  <Input
-                    value={toPhone}
-                    onChange={(e) => setToPhone(e.target.value)}
-                    className="h-8 text-xs mt-1 font-mono"
-                    required
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">Message Text</Label>
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      {smsText.length} / 160 (1 segment)
-                    </span>
-                  </div>
-                  <Textarea
-                    value={smsText}
-                    onChange={(e) => setSmsText(e.target.value)}
-                    rows={4}
-                    className="text-xs mt-1 leading-relaxed"
-                    required
-                  />
-                </div>
-
-                {/* Template Preset Buttons */}
-                <div className="space-y-1.5 pt-1">
-                  <span className="text-[10px] text-muted-foreground font-semibold block uppercase">
-                    Insert Template Preset
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-6 text-[10px] px-2"
-                      onClick={() =>
-                        setSmsText(
-                          `Dear ${patientName}, your appointment is confirmed for tomorrow at 10:00 AM at DentAI Premier.`
-                        )
-                      }
-                    >
-                      Appointment
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-6 text-[10px] px-2"
-                      onClick={() =>
-                        setSmsText(
-                          `Dear ${patientName}, your queue token is A-018. Estimated chair time is in 10 minutes.`
-                        )
-                      }
-                    >
-                      Chair Queue
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-6 text-[10px] px-2"
-                      onClick={() =>
-                        setSmsText(
-                          `Happy Birthday ${patientName}! 🎉 Enjoy your 34% Birthday Privilege dental treatment this month at DentAI.`
-                        )
-                      }
-                    >
-                      Birthday
-                    </Button>
-                  </div>
-                </div>
-
-                <Button type="submit" size="sm" className="w-full gap-2 text-xs font-semibold mt-2">
-                  <Send className="h-3.5 w-3.5" />
-                  Dispatch SMS Message
-                </Button>
-              </form>
+              <RecallApprovalList recalls={canApprove ? mine : awaiting} canApprove={canApprove} />
             </CardContent>
           </Card>
-        </div>
 
-        {/* Right Column (7 cols): Live Delivery Logs */}
-        <div className="lg:col-span-7 space-y-4">
-          <Card className="border shadow-sm">
-            <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-semibold">Live SMS Delivery Audit Logs</CardTitle>
-                <CardDescription className="text-xs">
-                  Real-time carrier webhook delivery status
-                </CardDescription>
-              </div>
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => toast.info("Refreshed carrier logs")}>
-                <RefreshCw className="h-3.5 w-3.5" />
-              </Button>
+          {canApprove && others.length > 0 && (
+            <Card className="shadow-xs">
+              <CardHeader className="border-b bg-muted/20 px-4 py-3">
+                <CardTitle className="text-xs font-bold">Waiting for other doctors ({others.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <RecallApprovalList recalls={others} canApprove={false} />
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className="shadow-xs">
+            <CardHeader className="border-b bg-muted/20 px-4 py-3">
+              <CardTitle className="flex items-center gap-2 text-xs font-bold">
+                <CalendarClock className="h-4 w-4 text-violet-600" />
+                Planned next treatments ({upcoming.length})
+              </CardTitle>
             </CardHeader>
-
-            <CardContent className="p-0">
-              <div className="divide-y text-xs">
-                {logs.map((log) => (
-                  <div key={log.id} className="p-3.5 hover:bg-muted/30 transition-colors space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-foreground">{log.recipient}</span>
-                        <span className="text-muted-foreground font-mono text-[11px]">{log.phone}</span>
-                        <Badge variant="outline" className="text-[9px] h-4 px-1">
-                          {log.event}
-                        </Badge>
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className={`text-[10px] font-medium ${
-                          log.status === "delivered"
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
-                            : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                        }`}
-                      >
-                        {log.status === "delivered" ? (
-                          <CheckCheck className="mr-1 h-3 w-3 inline" />
-                        ) : null}
-                        {log.status}
-                      </Badge>
-                    </div>
-
-                    <p className="text-muted-foreground text-[11px] leading-relaxed">
-                      &quot;{log.message}&quot;
-                    </p>
-
-                    <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
-                      <span>{log.time}</span>
-                      <span className="font-mono">Cost: {log.cost}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <CardContent className="max-h-80 overflow-y-auto p-0">
+              {upcoming.length === 0 ? (
+                <p className="p-6 text-center text-xs text-muted-foreground">
+                  No plans yet. Doctors add them after signing a prescription (&quot;Plan next treatment&quot;).
+                </p>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead className="text-[10px] uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-1.5 text-left">Patient</th>
+                      <th className="px-2 py-1.5 text-left">Next treatment</th>
+                      <th className="px-2 py-1.5 text-left">By</th>
+                      <th className="px-2 py-1.5 text-left">Doctor</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {upcoming.map((r) => (
+                      <tr key={r.id} className="border-t align-top">
+                        <td className="px-4 py-1.5">
+                          <span className="font-semibold">{r.patientName}</span>
+                          <span className="block font-mono text-[10px] text-muted-foreground">{r.phone}</span>
+                        </td>
+                        <td className="px-2 py-1.5">
+                          {r.procedure}
+                          {r.note && <span className="block text-[10px] text-muted-foreground">{r.note}</span>}
+                        </td>
+                        <td className="whitespace-nowrap px-2 py-1.5">{formatDisplayDate(r.dueDate)}</td>
+                        <td className="px-2 py-1.5">{r.doctor}</td>
+                        <td className="px-4 py-1.5 text-right">
+                          {canApprove && (
+                            <button
+                              type="button"
+                              className="text-[11px] text-muted-foreground hover:text-destructive"
+                              onClick={() => updateRecall(r.id, { status: "dismissed", closedReason: "Cancelled" })}
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="campaign">
+          <CampaignBuilder />
+        </TabsContent>
+
+        <TabsContent value="log">
+          <Card className="shadow-xs">
+            <CardHeader className="flex flex-col gap-2 border-b bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="text-xs font-bold">Messages ({log.length})</CardTitle>
+              <div className="relative sm:w-72">
+                <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input value={logQuery} onChange={(e) => setLogQuery(e.target.value)} placeholder="Search patient, phone or text" className="h-7 pl-7 text-xs" />
+              </div>
+            </CardHeader>
+            <CardContent className="max-h-[60vh] overflow-y-auto p-0">
+              {filteredLog.length === 0 ? (
+                <p className="p-6 text-center text-xs text-muted-foreground">No messages yet.</p>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-background text-[10px] uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-1.5 text-left">When</th>
+                      <th className="px-2 py-1.5 text-left">Patient</th>
+                      <th className="px-2 py-1.5 text-left">Type</th>
+                      <th className="px-2 py-1.5 text-left">Message</th>
+                      <th className="px-4 py-1.5 text-left">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredLog.map((m) => (
+                      <tr key={m.id} className="border-t align-top">
+                        <td className="whitespace-nowrap px-4 py-1.5">
+                          {new Date(m.sentAt).toLocaleString("en-BD", { dateStyle: "medium", timeStyle: "short" })}
+                          {m.by && <span className="block text-[10px] text-muted-foreground">{m.by}</span>}
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <span className="font-semibold">{m.patientName}</span>
+                          <span className="block font-mono text-[10px] text-muted-foreground">{m.phone}</span>
+                        </td>
+                        <td className="whitespace-nowrap px-2 py-1.5">
+                          {CHANNEL_LABELS[m.channel]} · {m.kind === "recall" ? "Reminder" : m.kind === "campaign" ? m.campaign || "Campaign" : "Direct"}
+                        </td>
+                        <td className="max-w-md px-2 py-1.5 text-muted-foreground">{m.body}</td>
+                        <td className="px-4 py-1.5">
+                          <Badge className={`text-[10px] ${STATUS_LABEL[m.status]?.cls || ""}`}>{STATUS_LABEL[m.status]?.text || m.status}</Badge>
+                          {m.error && <span className="block text-[10px] text-destructive">{m.error}</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

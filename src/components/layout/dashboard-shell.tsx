@@ -8,6 +8,8 @@ import { OnlineBookingSync } from "./online-booking-sync";
 import { CrossTabSync } from "./cross-tab-sync";
 import { LateNoShowWatch } from "./late-no-show-watch";
 import { ClinicDataGate } from "./clinic-data-gate";
+import { RecallWatch } from "@/components/messaging/recall-approvals";
+import { setBookingSlug } from "@/lib/messaging-store";
 
 interface DashboardShellProps {
   clinicName: string;
@@ -24,6 +26,8 @@ interface DashboardShellProps {
  * has loaded (see ClinicDataGate).
  */
 export function DashboardShell({ clinicName, clinicId, clinicSlug, children }: DashboardShellProps) {
+  // Lets message templates link to this clinic's online booking page
+  setBookingSlug(clinicSlug);
   return (
     <TooltipProvider delay={0}>
       <CrossTabSync />
@@ -35,6 +39,7 @@ export function DashboardShell({ clinicName, clinicId, clinicSlug, children }: D
             <ClinicDataGate storageKey={clinicId || "no-clinic"}>
               <OnlineBookingSync />
               <LateNoShowWatch />
+              <RecallWatch />
               {children}
             </ClinicDataGate>
           </div>
