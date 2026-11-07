@@ -163,7 +163,7 @@ export function ConsentSettingsTab() {
       doctorName: v.doctor_name,
       doctorDegree: v.doctor_degree,
       bmdcReg: v.doctor_bmdc,
-    }).replace(/<script>[\s\S]*?<\/script>/, "");
+    }, { autoPrint: false });
     const win = window.open("", "_blank", "width=850,height=1100");
     if (!win) {
       toast.error("Allow pop-ups for this site to see the preview.");

@@ -96,6 +96,18 @@ interface SelectProps {
   children?: React.ReactNode
 }
 
+/**
+ * Open dropdowns, and when the last one closed. A dialog uses this to tell a
+ * click that only closes a dropdown from a click meant to close the dialog.
+ */
+let openDropdowns = 0
+let lastDropdownClosedAt = 0
+
+/** True while a dropdown is open, or for a moment after one closed. */
+export function isDropdownInteraction(): boolean {
+  return openDropdowns > 0 || Date.now() - lastDropdownClosedAt < 400
+}
+
 function Select({
   value: valueProp,
   defaultValue,
@@ -112,6 +124,15 @@ function Select({
   const [innerOpen, setInnerOpen] = React.useState(defaultOpen ?? false)
   const value = valueProp !== undefined ? valueProp : innerValue
   const open = openProp !== undefined ? openProp : innerOpen
+
+  React.useEffect(() => {
+    if (!open) return
+    openDropdowns += 1
+    return () => {
+      openDropdowns -= 1
+      lastDropdownClosedAt = Date.now()
+    }
+  }, [open])
 
   const setOpen = React.useCallback(
     (next: boolean) => {
@@ -138,7 +159,9 @@ function Select({
 
   return (
     <SelectContext.Provider value={{ value, select, open, setOpen, disabled, selectedLabel }}>
-      <PopoverPrimitive.Root open={open} onOpenChange={(o) => !disabled && setOpen(o)} modal>
+      {/* Not modal: a modal popover blocks clicks on the page, so inside a dialog the
+          click that closes the list would also close the dialog */}
+      <PopoverPrimitive.Root open={open} onOpenChange={(o) => !disabled && setOpen(o)} modal={false}>
         {children}
       </PopoverPrimitive.Root>
       {name && <input type="hidden" name={name} value={value ?? ""} required={required} />}

@@ -1,7 +1,7 @@
 // ============================================================
 // DENTALOS1 — Printable consent form (A4)
 // Clinic letterhead, patient details, the filled consent text, and
-// signature blocks for the patient (or guardian), the doctor and a witness.
+// signature blocks for the patient (or guardian) and the doctor.
 // ============================================================
 
 export interface ConsentPrintData {
@@ -59,7 +59,8 @@ function bodyHtml(text: string): string {
     .join("\n");
 }
 
-export function generateConsentHtml(d: ConsentPrintData): string {
+/** The form as a full HTML page. With `autoPrint`, the print dialog opens once it has loaded. */
+export function generateConsentHtml(d: ConsentPrintData, { autoPrint = true }: { autoPrint?: boolean } = {}): string {
   const logo = d.logoUrl ? `<img src="${esc(d.logoUrl)}" alt="" class="logo"/>` : "";
   return `<!doctype html>
 <html lang="en">
@@ -67,30 +68,32 @@ export function generateConsentHtml(d: ConsentPrintData): string {
 <meta charset="utf-8"/>
 <title>${esc(d.title)} · ${esc(d.patientName)}</title>
 <style>
-  @page { size: A4; margin: 14mm 16mm; }
+  /* One A4 page: 10 mm top/bottom, 12 mm sides leaves 277 x 186 mm */
+  @page { size: A4; margin: 10mm 12mm; }
   * { box-sizing: border-box; }
-  body { font-family: "Segoe UI", "Noto Sans Bengali", Arial, sans-serif; color: #111827; font-size: 11.5pt; line-height: 1.5; margin: 0; }
-  .head { display: flex; align-items: center; gap: 14px; border-bottom: 3px double #0f766e; padding-bottom: 10px; }
-  .logo { height: 56px; width: auto; }
-  .clinic h1 { font-size: 18pt; margin: 0; color: #0f766e; letter-spacing: .3px; }
-  .clinic p { margin: 1px 0; font-size: 9pt; color: #374151; }
-  .meta { display: flex; justify-content: space-between; font-size: 9pt; color: #4b5563; margin: 8px 0 12px; }
-  h2 { text-align: center; font-size: 14pt; margin: 6px 0 12px; text-transform: uppercase; letter-spacing: .6px; }
-  .patient { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 16px; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 12px; font-size: 10pt; margin-bottom: 14px; }
+  html, body { margin: 0; }
+  body { font-family: "Segoe UI", "Noto Sans Bengali", Arial, sans-serif; color: #111827; font-size: 10.5pt; line-height: 1.4; }
+  .page { width: 186mm; margin: 0 auto; }
+  .head { display: flex; align-items: center; gap: 1em; border-bottom: 3px double #0f766e; padding-bottom: .5em; }
+  .logo { height: 4.2em; width: auto; }
+  .clinic h1 { font-size: 1.55em; margin: 0; color: #0f766e; letter-spacing: .3px; line-height: 1.2; }
+  .clinic p { margin: 0; font-size: .8em; color: #374151; }
+  .meta { display: flex; justify-content: space-between; font-size: .82em; color: #4b5563; margin: .45em 0 .3em; }
+  h2 { text-align: center; font-size: 1.2em; margin: .2em 0 .55em; text-transform: uppercase; letter-spacing: .5px; }
+  .patient { display: grid; grid-template-columns: repeat(3, 1fr); gap: .15em 1.2em; border: 1px solid #d1d5db; border-radius: 5px; padding: .4em .8em; font-size: .9em; margin-bottom: .7em; }
   .patient b { color: #374151; font-weight: 600; }
-  .body p { margin: 0 0 9px; text-align: justify; }
-  .body ul { margin: 0 0 9px 18px; padding: 0; }
-  .body li { margin-bottom: 2px; }
-  .signs { display: grid; grid-template-columns: 1fr 1fr; gap: 26px 40px; margin-top: 26px; page-break-inside: avoid; }
-  .sign .line { border-bottom: 1px solid #111827; height: 44px; }
-  .sign .who { font-weight: 600; margin-top: 4px; font-size: 10pt; }
-  .sign .sub { font-size: 9pt; color: #4b5563; }
-  .thumb { border: 1px dashed #9ca3af; height: 70px; width: 70px; display: inline-flex; align-items: flex-end; justify-content: center; font-size: 7.5pt; color: #6b7280; padding-bottom: 3px; float: right; margin-left: 10px; }
-  .foot { margin-top: 18px; font-size: 8pt; color: #6b7280; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 6px; }
-  @media print { .noprint { display: none; } }
+  .body p { margin: 0 0 .5em; text-align: justify; }
+  .body ul { margin: 0 0 .5em 1.4em; padding: 0; }
+  .body li { margin-bottom: .05em; }
+  .signs { display: grid; grid-template-columns: 1fr 1fr; gap: 4em; margin-top: 1.2em; break-inside: avoid; }
+  .sign .line { border-bottom: 1px solid #111827; height: 2.8em; }
+  .sign .who { font-weight: 600; margin-top: .25em; font-size: .9em; }
+  .sign .sub { font-size: .8em; color: #4b5563; }
+  .foot { margin-top: .9em; font-size: .72em; color: #6b7280; text-align: center; border-top: 1px solid #e5e7eb; padding-top: .3em; }
 </style>
 </head>
 <body>
+<div class="page" id="page">
   <div class="head">
     ${logo}
     <div class="clinic">
@@ -112,31 +115,33 @@ export function generateConsentHtml(d: ConsentPrintData): string {
   <div class="body">${bodyHtml(d.body)}</div>
   <div class="signs">
     <div class="sign">
-      <span class="thumb">Thumb</span>
       <div class="line"></div>
       <div class="who">Signature of patient${d.guardianName ? " / guardian" : ""}</div>
       <div class="sub">Name: ${esc(d.guardianName || d.patientName)}</div>
-      <div class="sub">${d.guardianName ? "Relationship: ____________ · " : ""}Date: ____________</div>
+      <div class="sub">${d.guardianName ? "Relationship: ________ · " : ""}Date: __________</div>
     </div>
     <div class="sign">
       <div class="line"></div>
       <div class="who">Signature of doctor</div>
       <div class="sub">${esc(d.doctorName)}${d.doctorDegree ? `, ${esc(d.doctorDegree)}` : ""}</div>
-      <div class="sub">${d.bmdcReg ? `BMDC Reg. ${esc(d.bmdcReg)} · ` : ""}Date: ____________</div>
-    </div>
-    <div class="sign">
-      <div class="line"></div>
-      <div class="who">Signature of witness</div>
-      <div class="sub">Name: ______________________</div>
-    </div>
-    <div class="sign">
-      <div class="line"></div>
-      <div class="who">Interpreter (if used)</div>
-      <div class="sub">Name: ______________________</div>
+      <div class="sub">${d.bmdcReg ? `BMDC Reg. ${esc(d.bmdcReg)} · ` : ""}Date: __________</div>
     </div>
   </div>
   <div class="foot">Keep the signed original in the patient's file. ${esc(d.clinicName)} · ${esc(d.consentNumber)}</div>
-  <script>window.onload = function () { setTimeout(function () { window.print(); }, 300); };</script>
+</div>
+<script>
+  // Shrink the text until the whole form fits on one A4 page (the wording is editable, so its length varies)
+  (function () {
+    var page = document.getElementById("page");
+    var maxHeight = (277 / 25.4) * 96;
+    var size = 10.5;
+    while (page.scrollHeight > maxHeight && size > 7) {
+      size -= 0.25;
+      document.body.style.fontSize = size + "pt";
+    }
+  })();
+  ${autoPrint ? 'window.onload = function () { setTimeout(function () { window.print(); }, 300); };' : ""}
+</script>
 </body>
 </html>`;
 }

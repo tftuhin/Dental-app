@@ -5,10 +5,24 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
+import { isDropdownInteraction } from "@/components/ui/select"
 import { XIcon } from "lucide-react"
 
-function Dialog({ ...props }: DialogPrimitive.Root.Props) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+function Dialog({ onOpenChange, ...props }: DialogPrimitive.Root.Props) {
+  return (
+    <DialogPrimitive.Root
+      data-slot="dialog"
+      onOpenChange={(open, details) => {
+        // A click outside an open dropdown only closes the dropdown, not the dialog
+        if (!open && details.reason === "outside-press" && isDropdownInteraction()) {
+          details.cancel()
+          return
+        }
+        onOpenChange?.(open, details)
+      }}
+      {...props}
+    />
+  )
 }
 
 function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
