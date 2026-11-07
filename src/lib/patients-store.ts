@@ -1,6 +1,9 @@
 "use client";
 
 import { allowsDemoData, clinicStorage } from "@/lib/clinic-storage";
+import { getServicesSettings } from "@/lib/services-store";
+import { getClinicSetup } from "@/lib/clinic-setup-store";
+import { clinicCodeOf, nextPatientId, validatePattern } from "@/lib/patient-id";
 
 /**
  * DentalOS1 Centralized Patient Demographics & EHR Store
@@ -264,49 +267,20 @@ export function findPatientByPhone(phone: string): PatientProfile | undefined {
 }
 
 /**
- * Generate the next patient ID from the clinic's pattern
- * (Settings → Services & Patient ID). Tokens: {YYYY}, {YY}, {MM}, {SEQ:N}.
- * The sequence continues from the highest existing ID with the same prefix,
- * so deleting or reordering patients never produces a duplicate.
+ * The next patient ID in the clinic's chosen format (Settings → Services &
+ * Patient ID; see lib/patient-id.ts). Numbers continue from the highest ID
+ * already used, so deleting or reordering patients never produces a duplicate.
  */
-export function generateNextPatientId(): string {
-  let pattern = "DENT-{YYYY}-{SEQ:5}";
-  let sequenceStart = 1;
-  if (typeof window !== "undefined") {
-    try {
-      const raw = clinicStorage.getItem("dentalos1-services-settings");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (typeof parsed.patientIdPattern === "string" && parsed.patientIdPattern.includes("{SEQ")) {
-          pattern = parsed.patientIdPattern;
-        }
-        const start = parseInt(parsed.patientIdSequenceStart, 10);
-        if (!isNaN(start) && start > 0) sequenceStart = start;
-      }
-    } catch {
-      // keep defaults
-    }
-  }
-
-  const now = new Date();
-  const yyyy = String(now.getFullYear());
-  const resolved = pattern
-    .replace("{YYYY}", yyyy)
-    .replace("{YY}", yyyy.slice(-2))
-    .replace("{MM}", String(now.getMonth() + 1).padStart(2, "0"));
-
-  const seqMatch = resolved.match(/\{SEQ:(\d+)\}/);
-  const width = seqMatch ? parseInt(seqMatch[1], 10) : 5;
-  const [prefix, suffix = ""] = resolved.split(/\{SEQ:\d+\}/);
-
-  let maxSeq = sequenceStart - 1;
-  for (const p of getAllPatients()) {
-    if (p.customId.startsWith(prefix) && p.customId.endsWith(suffix)) {
-      const n = parseInt(p.customId.slice(prefix.length, p.customId.length - suffix.length), 10);
-      if (!isNaN(n) && n > maxSeq) maxSeq = n;
-    }
-  }
-  return `${prefix}${String(maxSeq + 1).padStart(width, "0")}${suffix}`;
+export function generateNextPatientId(patient: { name?: string; phone?: string } = {}): string {
+  const settings = getServicesSettings();
+  const pattern = validatePattern(settings.patientIdPattern).length === 0 ? settings.patientIdPattern : "DENT-{YYYY}-{SEQ:5}";
+  const start = parseInt(settings.patientIdSequenceStart, 10);
+  return nextPatientId(
+    pattern,
+    getAllPatients().map((p) => p.customId),
+    { clinicCode: clinicCodeOf(settings.patientIdClinicCode, getClinicSetup().name), patientName: patient.name, phone: patient.phone },
+    isNaN(start) || start < 1 ? 1 : start
+  );
 }
 
 /**
@@ -348,7 +322,7 @@ export function updatePatient(
     // Never copy another patient's clinical data into a new record
     updatedPatient = {
       ...BLANK_PATIENT,
-      customId: generateNextPatientId(),
+      customId: generateNextPatientId({ name: updates.name, phone: updates.phone }),
       ...updates,
       id: newId,
       name: updates.name || "Unnamed Patient",
@@ -378,7 +352,7 @@ export function createPatient(
   }
 ): PatientProfile {
   const all = getAllPatients();
-  const customId = patientData.customId || generateNextPatientId();
+  const customId = patientData.customId || generateNextPatientId({ name: patientData.name, phone: patientData.phone });
   const id = patientData.id || `pat-${Date.now()}`;
 
   const age =

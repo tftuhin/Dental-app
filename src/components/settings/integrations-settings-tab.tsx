@@ -14,6 +14,8 @@ import {
   saveServicesSettings,
   ClinicServicesSettings,
 } from "@/lib/services-store";
+import { validatePattern } from "@/lib/patient-id";
+import { PatientIdFormatCard } from "./patient-id-format-card";
 
 export function IntegrationsSettingsTab() {
   const [settings, setSettings] = useState<ClinicServicesSettings>(getServicesSettings);
@@ -32,15 +34,13 @@ export function IntegrationsSettingsTab() {
     }));
   };
 
-  // Live Patient ID sample preview
-  const sampleId = settings.patientIdPattern
-    .replace("{YYYY}", "2026")
-    .replace("{YY}", "26")
-    .replace("{MM}", "10")
-    .replace(/\{SEQ:\d+\}/, String(settings.patientIdSequenceStart || "42").padStart(5, "0"));
-
   const handleSaveAll = (e: React.FormEvent) => {
     e.preventDefault();
+    const problems = validatePattern(settings.patientIdPattern);
+    if (problems.length > 0) {
+      toast.error(`Patient ID format: ${problems[0]}`);
+      return;
+    }
     saveServicesSettings(settings);
     toast.success("Clinic cloud services and automation preferences successfully saved!");
   };
@@ -655,79 +655,8 @@ export function IntegrationsSettingsTab() {
         </CardContent>
       </Card>
 
-      {/* ── SERVICE 5: ATOMIC PATIENT ID ENGINE ── */}
-      <Card className="border shadow-xs">
-        <CardHeader className="pb-3 border-b bg-muted/20">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Shield className="h-4 w-4 text-primary" />
-                5. Atomic Patient ID Engine
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Generates unique, collision-proof patient record numbers for charts, appointments, and bills
-              </CardDescription>
-            </div>
-            <Badge variant="outline" className="text-[10px] bg-primary/5 text-primary border-primary/30 font-mono">
-              PostgreSQL Counter Active
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="p-4 sm:p-6 space-y-4 text-xs">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Custom ID Format Pattern *</Label>
-                <Input
-                  value={settings.patientIdPattern}
-                  onChange={(e) => updateSetting("patientIdPattern", e.target.value)}
-                  className="h-8 text-xs font-mono font-semibold"
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Available tokens: <code className="font-mono font-bold text-primary">{"{YYYY}"}</code>,{" "}
-                  <code className="font-mono font-bold text-primary">{"{YY}"}</code>,{" "}
-                  <code className="font-mono font-bold text-primary">{"{MM}"}</code>,{" "}
-                  <code className="font-mono font-bold text-primary">{"{SEQ:5}"}</code>
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Current Sequence Counter Value</Label>
-                <Input
-                  type="number"
-                  value={settings.patientIdSequenceStart}
-                  onChange={(e) => updateSetting("patientIdSequenceStart", e.target.value)}
-                  className="h-8 text-xs font-mono"
-                  placeholder="42"
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Increments atomically upon patient registration using database UPSERT locks.
-                </p>
-              </div>
-            </div>
-
-            {/* Live ID Preview Box */}
-            <div className="p-4 rounded-xl border bg-primary/5 border-primary/20 flex flex-col justify-between space-y-3">
-              <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold text-primary tracking-wider block">
-                  Next Patient ID Preview
-                </span>
-                <div className="font-mono text-xl sm:text-2xl font-black text-foreground tracking-tight">
-                  {sampleId}
-                </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
-                  Assigned automatically to next walk-in, phone-in, or online booking patient.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
-                <CheckCircle2 className="h-4 w-4" />
-                Zero Duplication & Concurrency Safe
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* ── SERVICE 5: PATIENT ID FORMAT ── */}
+      <PatientIdFormatCard settings={settings} updateSetting={updateSetting} />
 
       {/* Bottom Save Action Bar */}
       <div className="flex justify-end pt-2">

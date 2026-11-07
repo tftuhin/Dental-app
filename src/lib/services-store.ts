@@ -47,6 +47,8 @@ export interface ClinicServicesSettings {
   // 5. Patient ID Custom Pattern
   patientIdPattern: string;
   patientIdSequenceStart: string;
+  /** Used by {CLINIC} in the ID format; blank = initials of the clinic name. */
+  patientIdClinicCode: string;
 }
 
 export const DEFAULT_SERVICES_SETTINGS: ClinicServicesSettings = {
@@ -84,6 +86,7 @@ export const DEFAULT_SERVICES_SETTINGS: ClinicServicesSettings = {
   // Patient ID
   patientIdPattern: "DENT-{YYYY}-{SEQ:5}",
   patientIdSequenceStart: "42",
+  patientIdClinicCode: "",
 };
 
 const STORAGE_KEY = "dentalos1-services-settings";
