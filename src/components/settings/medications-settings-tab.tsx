@@ -100,7 +100,7 @@ const COMMON_TIMINGS = [
 ];
 
 export function MedicationsSettingsTab() {
-  const [medications, setMedications] = useState<CatalogMedicine[]>([]);
+  const [medications, setMedications] = useState<CatalogMedicine[]>(getStoredMedicines);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedForm, setSelectedForm] = useState("all");
@@ -128,7 +128,6 @@ export function MedicationsSettingsTab() {
 
   // Load medications on mount & listen to sync events
   useEffect(() => {
-    setMedications(getStoredMedicines());
     ensureMedicineCatalog().catch((err) => console.warn("Medicine catalog unavailable:", err));
 
     const handleSync = () => {

@@ -1,5 +1,7 @@
 "use client";
 
+import { clinicStorage } from "@/lib/clinic-storage";
+
 /**
  * DentalOS1 Commercial Cloud Services & Automation Settings Store
  * 
@@ -91,9 +93,9 @@ export function getServicesSettings(): ClinicServicesSettings {
     return DEFAULT_SERVICES_SETTINGS;
   }
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = clinicStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_SERVICES_SETTINGS));
+      clinicStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_SERVICES_SETTINGS));
       return DEFAULT_SERVICES_SETTINGS;
     }
     const parsed = JSON.parse(raw);
@@ -115,7 +117,7 @@ export function saveServicesSettings(
     ...updates,
   };
   if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    clinicStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     window.dispatchEvent(
       new CustomEvent("dentalos1-services-updated", { detail: next })
     );

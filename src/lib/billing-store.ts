@@ -13,6 +13,7 @@ import {
   ClinicalQueuePatient,
   VisitInvoice,
   VisitPayment,
+  VisitRefund,
   getStoredAppointments,
   getVisit,
   updateVisit,
@@ -199,6 +200,102 @@ export function buildReceiptFromInvoice(
   };
 }
 
+// ─── Refunds ─────────────────────────────────────────────────
+
+export type BillKind = "invoice" | "checkInInvoice";
+
+/** Money the clinic has kept on a bill: paid minus refunded. */
+export function netPaid(inv: VisitInvoice): number {
+  return money(Math.max(0, (inv.paidAmount || 0) - (inv.refundedAmount || 0)));
+}
+
+/** A bill that can still be refunded, for the refund search list. */
+export interface RefundableBill {
+  visit: ClinicalQueuePatient;
+  kind: BillKind;
+  invoice: VisitInvoice;
+  refundable: number;
+}
+
+/** Paid bills (final bills and check-in consultation fees), newest first. */
+export function getRefundableBills(visits: ClinicalQueuePatient[] = getStoredAppointments()): RefundableBill[] {
+  const out: RefundableBill[] = [];
+  for (const visit of visits) {
+    for (const kind of ["invoice", "checkInInvoice"] as BillKind[]) {
+      const invoice = visit[kind];
+      if (!invoice) continue;
+      const refundable = netPaid(invoice);
+      if (refundable > 0 || (invoice.refunds?.length ?? 0) > 0) out.push({ visit, kind, invoice, refundable });
+    }
+  }
+  return out.sort(
+    (a, b) => (b.visit.date || "").localeCompare(a.visit.date || "") || (b.visit.fifoSerial || 0) - (a.visit.fifoSerial || 0)
+  );
+}
+
+/**
+ * Give money back on a paid bill. The refund comes off both the bill and
+ * what was paid, so the balance due stays the same. Returns the updated
+ * visit and the refund, or an error message.
+ */
+export function recordRefund(
+  visitId: string,
+  kind: BillKind,
+  input: { amount: number; method: string; trxId?: string; reason: string; by?: string }
+): { visit: ClinicalQueuePatient; refund: VisitRefund } | { error: string } {
+  const visit = getVisit(visitId);
+  const inv = visit?.[kind];
+  if (!visit || !inv) return { error: "Bill not found." };
+
+  const amount = money(Number(input.amount));
+  const available = netPaid(inv);
+  if (!(amount > 0)) return { error: "Enter an amount greater than zero." };
+  if (amount > available) return { error: `You can refund at most ${formatBDT(available)} on this bill.` };
+  if (!input.reason.trim()) return { error: "Enter the reason for the refund." };
+  if ((input.method === "bkash" || input.method === "nagad") && !input.trxId?.trim()) {
+    return { error: "Enter the transaction ID of the mobile refund." };
+  }
+
+  const previous = inv.refunds || [];
+  const refund: VisitRefund = {
+    id: `ref-${Date.now()}`,
+    amount,
+    method: input.method,
+    trxId: input.trxId?.trim() || undefined,
+    reason: input.reason.trim(),
+    refundedAt: new Date().toISOString(),
+    refundNumber: `${inv.receiptNumber.replace(/^REC-/, "RFD-")}-R${previous.length + 1}`,
+    by: input.by,
+  };
+  const updated = updateVisit(visit.id, {
+    [kind]: { ...inv, refunds: [...previous, refund], refundedAmount: money((inv.refundedAmount || 0) + amount) },
+  });
+  if (!updated) return { error: "Could not save the refund." };
+
+  logPatientActivity({
+    id: `ev-${visit.id}-${refund.id}`,
+    patientId: visit.patientId,
+    date: new Date().toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
+    timestamp: Date.now(),
+    type: "invoice",
+    title: `Refund of ${formatBDT(amount)} (${inv.invoiceNumber}): ${refund.reason}`,
+    doctor: visit.doctor,
+    billingDetails: {
+      invoiceNumber: inv.invoiceNumber,
+      totalAmount: inv.total,
+      discountAmount: inv.discountAmount,
+      paidAmount: -amount,
+      paymentMethod: refund.method.toUpperCase(),
+      paidAt: new Date(refund.refundedAt).toLocaleString("en-BD", { dateStyle: "medium", timeStyle: "short" }),
+      receiptNumber: refund.refundNumber,
+    },
+    badge: "Refunded",
+    badgeColor: "bg-rose-500/10 text-rose-700 border-rose-500/30",
+  });
+
+  return { visit: updated, refund };
+}
+
 // ─── Collection reports ──────────────────────────────────────
 
 export const BILL_SEGMENTS: BillSegment[] = ["consultation", "examination", "procedure", "surgery", "consumable"];
@@ -240,6 +337,8 @@ export interface CollectionEntry {
   amount: number;
   visitId: string;
   paymentKey: string;
+  /** True for money given back (the amount is negative). */
+  refund?: boolean;
 }
 
 /** Day a payment was received. Very old payments have no readable time, so they count on the visit day. */
@@ -268,6 +367,19 @@ export function getCollectionEntries(visits: ClinicalQueuePatient[] = getStoredA
           entries.push({ date, doctor, segment, amount, visitId: visit.id, paymentKey });
         });
       }
+      // Refunds count against the day they were given, split the same way
+      for (const r of inv.refunds || []) {
+        if (!(r.amount > 0)) continue;
+        const d = new Date(r.refundedAt);
+        const date = isNaN(d.getTime()) ? visit.date || toISODate() : toISODate(d);
+        const paymentKey = `${visit.id}:${inv.invoiceNumber}:${r.id}`;
+        let left = money(r.amount);
+        shares.forEach(([segment, share], i) => {
+          const amount = i === shares.length - 1 ? left : money(r.amount * share);
+          left = money(left - amount);
+          entries.push({ date, doctor, segment, amount: -amount, visitId: visit.id, paymentKey, refund: true });
+        });
+      }
     }
   }
   return entries;
@@ -285,8 +397,11 @@ export interface DoctorCollection {
 }
 
 export interface CollectionSummary {
+  /** Money received minus refunds given. */
   total: number;
   payments: number;
+  /** Refunds given in the period (a positive amount). */
+  refunded: number;
   bySegment: SegmentTotals;
   doctors: DoctorCollection[];
 }
@@ -301,11 +416,13 @@ export function summariseCollections(
   const doctors = new Map<string, DoctorCollection & { visits: Set<string> }>();
   const payments = new Set<string>();
   let total = 0;
+  let refunded = 0;
   for (const e of entries) {
     if (e.date < from || e.date > to) continue;
     total += e.amount;
     bySegment[e.segment] += e.amount;
-    payments.add(e.paymentKey);
+    if (e.refund) refunded -= e.amount;
+    else payments.add(e.paymentKey);
     let row = doctors.get(e.doctor);
     if (!row) {
       row = { doctor: e.doctor, total: 0, patients: 0, bySegment: emptyTotals(), visits: new Set() };
@@ -322,6 +439,7 @@ export function summariseCollections(
   return {
     total: money(total),
     payments: payments.size,
+    refunded: money(refunded),
     bySegment: round(bySegment),
     doctors: [...doctors.values()]
       .map(({ visits, ...row }) => ({ ...row, total: money(row.total), patients: visits.size, bySegment: round(row.bySegment) }))

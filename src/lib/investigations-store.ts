@@ -1,3 +1,5 @@
+import { clinicStorage } from "@/lib/clinic-storage";
+
 // ============================================================
 // DENTALOS1 — INVESTIGATIONS & DIAGNOSTIC TESTS STORE
 // Standard Dental Diagnostic & Laboratory Formulary (Bangladesh)
@@ -204,9 +206,9 @@ export function getStoredInvestigations(): InvestigationItem[] {
     return DEFAULT_INVESTIGATIONS;
   }
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = clinicStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_INVESTIGATIONS));
+      clinicStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_INVESTIGATIONS));
       return DEFAULT_INVESTIGATIONS;
     }
     const parsed = JSON.parse(raw);
@@ -223,7 +225,7 @@ export function getStoredInvestigations(): InvestigationItem[] {
 export function saveStoredInvestigations(list: InvestigationItem[]) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    clinicStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     window.dispatchEvent(new CustomEvent("dentai-investigations-updated", { detail: list }));
   } catch (err) {
     console.error("Error saving stored investigations:", err);

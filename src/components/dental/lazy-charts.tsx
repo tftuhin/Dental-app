@@ -16,3 +16,13 @@ export const PeriodontalChart = dynamic(
   () => import("@/components/dental/perio-chart").then((m) => m.PeriodontalChart),
   { ssr: false, loading: ChartLoading }
 );
+
+export const OrthoChart = dynamic(
+  () => import("@/components/dental/ortho-chart").then((m) => m.OrthoChart),
+  { ssr: false, loading: ChartLoading }
+);
+
+export const ProsthoChart = dynamic(
+  () => import("@/components/dental/prostho-chart").then((m) => m.ProsthoChart),
+  { ssr: false, loading: ChartLoading }
+);

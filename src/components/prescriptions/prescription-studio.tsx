@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
@@ -69,7 +69,6 @@ import {
 
 import {
   InvestigationItem,
-  DEFAULT_INVESTIGATIONS,
   getStoredInvestigations,
   addStoredInvestigation,
 } from "@/lib/investigations-store";
@@ -88,10 +87,9 @@ export function PrescriptionStudio() {
   const searchParams = useSearchParams();
 
   // Clinic Setup Data from settings store
-  const [clinic, setClinic] = useState<ClinicSetupData | null>(null);
+  const [clinic, setClinic] = useState<ClinicSetupData | null>(() => getClinicSetup());
 
   useEffect(() => {
-    setClinic(getClinicSetup());
     const handleClinicUpdate = () => setClinic(getClinicSetup());
     window.addEventListener("dentai-clinic-setup-updated", handleClinicUpdate);
     return () => window.removeEventListener("dentai-clinic-setup-updated", handleClinicUpdate);
@@ -115,7 +113,7 @@ export function PrescriptionStudio() {
   const [activeTab, setActiveTab] = useState<"write" | "search">("write");
 
   // Today's completed patients queue from store
-  const [todayQueue, setTodayQueue] = useState<ClinicalQueuePatient[]>([]);
+  const [todayQueue, setTodayQueue] = useState<ClinicalQueuePatient[]>(() => getStoredAppointments());
   const [selectedQueuePatientId, setSelectedQueuePatientId] = useState<string>("");
   // The visit this prescription belongs to (carries notes, procedures, vitals)
   const [visit, setVisit] = useState<ClinicalQueuePatient | undefined>();
@@ -147,7 +145,7 @@ export function PrescriptionStudio() {
   const [aiRationale, setAiRationale] = useState("");
 
   // Medicine Search & Add State
-  const [catalogMedicines, setCatalogMedicines] = useState<CatalogMedicine[]>([]);
+  const [catalogMedicines, setCatalogMedicines] = useState<CatalogMedicine[]>(() => getStoredMedicines());
   const [selectedCatalogMed, setSelectedCatalogMed] = useState<CatalogMedicine | null>(null);
 
   // New field inputs for prescription item
@@ -175,7 +173,7 @@ export function PrescriptionStudio() {
   const [isSavingDbMed, setIsSavingDbMed] = useState(false);
 
   // Investigations & Diagnostic Tests State
-  const [catalogInvestigations, setCatalogInvestigations] = useState<InvestigationItem[]>(DEFAULT_INVESTIGATIONS);
+  const [catalogInvestigations, setCatalogInvestigations] = useState<InvestigationItem[]>(() => getStoredInvestigations());
   const [selectedInvCode, setSelectedInvCode] = useState<string>("");
   const [customInvTooth, setCustomInvTooth] = useState<string>("");
   const [customInvIndication, setCustomInvIndication] = useState<string>("");
@@ -198,7 +196,10 @@ export function PrescriptionStudio() {
 
   // Search Historical Prescriptions State
   const [histSearchQuery, setHistSearchQuery] = useState("");
-  const [historicalResults, setHistoricalResults] = useState<HistoricalPrescription[]>([]);
+  const historicalResults: HistoricalPrescription[] = useMemo(
+    () => searchHistoricalPrescriptions(histSearchQuery),
+    [histSearchQuery]
+  );
   const [viewingHistRx, setViewingHistRx] = useState<HistoricalPrescription | null>(null);
 
   // Finalized Rx state
@@ -215,30 +216,9 @@ export function PrescriptionStudio() {
   const [isInvoicePreviewModalOpen, setIsInvoicePreviewModalOpen] = useState(false);
   const [previewModalTab, setPreviewModalTab] = useState<"prescription" | "invoice">("prescription");
 
-  // Load appointments from store & sync
-  useEffect(() => {
-    const list = getStoredAppointments();
-    setTodayQueue(list);
-
-    // Initial search results
-    setHistoricalResults(searchHistoricalPrescriptions(""));
-
-    const paramVisitId = searchParams?.get("visitId") || searchParams?.get("patientId");
-    if (paramVisitId) {
-      const chosen = list.find((a) => a.id === paramVisitId);
-      if (chosen) loadVisitIntoPad(chosen);
-    }
-
-    const handleSync = () => {
-      setTodayQueue(getStoredAppointments());
-    };
-    window.addEventListener("dentai-appointments-updated", handleSync);
-    return () => window.removeEventListener("dentai-appointments-updated", handleSync);
-  }, [searchParams]);
 
   // Sync investigations catalog with local store & settings
   useEffect(() => {
-    setCatalogInvestigations(getStoredInvestigations());
     const handleInvSync = () => {
       setCatalogInvestigations(getStoredInvestigations());
     };
@@ -246,14 +226,8 @@ export function PrescriptionStudio() {
     return () => window.removeEventListener("dentai-investigations-updated", handleInvSync);
   }, []);
 
-  // Update historical search
-  useEffect(() => {
-    setHistoricalResults(searchHistoricalPrescriptions(histSearchQuery));
-  }, [histSearchQuery]);
-
   // Sync with local store & settings updates
   useEffect(() => {
-    setCatalogMedicines(getStoredMedicines());
     // First visit on this device: fetch the catalog once (fires the sync event below)
     ensureMedicineCatalog().catch((err) => console.warn("Medicine catalog unavailable:", err));
     const handleMedsSync = () => {
@@ -324,6 +298,27 @@ export function PrescriptionStudio() {
     setAiRationale("");
     setIsSignedAndReadyForBilling(!!rx);
   }
+
+  // Load appointments from store & sync
+  useEffect(() => {
+    // Open the visit from the link (?visitId=), just after rendering
+    const paramVisitId = searchParams?.get("visitId") || searchParams?.get("patientId");
+    const openFromLink = paramVisitId
+      ? setTimeout(() => {
+          const chosen = getVisit(paramVisitId);
+          if (chosen) loadVisitIntoPad(chosen);
+        }, 0)
+      : undefined;
+
+    const handleSync = () => {
+      setTodayQueue(getStoredAppointments());
+    };
+    window.addEventListener("dentai-appointments-updated", handleSync);
+    return () => {
+      clearTimeout(openFromLink);
+      window.removeEventListener("dentai-appointments-updated", handleSync);
+    };
+  }, [searchParams]);
 
   /** Ask the AI to draft the prescription from today's notes, procedures and history. */
   const handleAiPrefill = async () => {
@@ -2082,7 +2077,7 @@ export function PrescriptionStudio() {
               <div className="text-xs space-y-1">
                 <span className="font-bold text-muted-foreground uppercase text-[10px]">Advice Given:</span>
                 <p className="italic text-muted-foreground bg-muted/10 p-2 rounded border">
-                  "{viewingHistRx.advice}"
+                  &quot;{viewingHistRx.advice}&quot;
                 </p>
               </div>
 

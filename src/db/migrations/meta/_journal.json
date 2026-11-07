@@ -15,6 +15,13 @@
       "when": 1793864976143,
       "tag": "0001_booking_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794077339883,
+      "tag": "0002_clinic_records",
+      "breakpoints": true
     }
   ]
 }

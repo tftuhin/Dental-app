@@ -7,5 +7,5 @@ export default async function PatientProfilePage({
 }) {
   const { id } = await params;
 
-  return <PatientProfileView initialPatientId={id} />;
+  return <PatientProfileView key={id} initialPatientId={id} />;
 }

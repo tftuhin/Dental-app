@@ -1,3 +1,5 @@
+import { clinicStorage } from "@/lib/clinic-storage";
+
 // ============================================================
 // DENTALOS1 — DENTAL CHART PERSISTENCE STORE
 // Manages local persistence and cross-view synchronization for:
@@ -101,7 +103,7 @@ export function getDefaultOdontogram(): Record<number, ToothState> {
 export function getStoredOdontogram(patientId: string = "DENT-2026-00042"): Record<number, ToothState> {
   if (typeof window === "undefined") return getDefaultOdontogram();
   try {
-    const raw = localStorage.getItem(`${ODONTOGRAM_STORAGE_PREFIX}${patientId}`);
+    const raw = clinicStorage.getItem(`${ODONTOGRAM_STORAGE_PREFIX}${patientId}`);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
@@ -120,7 +122,7 @@ export function saveStoredOdontogram(
 ): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(`${ODONTOGRAM_STORAGE_PREFIX}${patientId}`, JSON.stringify(data));
+    clinicStorage.setItem(`${ODONTOGRAM_STORAGE_PREFIX}${patientId}`, JSON.stringify(data));
     window.dispatchEvent(
       new CustomEvent("dentai-odontogram-updated", {
         detail: { patientId, timestamp: Date.now() },
@@ -190,7 +192,7 @@ export function getStoredPerioChart(
 ): Record<number, ToothPerioState> {
   if (typeof window === "undefined") return getDefaultPerioChart();
   try {
-    const raw = localStorage.getItem(`${PERIO_STORAGE_PREFIX}${patientId}`);
+    const raw = clinicStorage.getItem(`${PERIO_STORAGE_PREFIX}${patientId}`);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
@@ -209,7 +211,7 @@ export function saveStoredPerioChart(
 ): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(`${PERIO_STORAGE_PREFIX}${patientId}`, JSON.stringify(data));
+    clinicStorage.setItem(`${PERIO_STORAGE_PREFIX}${patientId}`, JSON.stringify(data));
     window.dispatchEvent(
       new CustomEvent("dentai-perio-updated", {
         detail: { patientId, timestamp: Date.now() },

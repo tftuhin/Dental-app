@@ -1,5 +1,7 @@
 "use client";
 
+import { allowsDemoData, clinicStorage } from "@/lib/clinic-storage";
+
 /**
  * DentalOS1 Centralized Patient Demographics & EHR Store
  * 
@@ -199,22 +201,19 @@ export function formatDobDisplay(dobString: string): string {
  * Get all patients from localStorage or default seed
  */
 export function getAllPatients(): PatientProfile[] {
-  if (typeof window === "undefined") {
-    return INITIAL_PATIENTS;
-  }
+  if (typeof window === "undefined") return [];
+  // Sample patients only fill an empty local demo, never a real clinic's records
+  const seed = allowsDemoData() ? INITIAL_PATIENTS : [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = clinicStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PATIENTS));
-      return INITIAL_PATIENTS;
+      if (seed.length > 0) clinicStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
+      return seed;
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
-    }
-    return INITIAL_PATIENTS;
+    return Array.isArray(parsed) ? parsed : seed;
   } catch {
-    return INITIAL_PATIENTS;
+    return seed;
   }
 }
 
@@ -275,7 +274,7 @@ export function generateNextPatientId(): string {
   let sequenceStart = 1;
   if (typeof window !== "undefined") {
     try {
-      const raw = localStorage.getItem("dentalos1-services-settings");
+      const raw = clinicStorage.getItem("dentalos1-services-settings");
       if (raw) {
         const parsed = JSON.parse(raw);
         if (typeof parsed.patientIdPattern === "string" && parsed.patientIdPattern.includes("{SEQ")) {
@@ -358,7 +357,7 @@ export function updatePatient(
   }
 
   if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextList));
+    clinicStorage.setItem(STORAGE_KEY, JSON.stringify(nextList));
     window.dispatchEvent(
       new CustomEvent("dentalos1-patients-updated", {
         detail: { patient: updatedPatient, list: nextList },
@@ -401,7 +400,7 @@ export function createPatient(
   const nextList = [newPatient, ...all];
 
   if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextList));
+    clinicStorage.setItem(STORAGE_KEY, JSON.stringify(nextList));
     window.dispatchEvent(
       new CustomEvent("dentalos1-patients-updated", {
         detail: { patient: newPatient, list: nextList },

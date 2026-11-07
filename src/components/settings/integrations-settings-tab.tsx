@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,10 +21,6 @@ export function IntegrationsSettingsTab() {
   const [testEmailAddress, setTestEmailAddress] = useState("doctor@dhakadentalcare.com");
   const [isSendingTestSms, setIsSendingTestSms] = useState(false);
   const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
-
-  useEffect(() => {
-    setSettings(getServicesSettings());
-  }, []);
 
   const updateSetting = <K extends keyof ClinicServicesSettings>(
     key: K,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,14 +28,9 @@ const CATEGORIES = Object.keys(CATEGORY_LABELS) as CatalogCategory[];
 
 /** Settings → Procedures & Fees: the price list used by the Procedure stage and Billing. */
 export function ProceduresSettingsTab() {
-  const [items, setItems] = useState<CatalogItem[]>([]);
+  const [items, setItems] = useState<CatalogItem[]>(getCatalog);
   const [dirty, setDirty] = useState(false);
-  const [prepaid, setPrepaid] = useState(true);
-
-  useEffect(() => {
-    setItems(getCatalog());
-    setPrepaid(getClinicSetup().prepaidConsultation !== false);
-  }, []);
+  const [prepaid, setPrepaid] = useState(() => getClinicSetup().prepaidConsultation !== false);
 
   const togglePrepaid = (on: boolean) => {
     setPrepaid(on);

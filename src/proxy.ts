@@ -9,6 +9,7 @@ const publicRoutes = [
   "/book", // Public booking pages
 ];
 
+// Next.js 16 "proxy" (formerly middleware): send signed-out visitors to the login page.
 export default auth((req) => {
   const { nextUrl, auth: session } = req;
   const isLoggedIn = !!session;

@@ -18,6 +18,7 @@ import { GlobalSearch } from "./global-search";
 import { UserNav } from "./user-nav";
 import { NotificationBell } from "./notification-bell";
 import { useClinicName } from "@/hooks/use-clinic-name";
+import { SyncStatusBadge } from "./clinic-data-gate";
 
 const TITLES: Record<string, string> = {
   dashboard: "Dashboard",
@@ -52,6 +53,7 @@ export function SiteHeader({ clinicName: serverClinicName }: { clinicName: strin
       <span className="truncate text-sm font-medium md:hidden">{title}</span>
 
       <div className="ml-auto flex items-center gap-2">
+        <SyncStatusBadge />
         <GlobalSearch />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

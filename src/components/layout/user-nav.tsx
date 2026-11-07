@@ -13,7 +13,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { User, Settings, LogOut, Shield } from "lucide-react";
+import { Settings, LogOut } from "lucide-react";
+import { toast } from "sonner";
+import { closeClinicStorage } from "@/lib/clinic-storage";
+import { NOTIFICATIONS_KEY } from "@/lib/notifications-store";
+
+/** Save what's left, then clear clinic data from this browser before signing out. */
+async function signOutSafely() {
+  const allSaved = await closeClinicStorage();
+  if (!allSaved) {
+    toast.warning("Some changes couldn't be sent. They are kept on this computer and will be saved at your next sign-in.");
+  }
+  try {
+    localStorage.removeItem(NOTIFICATIONS_KEY);
+  } catch {
+    // ignore
+  }
+  await signOut({ callbackUrl: "/auth/login" });
+}
 
 export function UserNav() {
   const { data: session } = useSession();
@@ -60,15 +77,7 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => router.push("/profile")}>
-            <User className="mr-2 h-4 w-4" />
-            <span>My Profile</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push("/profile/signature")}>
-            <Shield className="mr-2 h-4 w-4" />
-            <span>Digital Signature</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push("/settings")}>
+<DropdownMenuItem onClick={() => router.push("/settings")}>
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
@@ -76,7 +85,7 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="text-destructive focus:text-destructive"
-          onClick={() => signOut({ callbackUrl: "/auth/login" })}
+          onClick={() => void signOutSafely()}
         >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Sign out</span>

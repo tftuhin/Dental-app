@@ -113,6 +113,8 @@ export function PatientContextPanel({ visit, hideTodaySummary, className }: Pati
       window.removeEventListener("dentalos1-patients-updated", load);
       window.removeEventListener("dentai-timeline-updated", load);
     };
+  // Reload only when a different visit or patient is shown
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visit?.id, visit?.patientId, visit?.patientRecordId]);
 
   if (!visit) return null;

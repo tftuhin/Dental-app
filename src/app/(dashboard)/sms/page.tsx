@@ -281,7 +281,7 @@ export default function SmsPage() {
                     </div>
 
                     <p className="text-muted-foreground text-[11px] leading-relaxed">
-                      "{log.message}"
+                      &quot;{log.message}&quot;
                     </p>
 
                     <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">

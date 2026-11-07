@@ -1,5 +1,7 @@
 "use client";
 
+import { clinicStorage } from "@/lib/clinic-storage";
+
 // ============================================================
 // DENTALOS1 — Procedure, Examination & Fee Catalog
 // The single price list used by the Examination & Procedure
@@ -54,6 +56,19 @@ export const DEFAULT_CATALOG: CatalogItem[] = [
   { id: "cat-proc-7", code: "D2750", name: "Porcelain-fused-to-metal Crown", category: "procedure", price: 8000, isActive: true },
   { id: "cat-proc-8", code: "D2740", name: "Zirconia Crown", category: "procedure", price: 12000, isActive: true },
 
+  // Prosthodontics
+  { id: "cat-pros-1", code: "D6740", name: "Bridge (per unit)", category: "procedure", price: 9000, isActive: true },
+  { id: "cat-pros-2", code: "D2962", name: "Porcelain Veneer", category: "procedure", price: 15000, isActive: true },
+  { id: "cat-pros-3", code: "D5110", name: "Complete Denture (per arch)", category: "procedure", price: 18000, isActive: true },
+  { id: "cat-pros-4", code: "D5213", name: "Removable Partial Denture", category: "procedure", price: 12000, isActive: true },
+  { id: "cat-pros-5", code: "D6065", name: "Implant-supported Crown", category: "procedure", price: 35000, isActive: true },
+
+  // Orthodontics
+  { id: "cat-orth-1", code: "D8660", name: "Orthodontic Records & Treatment Planning", category: "examination", price: 3000, isActive: true },
+  { id: "cat-orth-2", code: "D8090", name: "Fixed Orthodontic Appliance (full mouth)", category: "procedure", price: 80000, isActive: true },
+  { id: "cat-orth-3", code: "D8670", name: "Orthodontic Adjustment Visit", category: "procedure", price: 1500, isActive: true },
+  { id: "cat-orth-4", code: "D8680", name: "Orthodontic Retainer (per arch)", category: "procedure", price: 5000, isActive: true },
+
   // Surgery
   { id: "cat-surg-1", code: "D7140", name: "Simple Extraction", category: "surgery", price: 1500, isActive: true },
   { id: "cat-surg-2", code: "D7210", name: "Surgical Extraction", category: "surgery", price: 4000, isActive: true },
@@ -75,7 +90,7 @@ export const CATALOG_UPDATED_EVENT = "dentalos1-catalog-updated";
 export function getCatalog(): CatalogItem[] {
   if (typeof window === "undefined") return DEFAULT_CATALOG;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = clinicStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_CATALOG;
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : DEFAULT_CATALOG;
@@ -86,7 +101,7 @@ export function getCatalog(): CatalogItem[] {
 
 export function saveCatalog(items: CatalogItem[]): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  clinicStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   window.dispatchEvent(new Event(CATALOG_UPDATED_EVENT));
 }
 

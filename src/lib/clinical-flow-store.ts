@@ -1,3 +1,5 @@
+import { allowsDemoData, clinicStorage } from "@/lib/clinic-storage";
+
 // ============================================================
 // DENTALOS1 — CLINICAL FLOW STORE & PATIENT QUEUE
 // Manages:
@@ -91,6 +93,29 @@ export interface ClinicalQueuePatient {
   prescription?: VisitPrescription;
   /** Invoice once payment is recorded. */
   invoice?: VisitInvoice;
+  /** Consent forms printed and signed for this visit (newest last). */
+  consents?: VisitConsent[];
+}
+
+/** A consent form printed for a visit and signed on paper before treatment. */
+export interface VisitConsent {
+  id: string;
+  consentNumber: string;
+  templateId: string;
+  title: string;
+  kind: "procedure" | "surgery";
+  procedureName: string;
+  teeth?: string;
+  /** The exact text printed, after placeholders were filled. */
+  text: string;
+  guardianName?: string;
+  printedAt?: string;
+  signedByPatient: boolean;
+  signedByDoctor: boolean;
+  /** "signed": both signatures confirmed. "declined": the patient refused treatment. */
+  status: "signed" | "declined";
+  recordedAt: string;
+  doctor: string;
 }
 
 export type VisitStage = "waiting" | "notes" | "procedure" | "prescription" | "billing" | "done";
@@ -157,6 +182,26 @@ export interface VisitInvoice {
   }>;
   /** Every payment against this bill: the first one at billing, then due payments. */
   payments?: VisitPayment[];
+  /**
+   * Money given back to the patient (treatment cancelled, overcharge...). A
+   * refund takes the amount off both the bill and what was paid, so the
+   * balance due doesn't change. Total kept = paidAmount − refundedAmount.
+   */
+  refunds?: VisitRefund[];
+  refundedAmount?: number;
+}
+
+export interface VisitRefund {
+  id: string;
+  amount: number;
+  method: string;
+  trxId?: string;
+  reason: string;
+  /** ISO timestamp */
+  refundedAt: string;
+  refundNumber: string;
+  /** Who gave the refund (signed-in user's name), when known. */
+  by?: string;
 }
 
 export interface VisitPayment {
@@ -803,27 +848,31 @@ function normaliseAppointments(list: ClinicalQueuePatient[]): { list: ClinicalQu
   return { list: next, changed };
 }
 
+/** Sample data only fills an empty local demo, never a real clinic's records. */
+const seedAppointments = (): ClinicalQueuePatient[] => (allowsDemoData() ? INITIAL_APPOINTMENTS : []);
+const seedTimeline = (): PatientTimelineEvent[] => (allowsDemoData() ? INITIAL_TIMELINE_EVENTS : []);
+
 export function getStoredAppointments(): ClinicalQueuePatient[] {
-  if (typeof window === "undefined") return INITIAL_APPOINTMENTS;
+  if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const source: ClinicalQueuePatient[] = raw ? JSON.parse(raw) : INITIAL_APPOINTMENTS;
+    const raw = clinicStorage.getItem(STORAGE_KEY);
+    const source: ClinicalQueuePatient[] = raw ? JSON.parse(raw) : seedAppointments();
     if (Array.isArray(source)) {
       const { list, changed } = normaliseAppointments(source);
-      if (changed || !raw) localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      if ((changed || !raw) && list.length > 0) clinicStorage.setItem(STORAGE_KEY, JSON.stringify(list));
       return list;
     }
-    return INITIAL_APPOINTMENTS;
+    return seedAppointments();
   } catch (e) {
-    console.error("Failed to load appointments from localStorage:", e);
-    return INITIAL_APPOINTMENTS;
+    console.error("Failed to load appointments:", e);
+    return [];
   }
 }
 
 export function saveStoredAppointments(list: ClinicalQueuePatient[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    clinicStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     window.dispatchEvent(new Event("dentai-appointments-updated"));
   } catch (e) {
     console.error("Failed to save appointments:", e);
@@ -832,34 +881,32 @@ export function saveStoredAppointments(list: ClinicalQueuePatient[]): void {
 
 // Helpers for Patient History & Unified Timeline Events
 export function getPatientTimeline(patientId: string): PatientTimelineEvent[] {
-  if (typeof window === "undefined") {
-    return INITIAL_TIMELINE_EVENTS.filter((e) => e.patientId === patientId);
-  }
+  if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(TIMELINE_STORAGE_KEY);
-    let allEvents: PatientTimelineEvent[] = INITIAL_TIMELINE_EVENTS;
+    const raw = clinicStorage.getItem(TIMELINE_STORAGE_KEY);
+    let allEvents: PatientTimelineEvent[] = seedTimeline();
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
         allEvents = parsed;
       }
-    } else {
-      localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(INITIAL_TIMELINE_EVENTS));
+    } else if (allEvents.length > 0) {
+      clinicStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(allEvents));
     }
     return allEvents
       .filter((e) => e.patientId === patientId)
       .sort((a, b) => b.timestamp - a.timestamp);
   } catch (e) {
     console.error("Failed to load timeline events:", e);
-    return INITIAL_TIMELINE_EVENTS.filter((e) => e.patientId === patientId);
+    return [];
   }
 }
 
 export function logPatientActivity(event: PatientTimelineEvent): void {
   if (typeof window === "undefined") return;
   try {
-    const raw = localStorage.getItem(TIMELINE_STORAGE_KEY);
-    let allEvents: PatientTimelineEvent[] = INITIAL_TIMELINE_EVENTS;
+    const raw = clinicStorage.getItem(TIMELINE_STORAGE_KEY);
+    let allEvents: PatientTimelineEvent[] = seedTimeline();
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
@@ -868,7 +915,7 @@ export function logPatientActivity(event: PatientTimelineEvent): void {
     }
     // Prepend new activity; an event with the same id (e.g. a re-signed prescription) replaces the old one
     const updated = [event, ...allEvents.filter((e) => e.id !== event.id)];
-    localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(updated));
+    clinicStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent("dentai-timeline-updated", { detail: event }));
   } catch (e) {
     console.error("Failed to log patient activity:", e);
@@ -994,7 +1041,7 @@ function readClinicHours(): ClinicHours {
   };
   if (typeof window === "undefined") return fallback;
   try {
-    const raw = localStorage.getItem("dentai_clinic_setup_v1");
+    const raw = clinicStorage.getItem("dentai_clinic_setup_v1");
     if (!raw) return fallback;
     const p = JSON.parse(raw);
     return {
@@ -1114,9 +1161,11 @@ export function scheduleFollowUpAppointment(
 
 // Search historical prescriptions by query (Patient name, ID, or phone)
 export function searchHistoricalPrescriptions(query: string): HistoricalPrescription[] {
-  if (!query || !query.trim()) return HISTORICAL_PRESCRIPTIONS;
+  // The sample prescriptions belong to the local demo only
+  const source = allowsDemoData() ? HISTORICAL_PRESCRIPTIONS : [];
+  if (!query || !query.trim()) return source;
   const q = query.toLowerCase().trim();
-  return HISTORICAL_PRESCRIPTIONS.filter(
+  return source.filter(
     (rx) =>
       rx.patientName.toLowerCase().includes(q) ||
       rx.patientId.toLowerCase().includes(q) ||

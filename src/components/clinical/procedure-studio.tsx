@@ -37,6 +37,7 @@ import {
 import { formatBDT } from "@/lib/currency";
 import { PatientContextPanel } from "@/components/clinical/patient-context-panel";
 import { VisitStepper } from "@/components/clinical/visit-stepper";
+import { ConsentStatus } from "@/components/clinical/consent-status";
 import { PageHeader } from "@/components/layout/page-header";
 
 const PICKER_TABS: CatalogCategory[] = ["examination", "procedure", "surgery"];
@@ -54,22 +55,50 @@ function lineFromCatalog(item: CatalogItem, toothNumber = "", quantity = 1): Vis
   };
 }
 
+/** Today's visits waiting for (or already through) this stage. */
+function todaysProcedureQueue(): ClinicalQueuePatient[] {
+  const today = toISODate();
+  return getStoredAppointments().filter(
+    (a) => (a.date || today) === today && (a.stage === "procedure" || (a.procedures?.length ?? 0) > 0)
+  );
+}
+
 export function ProcedureStudio() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [queue, setQueue] = useState<ClinicalQueuePatient[]>([]);
-  const [visitId, setVisitId] = useState<string>("");
-  const [visit, setVisit] = useState<ClinicalQueuePatient | undefined>();
-  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [queue, setQueue] = useState<ClinicalQueuePatient[]>(todaysProcedureQueue);
+  const [visitId, setVisitId] = useState<string>(() => searchParams?.get("visitId") || "");
+  const [catalog, setCatalog] = useState<CatalogItem[]>(getActiveCatalog);
 
-  const [items, setItems] = useState<VisitLineItem[]>([]);
-  const [consumables, setConsumables] = useState<VisitLineItem[]>([]);
-  const [notes, setNotes] = useState("");
+  // A new ?visitId= in the link selects that visit
+  const linkVisitId = searchParams?.get("visitId") || "";
+  const [seenLinkVisitId, setSeenLinkVisitId] = useState(linkVisitId);
+  if (linkVisitId !== seenLinkVisitId) {
+    setSeenLinkVisitId(linkVisitId);
+    if (linkVisitId) setVisitId(linkVisitId);
+  }
+
+  const [visit, setVisit] = useState<ClinicalQueuePatient | undefined>(() => getVisit(visitId));
+  const [items, setItems] = useState<VisitLineItem[]>(() => visit?.procedures || []);
+  const [consumables, setConsumables] = useState<VisitLineItem[]>(() => visit?.consumables || []);
+  const [notes, setNotes] = useState(() => visit?.procedureNotes || "");
 
   const [tab, setTab] = useState<CatalogCategory>("examination");
   const [search, setSearch] = useState("");
-  const [tooth, setTooth] = useState("");
+  const [tooth, setTooth] = useState(() => visit?.examinationFindings?.targetTooth || "");
+
+  // Load the selected visit's saved work when another visit is picked
+  const [loadedVisitId, setLoadedVisitId] = useState(visitId);
+  if (loadedVisitId !== visitId) {
+    setLoadedVisitId(visitId);
+    const v = getVisit(visitId);
+    setVisit(v);
+    setItems(v?.procedures || []);
+    setConsumables(v?.consumables || []);
+    setNotes(v?.procedureNotes || "");
+    setTooth(v?.examinationFindings?.targetTooth || "");
+  }
 
   const [customName, setCustomName] = useState("");
   const [customQty, setCustomQty] = useState(1);
@@ -78,34 +107,16 @@ export function ProcedureStudio() {
   // Today's visits waiting for (or already through) this stage, plus the price list
   useEffect(() => {
     const load = () => {
-      const today = toISODate();
-      setQueue(
-        getStoredAppointments().filter(
-          (a) => (a.date || today) === today && (a.stage === "procedure" || (a.procedures?.length ?? 0) > 0)
-        )
-      );
+      setQueue(todaysProcedureQueue());
       setCatalog(getActiveCatalog());
     };
-    load();
-    const param = searchParams?.get("visitId");
-    if (param) setVisitId(param);
     window.addEventListener("dentai-appointments-updated", load);
     window.addEventListener(CATALOG_UPDATED_EVENT, load);
     return () => {
       window.removeEventListener("dentai-appointments-updated", load);
       window.removeEventListener(CATALOG_UPDATED_EVENT, load);
     };
-  }, [searchParams]);
-
-  // Load the selected visit's saved work
-  useEffect(() => {
-    const v = getVisit(visitId);
-    setVisit(v);
-    setItems(v?.procedures || []);
-    setConsumables(v?.consumables || []);
-    setNotes(v?.procedureNotes || "");
-    setTooth(v?.examinationFindings?.targetTooth || "");
-  }, [visitId]);
+  }, []);
 
   const pickerItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -253,6 +264,7 @@ export function ProcedureStudio() {
       ) : (
         <>
           <VisitStepper visitId={visit.id} current="procedure" reached={visit.stage} />
+          <ConsentStatus visit={visit} onUpdated={setVisit} />
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             <div className="lg:col-span-8 space-y-4">

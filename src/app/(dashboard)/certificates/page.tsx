@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- these images are uploaded files and logos stored as data URLs, which next/image cannot optimise */
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -915,7 +916,7 @@ export default function MedicalCertificatePage() {
                       {remarks && (
                         <div className="border border-slate-200 border-l-[3.5px] border-l-slate-400 bg-slate-50/50 p-2 sm:p-2.5 my-2 rounded-xs">
                           <div className="text-[9px] font-sans font-extrabold uppercase tracking-wider text-slate-500 mb-0.5">
-                            Clinician's Advice & Functional Limitations:
+                            Clinician&apos;s Advice & Functional Limitations:
                           </div>
                           <div className="text-[11.5px] text-slate-700 italic">
                             {remarks}

@@ -49,14 +49,11 @@ export function Odontogram({
   });
 
   // Re-sync when patientId or initialChart changes
-  useEffect(() => {
-    if (initialChart) {
-      setTeeth(initialChart);
-      return;
-    }
-    const loaded = getStoredOdontogram(patientId);
-    setTeeth(loaded);
-  }, [patientId, initialChart]);
+  const [loadedFor, setLoadedFor] = useState({ patientId, initialChart });
+  if (loadedFor.patientId !== patientId || loadedFor.initialChart !== initialChart) {
+    setLoadedFor({ patientId, initialChart });
+    setTeeth(initialChart || getStoredOdontogram(patientId));
+  }
 
   // Sync across tabs/components when odontogram updates
   useEffect(() => {

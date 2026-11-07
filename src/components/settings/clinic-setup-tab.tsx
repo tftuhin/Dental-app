@@ -29,7 +29,7 @@ import {
   DentalChair,
   ALL_DAYS_OF_WEEK,
   COLOR_PALETTE_PRESETS,
-  DEFAULT_CLINIC_SETUP,
+
   getClinicSetup,
   saveClinicSetup,
   addDoctor,
@@ -42,7 +42,7 @@ import {
 import { toast } from "sonner";
 
 export function ClinicSetupTab() {
-  const [setup, setSetup] = useState<ClinicSetupData>(DEFAULT_CLINIC_SETUP);
+  const [setup, setSetup] = useState<ClinicSetupData>(getClinicSetup);
   const [isSaving, setIsSaving] = useState(false);
 
   // Active sub-section view
@@ -79,7 +79,6 @@ export function ClinicSetupTab() {
 
   // Load from store
   useEffect(() => {
-    setSetup(getClinicSetup());
     const handleUpdate = () => {
       setSetup(getClinicSetup());
     };

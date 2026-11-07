@@ -3,8 +3,8 @@
 // ============================================================
 // DENTALOS1 — Online bookings → appointment queue
 // Bookings from the public /book page are saved in the database.
-// Every signed-in staff browser fetches them and adds the ones it
-// doesn't have yet to its local queue, like a phone booking: linked to
+// Every signed-in staff browser fetches them and adds the ones the
+// clinic's queue doesn't have yet, like a phone booking: linked to
 // the existing patient with that phone number, or registered as new.
 // ============================================================
 
@@ -18,6 +18,7 @@ import {
 } from "@/lib/clinical-flow-store";
 import { createPatient, findPatientByPhone } from "@/lib/patients-store";
 import { getClinicSetup } from "@/lib/clinic-setup-store";
+import { pullClinicStorage } from "@/lib/clinic-storage";
 
 export interface OnlineBookingRequest {
   id: string;
@@ -61,7 +62,9 @@ async function syncAndImport(): Promise<ImportedBooking[]> {
   } catch {
     return [];
   }
-  // Already in this browser's queue (in any state, so a no-show isn't re-added)
+  // See bookings another computer already added, so they aren't added twice
+  await pullClinicStorage();
+  // Already in the queue (in any state, so a no-show isn't re-added)
   const existing = new Set(getStoredAppointments().map((a) => a.onlineBookingId).filter(Boolean));
   requests = requests.filter((r) => !existing.has(r.id));
   if (requests.length === 0) return [];
@@ -86,6 +89,8 @@ async function syncAndImport(): Promise<ImportedBooking[]> {
     const isNewPatient = !record;
     if (!record) {
       record = createPatient({
+        // Same id on every computer, so two computers importing at once make one record
+        id: `pat-web-${req.id}`,
         name: req.patientName,
         phone: req.phone,
         age: 0,

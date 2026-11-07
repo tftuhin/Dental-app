@@ -4,12 +4,14 @@ import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Pill, Microscope, Layers, Receipt } from "lucide-react";
+import { Building2, Pill, Microscope, Layers, Receipt, LayoutGrid, FileSignature } from "lucide-react";
 import { ProceduresSettingsTab } from "@/components/settings/procedures-settings-tab";
 import { ClinicSetupTab } from "@/components/settings/clinic-setup-tab";
 import { MedicationsSettingsTab } from "@/components/settings/medications-settings-tab";
 import { InvestigationsSettingsTab } from "@/components/settings/investigations-settings-tab";
 import { IntegrationsSettingsTab } from "@/components/settings/integrations-settings-tab";
+import { ClinicalModulesSettingsTab } from "@/components/settings/clinical-modules-settings-tab";
+import { ConsentSettingsTab } from "@/components/settings/consent-settings-tab";
 
 function SettingsContent() {
   const searchParams = useSearchParams();
@@ -26,7 +28,7 @@ function SettingsContent() {
     <div className="space-y-6 max-w-5xl">
       <PageHeader
         title="Settings"
-        description="Clinic profile and hours, doctors and chairs, price list, medicines, tests and services."
+        description="Clinic profile and hours, doctors and chairs, clinical sections, consent forms, price list, medicines, tests and services."
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
@@ -35,6 +37,16 @@ function SettingsContent() {
           <TabsTrigger value="clinic-setup" className="text-xs gap-1.5 py-1.5 font-semibold">
             <Building2 className="h-3.5 w-3.5 text-primary" />
             Clinic Setup
+          </TabsTrigger>
+
+          <TabsTrigger value="modules" className="text-xs gap-1.5 py-1.5 font-semibold">
+            <LayoutGrid className="h-3.5 w-3.5 text-primary" />
+            Clinical Modules
+          </TabsTrigger>
+
+          <TabsTrigger value="consent" className="text-xs gap-1.5 py-1.5 font-semibold">
+            <FileSignature className="h-3.5 w-3.5 text-primary" />
+            Consent Forms
           </TabsTrigger>
 
           {/* Procedure & fee price list */}
@@ -65,6 +77,14 @@ function SettingsContent() {
         {/* Tab 1 Content: Clinic Setup */}
         <TabsContent value="clinic-setup" className="space-y-4">
           <ClinicSetupTab />
+        </TabsContent>
+
+        <TabsContent value="modules" className="space-y-4">
+          <ClinicalModulesSettingsTab />
+        </TabsContent>
+
+        <TabsContent value="consent" className="space-y-4">
+          <ConsentSettingsTab />
         </TabsContent>
 
         <TabsContent value="procedures" className="space-y-4">

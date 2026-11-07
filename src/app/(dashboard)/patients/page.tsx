@@ -20,10 +20,8 @@ export default function PatientsDirectoryPage() {
   const [editingPatient, setEditingPatient] = useState<PatientProfile | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  // Sync with localStorage patient store and listen to custom updates
+  // Reload when patients change here or on another computer
   useEffect(() => {
-    setPatients(getAllPatients());
-
     const handleUpdate = () => {
       setPatients(getAllPatients());
     };

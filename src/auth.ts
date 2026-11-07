@@ -27,11 +27,31 @@ if (DEMO_MODE) {
   );
 }
 
+/**
+ * The key that signs login sessions. It must come from AUTH_SECRET in
+ * production: a key written in the source would let anyone who has the code
+ * forge a login. The fixed fallback is only for local development and for
+ * `next build` (which loads this file but signs nothing); a production server
+ * without AUTH_SECRET refuses logins instead of running insecurely.
+ */
+const isBuildStep = process.env.NEXT_PHASE === "phase-production-build";
+const AUTH_SECRET =
+  process.env.AUTH_SECRET ||
+  process.env.NEXTAUTH_SECRET ||
+  (process.env.NODE_ENV !== "production" || isBuildStep ? "dentalos1-local-development-only-secret-0000" : undefined);
+
+if (!AUTH_SECRET) {
+  console.error("[DentalOS1 Auth] AUTH_SECRET is not set. Logins are disabled until it is configured.");
+}
+
+/** Google sign-in is offered only when its credentials are configured. */
+const googleProvider =
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ? [Google({ clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET })]
+    : [];
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret:
-    process.env.AUTH_SECRET ||
-    process.env.NEXTAUTH_SECRET ||
-    "dentalos1-auth-jwt-production-secret-min32chars-2026",
+  secret: AUTH_SECRET,
   adapter: DrizzleAdapter(db, {
     // The clinic's users table has extra columns (role, clinic) the adapter's types don't know about
     /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -45,11 +65,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     strategy: "jwt",
   },
   providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID || "google-client-id-placeholder",
-      clientSecret:
-        process.env.GOOGLE_CLIENT_SECRET || "google-client-secret-placeholder",
-    }),
+    ...googleProvider,
     Credentials({
       name: "credentials",
       credentials: {

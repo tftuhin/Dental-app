@@ -24,13 +24,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Plus, Clock, Stethoscope, CheckCircle2, AlertCircle, Phone, FileEdit, ArrowRight, Activity, HeartPulse, Sparkles, Save, Check, UserX, Play, Pill, Receipt, Globe, Footprints, Zap, Flame, ShieldAlert, Upload, FileUp, FileText, Paperclip, Eye, Trash2, Copy, Loader2, ChevronLeft, ChevronRight, UserCheck } from "lucide-react";
+import { CalendarDays, Plus, Clock, Stethoscope, CheckCircle2, AlertCircle, Phone, FileEdit, ArrowRight, Activity, HeartPulse, Sparkles, Save, Check, UserX, Play, Pill, Receipt, Globe, Footprints, Zap, Flame, ShieldAlert, Upload, FileUp, FileText, Paperclip, Eye, Trash2, ChevronLeft, ChevronRight, UserCheck, Ruler, Crown } from "lucide-react";
 import dynamic from "next/dynamic";
-import { Odontogram, PeriodontalChart } from "@/components/dental/lazy-charts";
+import { Odontogram, PeriodontalChart, OrthoChart, ProsthoChart } from "@/components/dental/lazy-charts";
+import { ClinicalModules, useClinicalModules } from "@/lib/clinical-modules-store";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
   ClinicalQueuePatient,
   ClinicalSessionFile,
+  VisitConsent,
   VisitStage,
   getStoredAppointments,
   saveStoredAppointments,
@@ -52,6 +54,7 @@ import { PatientContextPanel } from "@/components/clinical/patient-context-panel
 import { VisitStepper } from "@/components/clinical/visit-stepper";
 import { PageHeader } from "@/components/layout/page-header";
 import { CheckInDialog } from "@/components/appointments/check-in-dialog";
+import { ConsentDialog } from "@/components/clinical/consent-dialog";
 
 // AI SDK + its validation library only load when the copilot tab is opened
 const CopilotPanel = dynamic(() => import("@/components/clinical/copilot-panel"), {
@@ -140,10 +143,36 @@ function from24h(value: string): string {
   return `${String(h12).padStart(2, "0")}:${mStr} ${ap}`;
 }
 
+type SessionTab = "briefing" | "odontogram" | "ortho" | "prostho" | "copilot";
+
+/** Session studio sections, in order. Each charting section can be switched off in Settings. */
+const SESSION_TABS: Array<{
+  key: SessionTab;
+  icon: React.ComponentType<{ className?: string }>;
+  label: (m: ClinicalModules) => string;
+  enabled: (m: ClinicalModules) => boolean;
+}> = [
+  { key: "briefing", icon: Activity, label: () => "Clinical Briefing & Notes", enabled: () => true },
+  {
+    key: "odontogram",
+    icon: ToothIcon,
+    label: (m) => (m.odontogram && m.perioChart ? "Odontogram & Perio Chart" : m.odontogram ? "Odontogram" : "Perio Chart"),
+    enabled: (m) => m.odontogram || m.perioChart,
+  },
+  { key: "ortho", icon: Ruler, label: () => "Orthodontics", enabled: (m) => m.orthodontics },
+  { key: "prostho", icon: Crown, label: () => "Prosthodontics", enabled: (m) => m.prosthodontics },
+  { key: "copilot", icon: Sparkles, label: () => "DentAI Clinical Copilot", enabled: (m) => m.aiCopilot },
+];
+
+function activeDoctorNames(): string[] {
+  return (getClinicSetup().doctors || []).filter((d) => d.status === "active").map((d) => d.name);
+}
+
 export default function AppointmentsPage() {
   const router = useRouter();
-  const [appointments, setAppointments] = useState<ClinicalQueuePatient[]>([]);
-  const [clinicChairs, setClinicChairs] = useState<DentalChair[]>([]);
+  // The clinic's data is loaded before pages render, so read it straight away
+  const [appointments, setAppointments] = useState<ClinicalQueuePatient[]>(() => getStoredAppointments());
+  const [clinicChairs, setClinicChairs] = useState<DentalChair[]>(() => getClinicSetup().chairs || []);
   const [filterChair, setFilterChair] = useState<string>("all");
   const [statusTab, setStatusTab] = useState<"active" | "completed" | "no_show" | "all">("active");
 
@@ -185,28 +214,32 @@ export default function AppointmentsPage() {
   const [newAddress, setNewAddress] = useState("");
   const [newChannel, setNewChannel] = useState<"walk_in" | "phone" | "online">("walk_in");
   const [newService, setNewService] = useState("");
-  const [newChair, setNewChair] = useState("Chair 1");
+  const [newChair, setNewChair] = useState(() => getClinicSetup().chairs?.[0]?.name || "Chair 1");
   const [newAlerts, setNewAlerts] = useState("");
-  const [newDoctor, setNewDoctor] = useState("");
+  const [newDoctor, setNewDoctor] = useState(() => activeDoctorNames()[0] || "");
   const [newDate, setNewDate] = useState(toISODate());
   const [newTime, setNewTime] = useState(""); // empty = earliest free slot
   // Returning-patient lookup
   const [patientQuery, setPatientQuery] = useState("");
   const [linkedPatient, setLinkedPatient] = useState<PatientProfile | null>(null);
-  const [clinicDoctors, setClinicDoctors] = useState<string[]>([]);
+  const [clinicDoctors] = useState<string[]>(activeDoctorNames);
   // Queue date filter (today by default; also shows upcoming follow-ups)
   const [queueDate, setQueueDate] = useState(toISODate());
+  // Visit waiting for its consent form to be printed and signed
+  const [consentFor, setConsentFor] = useState<ClinicalQueuePatient | null>(null);
   // Patient being checked in at reception
   const [checkInFor, setCheckInFor] = useState<ClinicalQueuePatient | null>(null);
 
   // Clinical Briefing & Session Tabs ("briefing" | "odontogram" | "copilot")
-  const [sessionTab, setSessionTab] = useState<"briefing" | "odontogram" | "copilot">("briefing");
+  const [sessionTab, setSessionTab] = useState<SessionTab>("briefing");
+  const modules = useClinicalModules();
+  // Sections switched off in Settings → Clinical Modules are hidden
+  const sessionTabs = SESSION_TABS.filter((t) => t.enabled(modules));
+  const activeTab: SessionTab = sessionTabs.some((t) => t.key === sessionTab) ? sessionTab : "briefing";
 
   // The AI copilot tab loads on first open and then stays mounted so its output isn't lost
   const [copilotOpened, setCopilotOpened] = useState(false);
-  useEffect(() => {
-    if (sessionTab === "copilot") setCopilotOpened(true);
-  }, [sessionTab]);
+  if (activeTab === "copilot" && !copilotOpened) setCopilotOpened(true);
 
   // Completed Handover Banner in modal
   const [isJustCompleted, setIsJustCompleted] = useState(false);
@@ -252,19 +285,6 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     const initialList = getStoredAppointments();
-    setAppointments(initialList);
-
-    const initialSetup = getClinicSetup();
-    const loadedChairs = initialSetup.chairs || [];
-    setClinicChairs(loadedChairs);
-    if (loadedChairs.length > 0) {
-      setNewChair(loadedChairs[0].name);
-    }
-    const doctorNames = (initialSetup.doctors || [])
-      .filter((d) => d.status === "active")
-      .map((d) => d.name);
-    setClinicDoctors(doctorNames);
-    if (doctorNames.length > 0) setNewDoctor(doctorNames[0]);
 
     const handleSync = () => {
       setAppointments(getStoredAppointments());
@@ -285,8 +305,8 @@ export default function AppointmentsPage() {
     window.addEventListener("dentai-clinic-setup-updated", handleSetupSync);
     window.addEventListener("dentai-show-queue-date", handleShowDate);
 
-    // Auto-open session modal if redirected from Clinical Briefing or with active query param
-    if (typeof window !== "undefined") {
+    // Links can ask to open a session or the booking form: act on them just after the first render
+    const openFromLink = setTimeout(() => {
       const params = new URLSearchParams(window.location.search);
       const sessionParam = params.get("session");
       const patientIdParam = params.get("visitId") || params.get("patientId");
@@ -317,19 +337,18 @@ export default function AppointmentsPage() {
               .sort((a, b) => a.fifoSerial - b.fifoSerial)[0];
           if (!targetApt) toast.info("No checked-in patient is waiting. Check a patient in first.");
         }
-        if (targetApt) {
-          setTimeout(() => {
-            openSessionModal(targetApt!, true);
-          }, 150);
-        }
+        if (targetApt) openSessionModal(targetApt, true);
       }
-    }
+    }, 0);
 
     return () => {
+      clearTimeout(openFromLink);
       window.removeEventListener("dentai-appointments-updated", handleSync);
       window.removeEventListener("dentai-clinic-setup-updated", handleSetupSync);
       window.removeEventListener("dentai-show-queue-date", handleShowDate);
     };
+  // Runs once on mount: it subscribes to store events and reads the link's parameters
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sorted active queue: strictly sorted by serial (lowest first)
@@ -530,6 +549,42 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
   });
 
   // Save in-progress session notes
+  /** Note a signed or declined consent form on the patient's timeline. */
+  const logConsent = (apt: ClinicalQueuePatient, consent: VisitConsent) => {
+    logPatientActivity({
+      id: `ev-${apt.id}-${consent.id}`,
+      patientId: apt.patientId,
+      date: new Date().toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
+      timestamp: Date.now(),
+      type: "clinical_procedure",
+      title: `${consent.status === "signed" ? "Consent signed" : "Consent declined"}: ${consent.procedureName}`,
+      doctor: apt.doctor,
+      targetTooth: consent.teeth,
+      clinicalNotes: `${consent.title} (${consent.consentNumber})${consent.guardianName ? `, signed by guardian ${consent.guardianName}` : ""}`,
+      badge: consent.status === "signed" ? "Consent" : "Declined",
+      badgeColor:
+        consent.status === "signed"
+          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+          : "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300",
+    });
+  };
+
+  /** The patient refused treatment: keep the notes and the refusal, and stay in the session. */
+  const handleConsentDeclined = (consent: VisitConsent) => {
+    if (!selectedAppointment) return;
+    const storedConsents = appointments.find((a) => a.id === selectedAppointment.id)?.consents || [];
+    const updatedList = appointments.map((a) =>
+      a.id === selectedAppointment.id
+        ? { ...a, ...buildSessionPatch(), status: sessionStatus, consents: [...storedConsents, consent] }
+        : a
+    );
+    setAppointments(updatedList);
+    saveStoredAppointments(updatedList);
+    logConsent(selectedAppointment, consent);
+    setConsentFor(null);
+    toast.warning(`${selectedAppointment.patient} declined ${consent.procedureName}. The refusal is saved on the visit.`);
+  };
+
   const handleSaveNotes = () => {
     if (!selectedAppointment) return;
 
@@ -547,12 +602,18 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
    *  - "procedure"    → Examination & Procedure (needs treatment or surgery today)
    *  - "prescription" → straight to Prescription (no procedure needed)
    */
-  const handleCompleteNotes = (next: "procedure" | "prescription") => {
+  const handleCompleteNotes = (next: "procedure" | "prescription", consent?: VisitConsent) => {
     if (!selectedAppointment) return;
     if (!sessionComplaint.trim()) {
       toast.error("Record the patient's complaint before moving on.");
       return;
     }
+    // Before a procedure or surgery: print the consent form and have it signed
+    if (next === "procedure" && modules.consentForms && !consent) {
+      setConsentFor({ ...selectedAppointment, ...buildSessionPatch() });
+      return;
+    }
+    const storedConsents = appointments.find((a) => a.id === selectedAppointment.id)?.consents || [];
 
     const completionTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const patch: Partial<ClinicalQueuePatient> = {
@@ -560,7 +621,9 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
       status: "completed",
       completedAt: `${completionTime} Today`,
       stage: next,
+      ...(consent ? { consents: [...storedConsents, consent] } : {}),
     };
+    if (consent) logConsent(selectedAppointment, consent);
     const updatedList = appointments.map((a) =>
       a.id === selectedAppointment.id ? { ...a, ...patch } : a
     );
@@ -651,7 +714,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
   // Returning-patient search results for the booking form
   const patientMatches = linkedPatient ? [] : searchPatients(patientQuery);
 
-  const linkExistingPatient = (p: PatientProfile) => {
+  function linkExistingPatient(p: PatientProfile) {
     setLinkedPatient(p);
     setNewPatientName(p.name);
     setNewPhone(p.phone);
@@ -660,7 +723,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
     setNewAddress(p.address || "");
     setNewAlerts((p.allergies || []).join(", "));
     setPatientQuery("");
-  };
+  }
 
   const resetBookingForm = () => {
     setLinkedPatient(null);
@@ -1238,6 +1301,19 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
         </div>
       </Card>
 
+      {consentFor && (
+        <ConsentDialog
+          open={!!consentFor}
+          onOpenChange={(o) => !o && setConsentFor(null)}
+          visit={consentFor}
+          onSigned={(consent) => {
+            setConsentFor(null);
+            handleCompleteNotes("procedure", consent);
+          }}
+          onDeclined={handleConsentDeclined}
+        />
+      )}
+
       <CheckInDialog
         visit={checkInFor}
         onOpenChange={(open) => !open && setCheckInFor(null)}
@@ -1305,46 +1381,32 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
 
                 {/* Unified Studio Section Switcher Tabs */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
-                  <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border shrink-0 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => setSessionTab("briefing")}
-                      className={`text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
-                        sessionTab === "briefing"
-                          ? "bg-background text-primary shadow-xs border border-border"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                      }`}
-                    >
-                      <Activity className="h-3.5 w-3.5" />
-                      1. Clinical Briefing & Notes
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSessionTab("odontogram")}
-                      className={`text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
-                        sessionTab === "odontogram"
-                          ? "bg-background text-primary shadow-xs border border-border"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                      }`}
-                    >
-                      <ToothIcon className="h-3.5 w-3.5" />
-                      2. Odontogram & Perio Chart
-                      <Badge variant="secondary" className="ml-1 text-[10px] py-0 px-1.5 bg-primary/10 text-primary font-mono">
-                        {sessionTargetTooth}
-                      </Badge>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSessionTab("copilot")}
-                      className={`text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
-                        sessionTab === "copilot"
-                          ? "bg-background text-primary shadow-xs border border-border"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                      }`}
-                    >
-                      <Sparkles className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                      3. DentAI Clinical Copilot
-                    </button>
+                  <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border shrink-0 flex-wrap" role="tablist">
+                    {sessionTabs.map((t, i) => {
+                      const Icon = t.icon;
+                      return (
+                        <button
+                          key={t.key}
+                          type="button"
+                          role="tab"
+                          aria-selected={activeTab === t.key}
+                          onClick={() => setSessionTab(t.key)}
+                          className={`text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
+                            activeTab === t.key
+                              ? "bg-background text-primary shadow-xs border border-border"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                          }`}
+                        >
+                          <Icon className={`h-3.5 w-3.5 ${t.key === "copilot" ? "text-amber-500 fill-amber-500" : ""}`} />
+                          {i + 1}. {t.label(modules)}
+                          {t.key === "odontogram" && sessionTargetTooth && (
+                            <Badge variant="secondary" className="ml-1 text-[10px] py-0 px-1.5 bg-primary/10 text-primary font-mono">
+                              {sessionTargetTooth}
+                            </Badge>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {/* 1-Click Clinical Templates Bar */}
@@ -1434,7 +1496,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                 )}
 
                 {/* ─── TAB 1: CLINICAL BRIEFING & NOTES ─── */}
-                {sessionTab === "briefing" && (
+                {activeTab === "briefing" && (
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                   {/* ─── LEFT COLUMN (col-span-5): Patient Voice & Symptoms & Vitals ─── */}
                   <div className="col-span-12 lg:col-span-5 space-y-4">
@@ -1530,7 +1592,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                         {/* Chief Complaints Notes */}
                         <div className="space-y-1">
                           <Label className="text-xs font-semibold text-foreground">
-                            Patient's Description (In Their Own Words)
+                            Patient&apos;s Description (In Their Own Words)
                           </Label>
                           <Textarea
                             value={sessionComplaint}
@@ -1643,7 +1705,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                         {/* Uploaded Files Gallery */}
                         {sessionUploadedFiles.length === 0 ? (
                           <p className="text-[11px] text-muted-foreground text-center py-1 italic">
-                            No files attached yet for this session. Upload PDFs or X-rays to attach to today's procedure timeline.
+                            No files attached yet for this session. Upload PDFs or X-rays to attach to today&apos;s procedure timeline.
                           </p>
                         ) : (
                           <div className="space-y-2 pt-1">
@@ -1694,7 +1756,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                                     </p>
                                     {file.notes && (
                                       <p className="text-[10px] text-primary/80 line-clamp-1 italic mt-0.5">
-                                        "{file.notes}"
+                                        &quot;{file.notes}&quot;
                                       </p>
                                     )}
                                   </div>
@@ -1796,7 +1858,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                                 <button
                                   key={opt.val}
                                   type="button"
-                                  onClick={() => setSessionPercussion(opt.val as any)}
+                                  onClick={() => setSessionPercussion(opt.val as typeof sessionPercussion)}
                                   className={`text-[10px] px-1.5 py-1 rounded flex-1 border font-medium ${
                                     sessionPercussion === opt.val
                                       ? "bg-primary text-primary-foreground border-primary font-bold shadow-2xs"
@@ -1823,7 +1885,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                                 <button
                                   key={opt.val}
                                   type="button"
-                                  onClick={() => setSessionColdTest(opt.val as any)}
+                                  onClick={() => setSessionColdTest(opt.val as typeof sessionColdTest)}
                                   className={`text-[10px] px-1.5 py-1 rounded flex-1 border font-medium ${
                                     sessionColdTest === opt.val
                                       ? "bg-primary text-primary-foreground border-primary font-bold shadow-2xs"
@@ -1851,7 +1913,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                                 <button
                                   key={opt.val}
                                   type="button"
-                                  onClick={() => setSessionMobility(opt.val as any)}
+                                  onClick={() => setSessionMobility(opt.val as typeof sessionMobility)}
                                   className={`text-[10px] px-1.5 py-1 rounded flex-1 border font-medium ${
                                     sessionMobility === opt.val
                                       ? "bg-primary text-primary-foreground border-primary font-bold shadow-2xs"
@@ -1994,7 +2056,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
               )}
 
               {/* ─── TAB 2: INTERACTIVE ODONTOGRAM & PERIO CHART ─── */}
-              {sessionTab === "odontogram" && (
+              {activeTab === "odontogram" && (
                 <div className="space-y-4">
                   {/* Active Operatory Tooth Banner */}
                   <Card className="border bg-gradient-to-r from-primary/5 via-card to-background p-4 shadow-xs">
@@ -2048,6 +2110,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                   </Card>
 
                   {/* 32-Teeth Odontogram Arch */}
+                  {modules.odontogram && (
                   <Card className="border shadow-xs overflow-hidden">
                     <CardHeader className="py-3 px-4 border-b bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
@@ -2076,8 +2139,10 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                       />
                     </CardContent>
                   </Card>
+                  )}
 
                   {/* Periodontal 6-Point Probing Depth Chart */}
+                  {modules.perioChart && (
                   <Card className="border shadow-xs overflow-hidden">
                     <CardHeader className="py-3 px-4 border-b bg-muted/20">
                       <CardTitle className="text-xs font-bold text-foreground flex items-center gap-2">
@@ -2092,12 +2157,19 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                       <PeriodontalChart patientId={selectedAppointment.patientId} />
                     </CardContent>
                   </Card>
+                  )}
                 </div>
               )}
 
+              {/* ─── ORTHODONTICS ─── */}
+              {activeTab === "ortho" && <OrthoChart patientId={selectedAppointment.patientId} />}
+
+              {/* ─── PROSTHODONTICS ─── */}
+              {activeTab === "prostho" && <ProsthoChart patientId={selectedAppointment.patientId} />}
+
               {/* ─── TAB 3: AI COPILOT (loaded on demand) ─── */}
               {copilotOpened && (
-                <div className={sessionTab === "copilot" ? "" : "hidden"}>
+                <div className={activeTab === "copilot" ? "" : "hidden"}>
                   <CopilotPanel
                     patient={{
                       name: selectedAppointment.patient,
@@ -2143,7 +2215,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                     <span className="text-[11px] text-muted-foreground font-medium">Status:</span>
                     <Select
                       value={sessionStatus}
-                      onValueChange={(val: any) => setSessionStatus(val)}
+                      onValueChange={(val) => setSessionStatus(val as ClinicalQueuePatient["status"])}
                     >
                       <SelectTrigger className="h-8 text-xs w-full xl:w-[140px] bg-background font-semibold">
                         <SelectValue />
@@ -2186,7 +2258,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                     className="col-span-2 sm:col-auto text-xs h-9 px-4 gap-1.5 font-bold border-primary text-primary"
                   >
                     <ToothIcon className="h-4 w-4" />
-                    Needs Procedure / Surgery
+                    Needs Procedure / Surgery{modules.consentForms ? " (consent)" : ""}
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
                   <Button
@@ -2223,7 +2295,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
           <form onSubmit={handleBookAppointment} className="space-y-3.5 text-xs py-2">
             <div>
               <Label className="text-xs font-semibold">Booking Channel *</Label>
-              <Select value={newChannel} onValueChange={(v: any) => setNewChannel(v)}>
+              <Select value={newChannel} onValueChange={(v) => setNewChannel(v as typeof newChannel)}>
                 <SelectTrigger className="h-8 text-xs mt-1">
                   <SelectValue />
                 </SelectTrigger>

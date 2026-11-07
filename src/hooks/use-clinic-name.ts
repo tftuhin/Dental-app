@@ -1,20 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { getClinicSetup } from "@/lib/clinic-setup-store";
+
+const EVENT = "dentai-clinic-setup-updated";
+
+function subscribe(onChange: () => void) {
+  window.addEventListener(EVENT, onChange);
+  return () => window.removeEventListener(EVENT, onChange);
+}
 
 /**
  * Clinic name for the shell. Without a database the server only knows
  * "My Clinic", so fall back to the name saved in Settings → Clinic Setup.
  */
 export function useClinicName(serverName: string): string {
-  const [name, setName] = useState(serverName);
-  useEffect(() => {
-    if (serverName !== "My Clinic") return;
-    const load = () => setName(getClinicSetup().name || serverName);
-    load();
-    window.addEventListener("dentai-clinic-setup-updated", load);
-    return () => window.removeEventListener("dentai-clinic-setup-updated", load);
-  }, [serverName]);
-  return name;
+  const getSnapshot = useCallback(
+    () => (serverName === "My Clinic" ? getClinicSetup().name || serverName : serverName),
+    [serverName]
+  );
+  return useSyncExternalStore(subscribe, getSnapshot, () => serverName);
 }

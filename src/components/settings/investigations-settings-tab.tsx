@@ -43,7 +43,7 @@ const CATEGORIES = [
 ];
 
 export function InvestigationsSettingsTab() {
-  const [investigations, setInvestigations] = useState<InvestigationItem[]>([]);
+  const [investigations, setInvestigations] = useState<InvestigationItem[]>(getStoredInvestigations);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
@@ -68,8 +68,6 @@ export function InvestigationsSettingsTab() {
 
   // Load and listen to sync
   useEffect(() => {
-    setInvestigations(getStoredInvestigations());
-
     const handleSync = () => {
       setInvestigations(getStoredInvestigations());
     };
@@ -417,7 +415,7 @@ export function InvestigationsSettingsTab() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">Category</Label>
-                  <Select value={category} onValueChange={(v: any) => setCategory(v)}>
+                  <Select value={category} onValueChange={(v) => setCategory(v as InvestigationItem["category"])}>
                     <SelectTrigger className="h-8 text-xs bg-background">
                       <SelectValue />
                     </SelectTrigger>

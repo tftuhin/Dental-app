@@ -46,27 +46,23 @@ function computeMoney() {
   };
 }
 
+const loadToday = (): ClinicalQueuePatient[] =>
+  getStoredAppointments().filter((a) => (a.date || toISODate()) === toISODate());
+
 interface DashboardViewProps {
   userName: string;
 }
 
 export function DashboardView({ userName }: DashboardViewProps) {
-  const [setup, setSetup] = useState<ClinicSetupData | null>(null);
-  const [appointments, setAppointments] = useState<ClinicalQueuePatient[]>([]);
-  const [isClient, setIsClient] = useState(false);
-  const [patientCount, setPatientCount] = useState(0);
-  const [money, setMoney] = useState({ collectedToday: 0, paymentsToday: 0, dueTotal: 0, dueBills: 0 });
+  // Pages render after the clinic's data has loaded (see ClinicDataGate), so read it straight away
+  const [setup, setSetup] = useState<ClinicSetupData | null>(() => getClinicSetup());
+  const [appointments, setAppointments] = useState<ClinicalQueuePatient[]>(loadToday);
+  const isClient = true;
+  const [patientCount] = useState(() => getAllPatients().length);
+  const [money, setMoney] = useState(computeMoney);
 
-  // Load setup and appointments on mount, and listen to real-time events
+  // Listen to changes made here, in other tabs or on other computers
   useEffect(() => {
-    setIsClient(true);
-    setSetup(getClinicSetup());
-    const loadToday = () =>
-      getStoredAppointments().filter((a) => (a.date || toISODate()) === toISODate());
-    setAppointments(loadToday());
-    setPatientCount(getAllPatients().length);
-    setMoney(computeMoney());
-
     const handleSetupSync = () => {
       setSetup(getClinicSetup());
     };

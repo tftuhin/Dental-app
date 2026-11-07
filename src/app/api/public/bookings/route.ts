@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { and, eq, sql } from "drizzle-orm";
+import { createHash, randomInt } from "node:crypto";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { db, isDatabaseConfigured } from "@/db";
 import { bookingRequests, clinics } from "@/db/schema";
 
@@ -37,6 +38,25 @@ const FIELD_ERRORS: Record<string, string> = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_PENDING_PER_PHONE = 3;
+/** Bookings one internet connection may send per hour, to every clinic together. */
+const MAX_PER_IP_PER_HOUR = 10;
+const CLINIC_TIME_ZONE = "Asia/Dhaka";
+
+/** YYYY-MM-DD in the clinic's time zone, `offsetDays` from today. */
+function clinicDate(offsetDays: number): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: CLINIC_TIME_ZONE }).format(new Date(Date.now() + offsetDays * DAY_MS));
+}
+
+/** Hash of the sender's IP. The IP itself is never stored. */
+function ipHashOf(request: Request): string | null {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim() || "";
+  if (!ip) return null;
+  const salt = process.env.AUTH_SECRET || "dentalos1";
+  return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
+}
+
+const newReference = () => `WEB-${randomInt(100000, 1000000)}`;
 
 export async function POST(request: Request) {
   if (!isDatabaseConfigured) {
@@ -65,12 +85,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ reference: "WEB-000000" });
   }
 
-  // Date must be from today (allowing for time zones) up to 90 days ahead
-  const requested = new Date(`${input.preferredDate}T00:00:00Z`).getTime();
-  const now = Date.now();
-  if (isNaN(requested) || requested < now - 2 * DAY_MS || requested > now + 90 * DAY_MS) {
+  // Date must be from today up to 90 days ahead, by the clinic's calendar
+  const requested = new Date(`${input.preferredDate}T00:00:00Z`);
+  if (isNaN(requested.getTime()) || input.preferredDate < clinicDate(0) || input.preferredDate > clinicDate(90)) {
     return NextResponse.json({ error: "Choose a date within the next 90 days." }, { status: 400 });
   }
+
+  const ipHash = ipHashOf(request);
 
   try {
     const [clinic] = await db
@@ -100,20 +121,42 @@ export async function POST(request: Request) {
       );
     }
 
-    const reference = `WEB-${Math.floor(100000 + Math.random() * 900000)}`;
-    await db.insert(bookingRequests).values({
-      clinicId: clinic.id,
-      reference,
-      patientName: input.patientName,
-      phone: input.phone,
-      email: input.email || null,
-      service: input.service,
-      preferredDate: input.preferredDate,
-      preferredTime: input.preferredTime,
-      healthNotes: input.healthNotes || null,
-    });
+    // Stop one connection from flooding clinics with made-up numbers
+    if (ipHash) {
+      const [{ recent }] = await db
+        .select({ recent: sql<number>`count(*)::int` })
+        .from(bookingRequests)
+        .where(and(eq(bookingRequests.ipHash, ipHash), gt(bookingRequests.createdAt, new Date(Date.now() - 60 * 60 * 1000))));
+      if (recent >= MAX_PER_IP_PER_HOUR) {
+        return NextResponse.json(
+          { error: "Too many bookings from this connection. Please try again later or call the clinic." },
+          { status: 429 }
+        );
+      }
+    }
 
-    return NextResponse.json({ reference });
+    // References are unique; on the rare clash, draw another
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const reference = newReference();
+      const inserted = await db
+        .insert(bookingRequests)
+        .values({
+          clinicId: clinic.id,
+          reference,
+          patientName: input.patientName,
+          phone: input.phone,
+          email: input.email || null,
+          service: input.service,
+          preferredDate: input.preferredDate,
+          preferredTime: input.preferredTime,
+          healthNotes: input.healthNotes || null,
+          ipHash,
+        })
+        .onConflictDoNothing({ target: bookingRequests.reference })
+        .returning({ reference: bookingRequests.reference });
+      if (inserted.length > 0) return NextResponse.json({ reference });
+    }
+    throw new Error("Could not draw a unique booking reference.");
   } catch (error) {
     console.error("Failed to save booking request:", error);
     return NextResponse.json(

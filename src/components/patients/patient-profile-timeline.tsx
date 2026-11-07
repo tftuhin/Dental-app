@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- these images are uploaded files and logos stored as data URLs, which next/image cannot optimise */
 
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";

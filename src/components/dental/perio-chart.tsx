@@ -37,14 +37,11 @@ export function PeriodontalChart({
   });
 
   // Re-sync when patientId or initialData changes
-  useEffect(() => {
-    if (initialData) {
-      setPerioData(initialData);
-      return;
-    }
-    const loaded = getStoredPerioChart(patientId);
-    setPerioData(loaded);
-  }, [patientId, initialData]);
+  const [loadedFor, setLoadedFor] = useState({ patientId, initialData });
+  if (loadedFor.patientId !== patientId || loadedFor.initialData !== initialData) {
+    setLoadedFor({ patientId, initialData });
+    setPerioData(initialData || getStoredPerioChart(patientId));
+  }
 
   // Sync across tabs/components when perio chart updates
   useEffect(() => {

@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Odontogram, PeriodontalChart } from "@/components/dental/lazy-charts";
+import { Odontogram, PeriodontalChart, OrthoChart, ProsthoChart } from "@/components/dental/lazy-charts";
+import { useClinicalModules } from "@/lib/clinical-modules-store";
 import { PatientProfileTimeline } from "@/components/patients/patient-profile-timeline";
 import { EditPatientDialog } from "@/components/patients/edit-patient-dialog";
 import {
@@ -21,31 +22,16 @@ interface PatientProfileViewProps {
 }
 
 export function PatientProfileView({ initialPatientId }: PatientProfileViewProps) {
-  // Patients live in browser storage, so look them up after mount.
+  // The clinic's data is loaded before pages render, so the record can be read straight away.
   // Never fall back to another patient's record.
-  const [patient, setPatient] = useState<PatientProfile | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [patient, setPatient] = useState<PatientProfile | null>(() => getPatientById(initialPatientId) || null);
+  const hasLoaded = true;
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const modules = useClinicalModules();
 
-  // Sync with localStorage store and listen to updates
+  // Reload when the record changes here or on another computer
   useEffect(() => {
-    setPatient(getPatientById(initialPatientId) || null);
-    setHasLoaded(true);
-
-    const handleUpdate = (e: Event) => {
-      const customEvent = e as CustomEvent<{ patient: PatientProfile }>;
-      if (
-        customEvent.detail?.patient &&
-        (customEvent.detail.patient.id === initialPatientId ||
-          customEvent.detail.patient.customId === initialPatientId)
-      ) {
-        setPatient(customEvent.detail.patient);
-      } else {
-        const recheck = getPatientById(initialPatientId);
-        if (recheck) setPatient(recheck);
-      }
-    };
-
+    const handleUpdate = () => setPatient(getPatientById(initialPatientId) || null);
     window.addEventListener("dentalos1-patients-updated", handleUpdate);
     return () => {
       window.removeEventListener("dentalos1-patients-updated", handleUpdate);
@@ -59,7 +45,7 @@ export function PatientProfileView({ initialPatientId }: PatientProfileViewProps
           <>
             <p className="text-sm font-semibold">Patient not found</p>
             <p className="text-xs text-muted-foreground">
-              No patient with ID <span className="font-mono">{initialPatientId}</span> is registered on this device.
+              No patient with ID <span className="font-mono">{initialPatientId}</span> is registered in this clinic.
             </p>
             <Link href="/patients" className="text-xs text-primary hover:underline">
               Back to patients
@@ -199,12 +185,26 @@ export function PatientProfileView({ initialPatientId }: PatientProfileViewProps
             <TabsTrigger value="timeline" className="text-xs">
               Unified Timeline
             </TabsTrigger>
-            <TabsTrigger value="odontogram" className="text-xs">
-              Odontogram
-            </TabsTrigger>
-            <TabsTrigger value="perio" className="text-xs">
-              Perio Chart
-            </TabsTrigger>
+            {modules.odontogram && (
+              <TabsTrigger value="odontogram" className="text-xs">
+                Odontogram
+              </TabsTrigger>
+            )}
+            {modules.perioChart && (
+              <TabsTrigger value="perio" className="text-xs">
+                Perio Chart
+              </TabsTrigger>
+            )}
+            {modules.orthodontics && (
+              <TabsTrigger value="ortho" className="text-xs">
+                Orthodontics
+              </TabsTrigger>
+            )}
+            {modules.prosthodontics && (
+              <TabsTrigger value="prostho" className="text-xs">
+                Prosthodontics
+              </TabsTrigger>
+            )}
             <TabsTrigger value="details" className="text-xs">
               Demographics
             </TabsTrigger>
@@ -219,15 +219,27 @@ export function PatientProfileView({ initialPatientId }: PatientProfileViewProps
           />
         </TabsContent>
 
-        {/* Tab 2: Odontogram */}
-        <TabsContent value="odontogram" className="mt-4">
-          <Odontogram patientId={patient.customId} />
-        </TabsContent>
-
-        {/* Tab 3: Perio */}
-        <TabsContent value="perio" className="mt-4">
-          <PeriodontalChart patientId={patient.customId} />
-        </TabsContent>
+        {/* Charting sections (each can be switched off in Settings → Clinical Modules) */}
+        {modules.odontogram && (
+          <TabsContent value="odontogram" className="mt-4">
+            <Odontogram patientId={patient.customId} />
+          </TabsContent>
+        )}
+        {modules.perioChart && (
+          <TabsContent value="perio" className="mt-4">
+            <PeriodontalChart patientId={patient.customId} />
+          </TabsContent>
+        )}
+        {modules.orthodontics && (
+          <TabsContent value="ortho" className="mt-4">
+            <OrthoChart patientId={patient.customId} />
+          </TabsContent>
+        )}
+        {modules.prosthodontics && (
+          <TabsContent value="prostho" className="mt-4">
+            <ProsthoChart patientId={patient.customId} />
+          </TabsContent>
+        )}
 
         {/* Tab 4: Demographics & Emergency */}
         <TabsContent value="details" className="mt-4">
@@ -407,7 +419,7 @@ export function PatientProfileView({ initialPatientId }: PatientProfileViewProps
                     <div className="space-y-1 pt-2 border-t">
                       <span className="text-muted-foreground block font-semibold">Doctor Notes:</span>
                       <p className="text-foreground bg-background p-2 rounded border italic">
-                        "{patient.notes}"
+                        &quot;{patient.notes}&quot;
                       </p>
                     </div>
                   )}

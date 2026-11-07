@@ -1,5 +1,7 @@
 "use client";
 
+import { clinicStorage } from "@/lib/clinic-storage";
+
 export interface DoctorProfile {
   id: string;
   name: string;
@@ -256,9 +258,9 @@ export function getClinicSetup(): ClinicSetupData {
     return DEFAULT_CLINIC_SETUP;
   }
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = clinicStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CLINIC_SETUP));
+      clinicStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CLINIC_SETUP));
       return DEFAULT_CLINIC_SETUP;
     }
     const parsed = JSON.parse(raw);
@@ -292,7 +294,7 @@ export function saveClinicSetup(updates: Partial<ClinicSetupData>): ClinicSetupD
     ...updates,
   };
   if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    clinicStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     window.dispatchEvent(new CustomEvent("dentai-clinic-setup-updated", { detail: next }));
   }
   return next;

@@ -142,6 +142,11 @@ export function CollectionsReport() {
             <p className="text-[11px] text-muted-foreground">
               {summary.payments} payment{summary.payments === 1 ? "" : "s"}
             </p>
+            {summary.refunded > 0 && (
+              <p className="text-[11px] font-medium text-rose-700 dark:text-rose-400">
+                after {formatBDT(summary.refunded)} refunded
+              </p>
+            )}
           </div>
           {BILL_SEGMENTS.map((seg) => {
             const amount = summary.bySegment[seg];

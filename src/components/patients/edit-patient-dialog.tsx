@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -92,8 +92,10 @@ export function EditPatientDialog({
   const [notes, setNotes] = useState(patient.notes || "");
   const [saving, setSaving] = useState(false);
 
-  // Sync state whenever dialog opens with updated patient
-  useEffect(() => {
+  // Reset the form from the record whenever the dialog opens (or the record changes while open)
+  const [loadedFrom, setLoadedFrom] = useState<{ open: boolean; patient: PatientProfile }>({ open, patient });
+  if (loadedFrom.open !== open || loadedFrom.patient !== patient) {
+    setLoadedFrom({ open, patient });
     if (open) {
       setName(patient.name);
       setDob(patient.dob || "");
@@ -112,7 +114,7 @@ export function EditPatientDialog({
       setMedicalConditions(patient.medicalConditions || []);
       setNotes(patient.notes || "");
     }
-  }, [open, patient]);
+  }
 
   // Handle DOB change with auto-age update
   const handleDobChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -589,7 +591,7 @@ export function EditPatientDialog({
                 {/* Clinical Notes */}
                 <div className="space-y-1.5 pt-2 border-t">
                   <Label htmlFor="patient-notes" className="text-xs font-semibold">
-                    Doctor's Private Notes / Treatment Preferences
+                    Doctor&apos;s Private Notes / Treatment Preferences
                   </Label>
                   <Textarea
                     id="patient-notes"

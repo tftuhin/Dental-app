@@ -17,6 +17,11 @@ import {
   serial,
   index,
   uniqueIndex,
+  primaryKey,
+  doublePrecision,
+  bigint,
+  pgSequence,
+  json,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -378,11 +383,47 @@ export const bookingRequests = pgTable(
     healthNotes: text("health_notes"),
     status: varchar("status", { length: 20 }).default("pending").notNull(), // pending | imported
     importedAt: timestamp("imported_at"),
+    /** SHA-256 of the sender's IP (never the IP itself), for rate limiting. */
+    ipHash: varchar("ip_hash", { length: 64 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
     index("booking_requests_clinic_status_idx").on(table.clinicId, table.status),
     index("booking_requests_phone_idx").on(table.phone),
+    index("booking_requests_ip_created_idx").on(table.ipHash, table.createdAt),
+    uniqueIndex("booking_requests_reference_idx").on(table.reference),
+  ]
+);
+
+// ─── CLINIC RECORDS (the app's working data) ────────────────
+// Every record the clinic works with day to day (patients, visits, bills,
+// timelines, charts, price lists, settings) is one row here, scoped by clinic.
+// `version` comes from a single sequence and grows on every write, so a
+// browser can ask for "everything changed since version N". Deletes are kept
+// as tombstones (deleted = true) so other browsers learn about them.
+
+export const clinicRecordsVersionSeq = pgSequence("clinic_records_version_seq");
+
+export const clinicRecords = pgTable(
+  "clinic_records",
+  {
+    clinicId: uuid("clinic_id")
+      .notNull()
+      .references(() => clinics.id, { onDelete: "cascade" }),
+    collection: varchar("collection", { length: 80 }).notNull(),
+    recordId: varchar("record_id", { length: 200 }).notNull(),
+    // json (not jsonb) keeps each record exactly as sent, so browsers can compare records as text
+    data: json("data"),
+    /** Sort position inside its collection. */
+    pos: doublePrecision("pos").default(0).notNull(),
+    deleted: boolean("deleted").default(false).notNull(),
+    version: bigint("version", { mode: "number" }).notNull(),
+    updatedBy: uuid("updated_by"),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.clinicId, table.collection, table.recordId] }),
+    index("clinic_records_clinic_version_idx").on(table.clinicId, table.version),
   ]
 );
 

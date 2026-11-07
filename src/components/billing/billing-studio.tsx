@@ -34,9 +34,10 @@ import {
   toISODate,
 } from "@/lib/clinical-flow-store";
 import { getPatientById, updatePatient } from "@/lib/patients-store";
-import { buildReceiptFromInvoice, recalcPatientOutstanding } from "@/lib/billing-store";
+import { buildReceiptFromInvoice, netPaid, recalcPatientOutstanding } from "@/lib/billing-store";
 import { CATEGORY_LABELS } from "@/lib/procedures-catalog-store";
 import { DuePayments, CollectDueDialog } from "@/components/billing/due-payments";
+import { RefundDialog, RefundsPanel } from "@/components/billing/refunds";
 import { PageHeader } from "@/components/layout/page-header";
 import { getDefaultConsultationItem } from "@/lib/procedures-catalog-store";
 import { VisitStepper } from "@/components/clinical/visit-stepper";
@@ -281,7 +282,7 @@ function ModalReceiptSlip({
         <div className="text-left space-y-1">
           <div className="h-6 border-b-2 border-dashed border-foreground/30 w-32"></div>
           <span className="text-[9px] block font-bold text-foreground uppercase tracking-wide">
-            Patient / Depositor's Signature
+            Patient / Depositor&apos;s Signature
           </span>
           <span className="text-[8px] text-muted-foreground block font-mono">Date: ____________________</span>
         </div>
@@ -306,14 +307,21 @@ function ModalReceiptSlip({
   );
 }
 
+/** Today's visits that reached billing (or were billed today), by serial. */
+function todaysBillingQueue(): ClinicalQueuePatient[] {
+  const today = toISODate();
+  return getStoredAppointments()
+    .filter((a) => (a.date || today) === today && (a.stage === "billing" || a.stage === "done"))
+    .sort((a, b) => (a.fifoSerial || 0) - (b.fifoSerial || 0));
+}
+
 export function BillingStudio() {
   const searchParams = useSearchParams();
 
   // Clinic Setup Data from settings store
-  const [clinic, setClinic] = useState<ClinicSetupData | null>(null);
+  const [clinic, setClinic] = useState<ClinicSetupData | null>(() => getClinicSetup());
 
   useEffect(() => {
-    setClinic(getClinicSetup());
     const handleClinicUpdate = () => setClinic(getClinicSetup());
     window.addEventListener("dentai-clinic-setup-updated", handleClinicUpdate);
     return () => window.removeEventListener("dentai-clinic-setup-updated", handleClinicUpdate);
@@ -326,7 +334,7 @@ export function BillingStudio() {
   const clinicLicense = clinic?.bmdcLicense || "DGHS/DH-2024/9912 · BMDC Approved";
 
   // Today's visits that reached billing (or were billed today)
-  const [queuePatients, setQueuePatients] = useState<ClinicalQueuePatient[]>([]);
+  const [queuePatients, setQueuePatients] = useState<ClinicalQueuePatient[]>(todaysBillingQueue);
   const [selectedQueuePatientId, setSelectedQueuePatientId] = useState<string>("");
   const [visit, setVisit] = useState<ClinicalQueuePatient | undefined>();
 
@@ -373,26 +381,26 @@ export function BillingStudio() {
   const [isFinalized, setIsFinalized] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [collectDueOpen, setCollectDueOpen] = useState(false);
+  const [refundOpen, setRefundOpen] = useState(false);
 
-  const loadQueue = () => {
-    const today = toISODate();
-    setQueuePatients(
-      getStoredAppointments()
-        .filter((a) => (a.date || today) === today && (a.stage === "billing" || a.stage === "done"))
-        .sort((a, b) => (a.fifoSerial || 0) - (b.fifoSerial || 0))
-    );
-  };
+  const loadQueue = () => setQueuePatients(todaysBillingQueue());
 
-  // Sync with the visit store and open the visit from the link (?visitId=)
+  // Keep today's billing queue in step with the visit store
   useEffect(() => {
-    loadQueue();
-    const paramVisitId = searchParams?.get("visitId") || searchParams?.get("patientId");
-    if (paramVisitId) {
-      const chosen = getVisit(paramVisitId);
-      if (chosen) loadVisitForBilling(chosen);
-    }
+    const loadQueue = () => setQueuePatients(todaysBillingQueue());
     window.addEventListener("dentai-appointments-updated", loadQueue);
     return () => window.removeEventListener("dentai-appointments-updated", loadQueue);
+  }, []);
+
+  // Open the visit from the link (?visitId=), just after rendering
+  useEffect(() => {
+    const paramVisitId = searchParams?.get("visitId") || searchParams?.get("patientId");
+    if (!paramVisitId) return;
+    const t = setTimeout(() => {
+      const chosen = getVisit(paramVisitId);
+      if (chosen) loadVisitForBilling(chosen);
+    }, 0);
+    return () => clearTimeout(t);
   }, [searchParams]);
 
   const handleSelectPatient = (visitId: string) => {
@@ -861,6 +869,19 @@ export function BillingStudio() {
       {/* Bills with money still owed, from any day */}
       <DuePayments onOpenBill={(id) => handleSelectPatient(id)} />
 
+      {/* Give money back on any paid bill */}
+      <RefundsPanel />
+
+      {visit?.invoice && (
+        <RefundDialog
+          visitId={visit.id}
+          kind="invoice"
+          open={refundOpen}
+          onOpenChange={setRefundOpen}
+          onRefunded={(fresh) => loadVisitForBilling(fresh)}
+        />
+      )}
+
       {visit?.invoice && visit.invoice.balanceDue > 0 && (
         <CollectDueDialog
           visitId={visit.id}
@@ -903,6 +924,16 @@ export function BillingStudio() {
                 className="text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold"
               >
                 Collect Due Payment
+              </Button>
+            )}
+            {visit?.invoice && netPaid(visit.invoice) > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRefundOpen(true)}
+                className="text-xs bg-background text-rose-700 border-rose-300"
+              >
+                Refund
               </Button>
             )}
             <Button
@@ -1210,7 +1241,7 @@ export function BillingStudio() {
                           : "bg-background text-amber-700 dark:text-amber-400 hover:bg-amber-50 border-amber-300"
                       }`}
                     >
-                      B'day ({patient.age}%)
+                      B&apos;day ({patient.age}%)
                     </button>
                   )}
                   <button
