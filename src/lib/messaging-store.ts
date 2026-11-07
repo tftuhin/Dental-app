@@ -259,32 +259,100 @@ function saveRecalls(list: Recall[]) {
   window.dispatchEvent(new Event(RECALLS_EVENT));
 }
 
-export function getRecallForVisit(visitId: string): Recall | undefined {
-  return getRecalls().find((r) => r.visitId === visitId && r.status !== "dismissed");
+/** The next-treatment plan for a visit: one recall per planned procedure, earliest first. */
+export function getRecallsForVisit(visitId: string): Recall[] {
+  return getRecalls()
+    .filter((r) => r.visitId === visitId && r.status !== "dismissed")
+    .sort((x, y) => x.dueDate.localeCompare(y.dueDate));
 }
 
-/** Save the doctor's next-visit plan for a visit (one per visit; saving again updates it). */
-export function saveRecallPlan(input: Omit<Recall, "id" | "status" | "createdAt"> & { id?: string }): Recall {
-  const list = getRecalls();
-  const existing = list.find((r) => r.id === input.id || (r.visitId === input.visitId && r.status !== "dismissed"));
-  const recall: Recall = existing
-    ? { ...existing, ...input, id: existing.id, status: existing.status === "sent" ? "sent" : "planned", draft: undefined }
-    : { ...input, id: `rcl-${Date.now()}`, status: "planned", createdAt: new Date().toISOString() };
-  saveRecalls(existing ? list.map((r) => (r.id === recall.id ? recall : r)) : [recall, ...list]);
+export interface PlanItem {
+  /** Set when editing an item already saved. */
+  id?: string;
+  procedure: string;
+  dueDate: string;
+  note: string;
+}
 
-  logPatientActivity({
-    id: `ev-${input.visitId}-plan`,
-    patientId: input.patientId,
-    date: new Date().toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
-    timestamp: Date.now(),
-    type: "clinical_procedure",
-    title: `Next: ${input.procedure} by ${formatDisplayDate(input.dueDate)}`,
-    doctor: input.doctor,
-    clinicalNotes: input.note || undefined,
-    badge: "Next visit plan",
-    badgeColor: "bg-violet-100 text-violet-800 dark:bg-violet-950/40 dark:text-violet-300",
+export interface PlanVisit {
+  visitId: string;
+  patientId: string;
+  patientRecordId?: string;
+  patientName: string;
+  phone: string;
+  doctor: string;
+  /** Visit day, YYYY-MM-DD. */
+  fromDate: string;
+}
+
+/**
+ * Save the doctor's next-treatment plan for a visit. Each procedure becomes
+ * its own recall with its own date. Items removed from the plan are cancelled
+ * (unless their reminder was already sent).
+ */
+export function saveVisitPlan(visit: PlanVisit, items: PlanItem[]): Recall[] {
+  const list = getRecalls();
+  const now = new Date().toISOString();
+  const keep = new Set(items.map((i) => i.id).filter(Boolean));
+  const saved: Recall[] = [];
+
+  let next = list.map((r) => {
+    if (r.visitId !== visit.visitId || r.status === "dismissed") return r;
+    if (!keep.has(r.id)) {
+      return r.status === "sent" || r.status === "returned" ? r : { ...r, status: "dismissed" as const, closedReason: "Removed from plan" };
+    }
+    const item = items.find((i) => i.id === r.id)!;
+    const changed = item.dueDate !== r.dueDate || item.procedure !== r.procedure;
+    const updated: Recall = {
+      ...r,
+      ...visit,
+      procedure: item.procedure,
+      dueDate: item.dueDate,
+      note: item.note,
+      // A new date or procedure starts the wait again
+      ...(changed && r.status === "awaiting_approval" ? { status: "planned" as const, draft: undefined } : {}),
+    };
+    saved.push(updated);
+    return updated;
   });
-  return recall;
+
+  items
+    .filter((i) => !i.id)
+    .forEach((i, n) => {
+      const r: Recall = {
+        ...visit,
+        id: `rcl-${Date.now()}-${n}`,
+        procedure: i.procedure,
+        dueDate: i.dueDate,
+        note: i.note,
+        status: "planned",
+        createdAt: now,
+      };
+      saved.push(r);
+      next = [r, ...next];
+    });
+  saveRecalls(next);
+
+  const ordered = [...saved].sort((x, y) => x.dueDate.localeCompare(y.dueDate));
+  if (ordered.length > 0) {
+    logPatientActivity({
+      id: `ev-${visit.visitId}-plan`,
+      patientId: visit.patientId,
+      date: new Date().toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" }),
+      timestamp: Date.now(),
+      type: "clinical_procedure",
+      title: `Next: ${ordered.map((r) => `${r.procedure} by ${formatDisplayDate(r.dueDate)}`).join("; ")}`,
+      doctor: visit.doctor,
+      clinicalNotes: ordered.filter((r) => r.note).map((r) => `${r.procedure}: ${r.note}`).join("\n") || undefined,
+      badge: "Next visit plan",
+      badgeColor: "bg-violet-100 text-violet-800 dark:bg-violet-950/40 dark:text-violet-300",
+    });
+  }
+  return ordered;
+}
+
+function daysBetween(a: string, b: string): number {
+  return Math.round((new Date(`${b}T00:00:00`).getTime() - new Date(`${a}T00:00:00`).getTime()) / 86_400_000);
 }
 
 function samePatient(r: Recall, a: { patientId: string; patientRecordId?: string }) {
@@ -310,7 +378,13 @@ export function refreshRecalls(today: string = toISODate()): number {
 
   const next = list.map((r) => {
     if (r.status !== "planned" && r.status !== "awaiting_approval") return r;
-    const mine = visits.filter((a) => samePatient(r, a) && a.id !== r.visitId && (a.date || "") > r.fromDate);
+    // A visit counts for this plan only from halfway to its date, so coming back in
+    // two weeks for one procedure doesn't close the reminder for one due in six months
+    const from = r.fromDate > r.dueDate ? r.dueDate : r.fromDate;
+    const halfway = shiftISODate(from, Math.floor(daysBetween(from, r.dueDate) / 2));
+    const mine = visits.filter(
+      (a) => samePatient(r, a) && a.id !== r.visitId && (a.date || "") > r.fromDate && (a.date || "") >= halfway
+    );
     const cameBack = mine.some((a) => a.status === "checked_in" || a.status === "in_progress" || a.status === "completed");
     const booked = mine.some((a) => a.status === "scheduled" && (a.date || "") >= today);
     if (cameBack || booked) {

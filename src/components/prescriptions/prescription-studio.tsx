@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Trash2, Printer, ShieldCheck, Pill, AlertCircle, Search, Sparkles, Database, CheckCircle2, Clock, Receipt, ArrowRight, History, FileText, RotateCcw, Edit, GripVertical, ChevronUp, ChevronDown, Download, Eye, Stethoscope, Loader2, CalendarClock } from "lucide-react";
 import { NextPlanDialog } from "@/components/clinical/next-plan-dialog";
-import { getRecallForVisit } from "@/lib/messaging-store";
+import { getRecallsForVisit } from "@/lib/messaging-store";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
   ClinicalQueuePatient,
@@ -859,7 +859,7 @@ export function PrescriptionStudio() {
     setIsSignedAndReadyForBilling(true);
     toast.success(`Prescription signed for ${patient.name}. Ready for billing.`);
     // Ask for the next treatment once per visit
-    if (!getRecallForVisit(visit.id)) setNextPlanOpen(true);
+    if (getRecallsForVisit(visit.id).length === 0) setNextPlanOpen(true);
   };
 
   // Load a historical prescription back into the Studio
@@ -1073,7 +1073,7 @@ export function PrescriptionStudio() {
                   className="gap-2 text-xs h-10 px-4 bg-background"
                 >
                   <CalendarClock className="h-4 w-4" />
-                  {getRecallForVisit(visit.id) ? "Edit next treatment" : "Plan next treatment"}
+                  {getRecallsForVisit(visit.id).length > 0 ? "Edit next treatment" : "Plan next treatment"}
                 </Button>
               )}
               <Button

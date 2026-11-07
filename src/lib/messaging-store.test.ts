@@ -13,24 +13,22 @@ async function setup(visits: Partial<ClinicalQueuePatient>[] = []) {
   return { flow, msg, patients };
 }
 
-const plan = {
+const visitInfo = {
   visitId: "v0",
   patientId: "P1",
   patientName: "Rahima Begum",
   phone: "01711234891",
   doctor: "Dr. Sarah Smith, BDS",
-  procedure: "Crown fitting",
-  dueDate: "2026-12-01",
-  note: "",
   fromDate: "2026-11-08",
 };
+const crown = { procedure: "Crown fitting", dueDate: "2026-12-01", note: "" };
 
 beforeEach(() => vi.unstubAllGlobals());
 
 describe("recall reminders", () => {
   it("drafts a reminder only after the date plus grace days", async () => {
     const { msg } = await setup([{ date: "2026-11-08" }]);
-    msg.saveRecallPlan(plan);
+    msg.saveVisitPlan(visitInfo, [crown]);
     expect(msg.refreshRecalls("2026-12-03")).toBe(0); // within 3 grace days
     expect(msg.refreshRecalls("2026-12-05")).toBe(1);
     const r = msg.getRecalls()[0];
@@ -43,23 +41,45 @@ describe("recall reminders", () => {
 
   it("closes the reminder when the patient came back or booked", async () => {
     const { msg } = await setup([{ date: "2026-11-08" }, { date: "2026-11-30", status: "checked_in" }]);
-    msg.saveRecallPlan(plan);
+    msg.saveVisitPlan(visitInfo, [crown]);
     msg.refreshRecalls("2026-12-10");
     expect(msg.getRecalls()[0].status).toBe("returned");
 
     const again = await setup([{ date: "2026-11-08" }, { date: "2026-12-20", status: "scheduled" }]);
-    again.msg.saveRecallPlan(plan);
+    again.msg.saveVisitPlan(visitInfo, [crown]);
     again.msg.refreshRecalls("2026-12-10");
     expect(again.msg.getRecalls()[0].status).toBe("returned");
   });
 
   it("asks the right doctor, never reception", async () => {
     const { msg } = await setup([{ date: "2026-11-08" }]);
-    msg.saveRecallPlan(plan);
+    msg.saveVisitPlan(visitInfo, [crown]);
     msg.refreshRecalls("2026-12-31");
     expect(msg.recallsAwaitingFor({ name: "Dr. Sarah Smith, DDS", role: "clinic_owner" })).toHaveLength(1);
     expect(msg.recallsAwaitingFor({ name: "Dr. Tanvir Ahmed", role: "dentist" })).toHaveLength(0);
     expect(msg.recallsAwaitingFor({ name: "Rumana Akter", role: "receptionist" })).toHaveLength(0);
+  });
+});
+
+describe("plans with several procedures", () => {
+  it("keeps a reminder per procedure, each with its own date", async () => {
+    // Came back after 2 weeks for the first procedure only
+    const { msg } = await setup([{ date: "2026-11-08" }, { date: "2026-11-22", status: "completed" }]);
+    msg.saveVisitPlan(visitInfo, [
+      { procedure: "Suture removal", dueDate: "2026-11-22", note: "" },
+      { procedure: "Implant crown", dueDate: "2027-05-08", note: "after healing" },
+    ]);
+    msg.refreshRecalls("2026-11-25");
+    const byName = Object.fromEntries(msg.getRecallsForVisit("v0").map((r) => [r.procedure, r.status]));
+    expect(byName).toEqual({ "Suture removal": "returned", "Implant crown": "planned" });
+  });
+
+  it("cancels items removed from the plan and keeps the rest", async () => {
+    const { msg } = await setup([{ date: "2026-11-08" }]);
+    const [a] = msg.saveVisitPlan(visitInfo, [crown, { procedure: "Scaling", dueDate: "2027-05-01", note: "" }]);
+    const kept = msg.saveVisitPlan(visitInfo, [{ id: a.id, ...crown, dueDate: "2026-12-15" }]);
+    expect(kept.map((r) => [r.procedure, r.dueDate])).toEqual([["Crown fitting", "2026-12-15"]]);
+    expect(msg.getRecalls().find((r) => r.procedure === "Scaling")!.status).toBe("dismissed");
   });
 });
 
