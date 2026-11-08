@@ -55,7 +55,7 @@ export function DemoForm({ defaultInterest = "demo" }: { defaultInterest?: Inter
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <form onSubmit={submit} className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60 sm:p-8">
       <fieldset>
         <legend className={label}>What would you like?</legend>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -155,7 +155,7 @@ export function DemoForm({ defaultInterest = "demo" }: { defaultInterest?: Inter
       <button
         type="submit"
         disabled={state === "sending"}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-teal-700 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-70 sm:w-auto"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:bg-teal-800 disabled:opacity-70 sm:w-auto"
       >
         {state === "sending" && <Loader2 className="h-4 w-4 animate-spin" />}
         {interest === "quote" ? "Request a quote" : interest === "question" ? "Send question" : "Request a demo"}

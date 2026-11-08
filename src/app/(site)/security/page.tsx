@@ -63,9 +63,9 @@ export default function SecurityPage() {
       <Section>
         <div className="grid gap-5 sm:grid-cols-2">
           {POINTS.map((p) => (
-            <div key={p.title} className="rounded-xl border border-slate-200 p-6">
-              <p.icon className="h-6 w-6 text-teal-700" />
-              <h2 className="mt-3 text-lg font-semibold text-slate-900">{p.title}</h2>
+            <div key={p.title} className="h-full rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-600 text-white shadow-lg shadow-teal-600/25"><p.icon className="h-6 w-6" /></span>
+              <h2 className="font-display mt-4 text-xl font-bold text-slate-900">{p.title}</h2>
               <p className="mt-1.5 leading-relaxed text-slate-600">{p.text}</p>
             </div>
           ))}
@@ -73,7 +73,7 @@ export default function SecurityPage() {
       </Section>
       <Section className="bg-slate-50">
         <div className="mx-auto max-w-3xl space-y-4">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Who owns the data?</h2>
+          <h2 className="font-display text-3xl font-extrabold text-slate-900">Who owns the data?</h2>
           <p className="leading-relaxed text-slate-600">
             Your clinic does. We store and process patient records on your behalf, only to run DentalOS1 for you. We don&apos;t sell them, we
             don&apos;t use them for advertising, and we don&apos;t share them except where the law requires it. If you stop using DentalOS1, you

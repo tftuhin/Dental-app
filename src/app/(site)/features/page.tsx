@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { CalendarDays, Stethoscope, Pill, Receipt, MessageSquare, FolderOpen, SlidersHorizontal, Cloud, FileSignature } from "lucide-react";
 import { CheckList, CtaBand, PageIntro, Section } from "@/components/site/blocks";
+import { BillMock, ConsentMock, MockWindow, OdontogramMock, PhoneMock, PrescriptionMock, QueueMock } from "@/components/site/mocks";
+import { Reveal } from "@/components/site/showcase";
 
 export const metadata: Metadata = {
   title: "Features",
@@ -133,35 +135,78 @@ const AREAS = [
   },
 ];
 
+const MOCKS: Record<string, { node: React.ReactNode; title?: string }> = {
+  "front-desk": { node: <QueueMock />, title: "app · Appointments" },
+  clinical: { node: <OdontogramMock />, title: "app · Visit · Odontogram" },
+  consent: { node: <ConsentMock />, title: "Consent form" },
+  prescriptions: { node: <PrescriptionMock />, title: "app · Prescription" },
+  billing: { node: <BillMock />, title: "app · Billing" },
+  messages: { node: <PhoneMock /> },
+};
+
 export default function FeaturesPage() {
+  const main = AREAS.filter((a) => MOCKS[a.id]);
+  const rest = AREAS.filter((a) => !MOCKS[a.id]);
   return (
     <>
       <PageIntro
         eyebrow="Features"
-        title="What DentalOS1 does, area by area"
+        title="What DentalOS1 does, room by room"
         intro="From the moment a patient books to the reminder that brings them back, here is what your front desk, your doctors and your accounts get."
       />
-      <nav aria-label="On this page" className="sticky top-16 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 py-2 sm:px-6">
+      <nav aria-label="On this page" className="sticky top-16 z-30 border-b border-slate-200 bg-white/90 backdrop-blur-xl lg:top-[72px]">
+        <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 py-2.5 sm:px-6">
           {AREAS.map((a) => (
-            <a key={a.id} href={`#${a.id}`} className="shrink-0 rounded-full px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+            <a key={a.id} href={`#${a.id}`} className="shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-teal-50 hover:text-teal-800">
               {a.title}
             </a>
           ))}
         </div>
       </nav>
-      {AREAS.map((a, i) => (
-        <Section key={a.id} id={a.id} className={i % 2 ? "bg-slate-50" : ""}>
-          <div className="grid gap-10 lg:grid-cols-[1fr_1.3fr]">
-            <div className="space-y-3">
-              <a.icon className="h-8 w-8 text-teal-700" />
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{a.title}</h2>
-              <p className="text-lg leading-relaxed text-slate-600">{a.lead}</p>
+      {main.map((a, i) => {
+        const mock = MOCKS[a.id];
+        return (
+          <Section key={a.id} id={a.id} className={i % 2 ? "bg-slate-50" : ""}>
+            <div className="grid items-center gap-14 lg:grid-cols-2">
+              <Reveal className={i % 2 ? "lg:order-2" : ""}>
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-600 text-white shadow-lg shadow-teal-600/25">
+                  <a.icon className="h-6 w-6" />
+                </span>
+                <h2 className="font-display mt-5 text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl">{a.title}</h2>
+                <p className="mt-3 text-lg leading-relaxed text-slate-600">{a.lead}</p>
+                <CheckList items={a.points} className="mt-7" />
+              </Reveal>
+              <Reveal delay={120} className={i % 2 ? "lg:order-1" : ""}>
+                <div className="relative">
+                  <div aria-hidden className="absolute inset-8 rounded-[2rem] bg-teal-300/30 blur-3xl" />
+                  {mock.title ? (
+                    <MockWindow title={mock.title} className="relative">
+                      {mock.node}
+                    </MockWindow>
+                  ) : (
+                    <div className="relative">{mock.node}</div>
+                  )}
+                </div>
+              </Reveal>
             </div>
-            <CheckList items={a.points} />
-          </div>
-        </Section>
-      ))}
+          </Section>
+        );
+      })}
+      <Section className="bg-slate-950 text-white">
+        <div aria-hidden className="site-grid absolute inset-0 opacity-70" />
+        <div className="grid gap-6 lg:grid-cols-3">
+          {rest.map((a, i) => (
+            <Reveal key={a.id} delay={i * 80}>
+              <div id={a.id} className="h-full scroll-mt-32 rounded-3xl bg-white/[0.04] p-8 ring-1 ring-white/10">
+                <a.icon className="h-7 w-7 text-teal-300" />
+                <h2 className="font-display mt-4 text-2xl font-bold">{a.title}</h2>
+                <p className="mt-2 text-slate-400">{a.lead}</p>
+                <CheckList items={a.points} className="mt-6" light />
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </Section>
       <CtaBand />
     </>
   );

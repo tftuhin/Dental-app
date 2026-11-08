@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Users, Building2, MessageSquare, FolderInput, GraduationCap } from "lucide-react";
+import { Users, Building2, MessageSquare, FolderInput, GraduationCap, ClipboardList, PhoneCall, FileText } from "lucide-react";
 import { CheckList, PageIntro, Section, SectionHeading } from "@/components/site/blocks";
 import { DemoForm } from "@/components/site/demo-form";
+import { Reveal } from "@/components/site/showcase";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description:
-    "Tell us about your clinic and we'll send a quote for DentalOS1, based on your doctors, chairs and what you need.",
+  description: "Tell us about your clinic and we'll send a quote for DentalOS1, based on your doctors, chairs and what you need.",
 };
 
 const INCLUDED = [
@@ -44,9 +44,15 @@ const FACTORS = [
   },
   {
     icon: GraduationCap,
-    title: "Training at the clinic",
+    title: "Training",
     text: "Let us know whether a video call is enough for your team, or whether you'd prefer someone to train the front desk and doctors at the clinic.",
   },
+];
+
+const STEPS = [
+  { icon: ClipboardList, title: "Tell us about the clinic", text: "Doctors, chairs, branches and what you use today. Two minutes with the form below." },
+  { icon: PhoneCall, title: "A short call", text: "We check what you need and answer questions, by phone or WhatsApp, whichever suits you." },
+  { icon: FileText, title: "Your quote", text: "A written quote for your clinic. Take your time to decide." },
 ];
 
 export default function PricingPage() {
@@ -54,43 +60,61 @@ export default function PricingPage() {
     <>
       <PageIntro
         eyebrow="Pricing"
-        title="A quote for your clinic"
+        title="A quote that fits your clinic"
         intro="A one-chair chamber and a busy multi-doctor practice need different things, so we price each clinic on its own. Tell us a little about yours and we'll send you a quote."
       />
 
       <Section>
-        <div className="grid gap-12 lg:grid-cols-2">
-          <div className="space-y-5">
-            <SectionHeading title="What DentalOS1 includes" intro="Every part of the system described on the features page." />
-            <CheckList items={INCLUDED} />
-          </div>
-          <div className="space-y-5">
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900">What the quote depends on</h2>
-            <ul className="space-y-4">
+        <div className="grid gap-6 md:grid-cols-3">
+          {STEPS.map((s, i) => (
+            <Reveal key={s.title} delay={i * 90}>
+              <div className="relative h-full rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+                <span className="font-display absolute right-6 top-5 text-6xl font-extrabold text-slate-100">{i + 1}</span>
+                <span className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-600 text-white shadow-lg shadow-teal-600/25">
+                  <s.icon className="h-6 w-6" />
+                </span>
+                <h2 className="font-display relative mt-5 text-xl font-bold text-slate-900">{s.title}</h2>
+                <p className="relative mt-2 leading-relaxed text-slate-600">{s.text}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </Section>
+
+      <Section className="bg-slate-950 text-white">
+        <div aria-hidden className="site-grid absolute inset-0 opacity-70" />
+        <div className="grid gap-14 lg:grid-cols-2">
+          <Reveal>
+            <SectionHeading light eyebrow="Included" title="What DentalOS1 includes" intro="Every part of the system described on the features page." />
+            <CheckList items={INCLUDED} light className="mt-8" />
+          </Reveal>
+          <Reveal delay={100}>
+            <h2 className="font-display text-2xl font-bold">What the quote depends on</h2>
+            <ul className="mt-6 space-y-3">
               {FACTORS.map((f) => (
-                <li key={f.title} className="flex gap-4 rounded-xl border border-slate-200 p-5">
-                  <f.icon className="mt-0.5 h-5 w-5 shrink-0 text-teal-700" />
+                <li key={f.title} className="flex gap-4 rounded-2xl bg-white/[0.04] p-5 ring-1 ring-white/10">
+                  <f.icon className="mt-0.5 h-5 w-5 shrink-0 text-teal-300" />
                   <div>
-                    <h3 className="font-semibold text-slate-900">{f.title}</h3>
-                    <p className="mt-1 text-[15px] leading-relaxed text-slate-600">{f.text}</p>
+                    <h3 className="font-semibold">{f.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-400">{f.text}</p>
                   </div>
                 </li>
               ))}
             </ul>
-          </div>
+          </Reveal>
         </div>
       </Section>
 
-      <Section className="bg-slate-50" id="quote">
-        <div className="grid gap-10 lg:grid-cols-[1fr_1.4fr]">
-          <div className="space-y-4">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900">Ask for a quote</h2>
+      <Section id="quote" className="bg-gradient-to-b from-teal-50/60 to-white">
+        <div className="grid gap-12 lg:grid-cols-[1fr_1.4fr]">
+          <div className="space-y-5">
+            <SectionHeading eyebrow="Get a quote" title="Ask for a quote" />
             <p className="text-lg leading-relaxed text-slate-600">
               Fill in what you know. If you&apos;re not sure about something, leave it blank and we&apos;ll ask when we call.
             </p>
             <p className="leading-relaxed text-slate-600">
-              If you&apos;d like to see the software before talking about price, choose &quot;Book a demo&quot; instead. We&apos;ll show you a
-              full patient visit and answer questions from your team.
+              Prefer to see the software first? Choose &quot;Book a demo&quot; in the form. We&apos;ll show you a full patient visit and answer
+              questions from your team.
             </p>
           </div>
           <DemoForm defaultInterest="quote" />

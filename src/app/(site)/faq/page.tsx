@@ -105,13 +105,13 @@ export default function FaqPage() {
         <div className="mx-auto max-w-3xl space-y-14">
           {GROUPS.map((g) => (
             <div key={g.title}>
-              <h2 className="text-xl font-bold tracking-tight text-slate-900">{g.title}</h2>
-              <div className="mt-4 divide-y divide-slate-200 border-y border-slate-200">
+              <h2 className="font-display text-2xl font-extrabold text-slate-900">{g.title}</h2>
+              <div className="mt-5 space-y-3">
                 {g.items.map((f) => (
-                  <details key={f.q} className="group py-4">
+                  <details key={f.q} className="group rounded-2xl bg-white p-5 ring-1 ring-slate-200 open:shadow-md">
                     <summary className="flex cursor-pointer list-none items-start justify-between gap-4 font-semibold text-slate-900">
                       {f.q}
-                      <span aria-hidden className="mt-0.5 text-teal-700 transition-transform group-open:rotate-45">
+                      <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700 transition-transform group-open:rotate-45">
                         +
                       </span>
                     </summary>

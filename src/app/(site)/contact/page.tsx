@@ -34,7 +34,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
         <div className="grid gap-12 lg:grid-cols-[1fr_1.5fr]">
           <div className="space-y-8">
             <div className="space-y-3">
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900">What happens next</h2>
+              <h2 className="font-display text-3xl font-extrabold text-slate-900">What happens next</h2>
               <ol className="space-y-3 text-[15px] leading-relaxed text-slate-600">
                 <li>
                   <span className="font-semibold text-slate-900">1. We call you</span> to find a time that suits the clinic, usually outside
