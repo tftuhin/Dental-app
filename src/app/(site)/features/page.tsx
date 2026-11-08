@@ -3,6 +3,7 @@ import { CalendarDays, Stethoscope, Pill, Receipt, MessageSquare, FolderOpen, Sl
 import { CheckList, CtaBand, PageIntro, Section } from "@/components/site/blocks";
 import { BillMock, ConsentMock, MockWindow, OdontogramMock, PhoneMock, PrescriptionMock, QueueMock } from "@/components/site/mocks";
 import { Reveal } from "@/components/site/showcase";
+import { SectionTabs } from "@/components/site/section-tabs";
 
 export const metadata: Metadata = {
   title: "Features",
@@ -146,6 +147,19 @@ const MOCKS: Record<string, { node: React.ReactNode; title?: string }> = {
   messages: { node: <PhoneMock /> },
 };
 
+/** Short names for the sticky tab row. */
+const TABS = [
+  { id: "front-desk", label: "Front desk" },
+  { id: "clinical", label: "Doctor's room" },
+  { id: "consent", label: "Consent" },
+  { id: "prescriptions", label: "Prescriptions" },
+  { id: "billing", label: "Billing" },
+  { id: "messages", label: "Messages" },
+  { id: "records", label: "Records" },
+  { id: "settings", label: "Settings" },
+  { id: "platform", label: "Platform" },
+];
+
 export default function FeaturesPage() {
   const main = AREAS.filter((a) => MOCKS[a.id]);
   const rest = AREAS.filter((a) => !MOCKS[a.id]);
@@ -156,15 +170,7 @@ export default function FeaturesPage() {
         title="What DentalOS1 does, room by room"
         intro="From the moment a patient books to the reminder that brings them back, here is what your front desk, your doctors and your accounts get, with AI built in for the doctor."
       />
-      <nav aria-label="On this page" className="sticky top-16 z-30 border-b border-slate-200 bg-white/90 backdrop-blur-xl lg:top-[72px]">
-        <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 py-2.5 sm:px-6">
-          {AREAS.map((a) => (
-            <a key={a.id} href={`#${a.id}`} className="shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-teal-50 hover:text-teal-800">
-              {a.title}
-            </a>
-          ))}
-        </div>
-      </nav>
+      <SectionTabs items={TABS} />
       {main.map((a, i) => {
         const mock = MOCKS[a.id];
         return (
@@ -199,7 +205,7 @@ export default function FeaturesPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           {rest.map((a, i) => (
             <Reveal key={a.id} delay={i * 80}>
-              <div id={a.id} className="h-full scroll-mt-32 rounded-3xl bg-white/[0.04] p-8 ring-1 ring-white/10">
+              <div id={a.id} className="h-full scroll-mt-40 rounded-3xl bg-white/[0.04] p-8 ring-1 ring-white/10">
                 <a.icon className="h-7 w-7 text-teal-300" />
                 <h2 className="font-display mt-4 text-2xl font-bold">{a.title}</h2>
                 <p className="mt-2 text-slate-400">{a.lead}</p>

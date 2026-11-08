@@ -4,7 +4,7 @@ import { Check, ArrowRight } from "lucide-react";
 /** Page section with consistent width and spacing. */
 export function Section({ id, className = "", children }: { id?: string; className?: string; children: React.ReactNode }) {
   return (
-    <section id={id} className={`relative scroll-mt-28 px-4 py-20 sm:px-6 sm:py-28 ${className}`}>
+    <section id={id} className={`relative scroll-mt-36 px-4 py-20 sm:px-6 sm:py-28 ${className}`}>
       <div className="relative mx-auto max-w-7xl">{children}</div>
     </section>
   );
