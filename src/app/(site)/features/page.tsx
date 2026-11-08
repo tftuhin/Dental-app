@@ -38,7 +38,7 @@ const AREAS = [
       "A 32-tooth odontogram with surface-level conditions, and a six-point periodontal chart with bleeding, mobility and furcation",
       "Orthodontic records: molar and canine class, overjet, overbite, crowding, appliance plan and a log of adjustment visits",
       "Prosthodontic records: crowns, bridges, dentures and implants, each tracked from preparation through the lab to fitting, with shade and material",
-      "An optional AI assistant that suggests differential diagnoses and questions to ask, for the doctor to accept or ignore",
+      "An AI Clinical Copilot that reads your notes and suggests differential diagnoses with ICD-10 codes, tests, procedures and allergy-checked medicines, for you to accept or ignore",
     ],
   },
   {
@@ -63,6 +63,7 @@ const AREAS = [
     points: [
       "More than 1,500 Bangladeshi medicine brands with generic names, strengths and usual doses; add your own any time",
       "Dosing in the familiar 1+0+1 style, with duration and before or after meals",
+      "One-click AI draft built from the visit, in your brands and dosing, with its reasoning shown, for the doctor to review and sign",
       "A warning if a medicine clashes with an allergy on the patient's file",
       "Tests and investigations from a dental list, plus advice and a follow-up date that books the next visit",
       "Printed on your clinic letterhead with the doctor's degrees and BMDC number",

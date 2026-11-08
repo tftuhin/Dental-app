@@ -33,7 +33,11 @@ export const CLINICAL_MODULE_INFO: Array<{ key: keyof ClinicalModules; label: st
   { key: "perioChart", label: "Periodontal chart", description: "6-point probing depths, bleeding, mobility and furcation." },
   { key: "orthodontics", label: "Orthodontics", description: "Malocclusion assessment, treatment plan, appliance and adjustment visits." },
   { key: "prosthodontics", label: "Prosthodontics", description: "Crowns, bridges, dentures and implants with lab stages, shade and material." },
-  { key: "aiCopilot", label: "AI Clinical Copilot", description: "AI suggestions during the consultation (needs an AI provider)." },
+  {
+    key: "aiCopilot",
+    label: "AI assistant",
+    description: "AI Clinical Copilot during the consultation, and AI prescription drafts. Visit details are sent to the AI provider only when a doctor asks.",
+  },
   {
     key: "consentForms",
     label: "Consent before procedure or surgery",

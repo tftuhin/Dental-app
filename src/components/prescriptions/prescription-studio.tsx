@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Trash2, Printer, ShieldCheck, Pill, AlertCircle, Search, Sparkles, Database, CheckCircle2, Clock, Receipt, ArrowRight, History, FileText, RotateCcw, Edit, GripVertical, ChevronUp, ChevronDown, Download, Eye, Stethoscope, Loader2, CalendarClock } from "lucide-react";
 import { NextPlanDialog } from "@/components/clinical/next-plan-dialog";
+import { useClinicalModules } from "@/lib/clinical-modules-store";
 import { getRecallsForVisit } from "@/lib/messaging-store";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
@@ -207,6 +208,8 @@ export function PrescriptionStudio() {
   // Finalized Rx state
   const [isSignedAndReadyForBilling, setIsSignedAndReadyForBilling] = useState(false);
   const [nextPlanOpen, setNextPlanOpen] = useState(false);
+  // The AI switch in Settings → Clinical Modules also covers prescription drafts
+  const modules = useClinicalModules();
 
   // Edit Medication Modal state
   const [isEditMedModalOpen, setIsEditMedModalOpen] = useState(false);
@@ -1021,6 +1024,7 @@ export function PrescriptionStudio() {
                   reached={visit.stage}
                   skippedProcedure={(visit.procedures?.length ?? 0) === 0}
                 />
+                {modules.aiCopilot && (
                 <Button
                   type="button"
                   size="sm"
@@ -1035,6 +1039,7 @@ export function PrescriptionStudio() {
                   )}
                   {isAiPrefilling ? "Drafting…" : "AI Pre-fill from Notes & Procedures"}
                 </Button>
+                )}
               </div>
             )}
             {aiRationale && (

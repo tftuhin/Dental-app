@@ -44,6 +44,10 @@ const GROUPS: Array<{ title: string; items: Array<{ q: string; a: string }> }> =
         a: "Yes. The odontogram, perio chart, orthodontics, prosthodontics, AI assistant and consent forms can each be switched off in settings. Turning one off hides it; nothing already recorded is deleted.",
       },
       {
+        q: "What does the AI do?",
+        a: "Two things, both on request. In the consultation, the Clinical Copilot suggests likely diagnoses, tests, procedures and allergy-checked medicines from your notes. On the prescription pad, it drafts the prescription from the visit, explaining its choices. The doctor reviews everything, and the assistant can be switched off in settings.",
+      },
+      {
         q: "Will the prescription look like ours?",
         a: "Prescriptions print with your clinic's name, address and phone, and the doctor's degrees and BMDC registration number. The medicine list covers the brands sold in Bangladesh, and you can add your own.",
       },

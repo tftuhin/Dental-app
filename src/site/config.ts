@@ -51,6 +51,7 @@ export const COMPANY = {
 /** Website pages, for the menu, footer and sitemap. */
 export const SITE_PAGES = [
   { href: "/features", label: "Features" },
+  { href: "/ai", label: "AI assistant" },
   { href: "/pricing", label: "Pricing" },
   { href: "/security", label: "Security" },
   { href: "/faq", label: "FAQ" },

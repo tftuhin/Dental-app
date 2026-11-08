@@ -18,17 +18,20 @@ import {
   KeyRound,
   Building2,
   LogOut,
+  Brain,
+  Sparkles,
+  UserCheck,
 } from "lucide-react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import { CtaBand, Eyebrow, PrimaryButton, SecondaryButton, Section, SectionHeading } from "@/components/site/blocks";
-import { CollectionsMini, MockWindow, PaidCard, PhoneMock, QueueMock, ReminderApprovalCard } from "@/components/site/mocks";
+import { CollectionsMini, CopilotMock, MockWindow, PaidCard, PhoneMock, QueueMock, ReminderApprovalCard } from "@/components/site/mocks";
 import { Reveal, VisitShowcase } from "@/components/site/showcase";
 import { COMPANY } from "@/site/config";
 
 export const metadata: Metadata = {
   title: { absolute: `${COMPANY.product}: dental practice management software for Bangladesh` },
   description:
-    "One system for the front desk, the doctor's room and the cash counter. Appointments with daily serials, dental charts, consent forms, prescriptions with local medicine brands, bills with bKash and dues, and reminders that bring patients back.",
+    "One system for the front desk, the doctor's room and the cash counter, with an AI clinical copilot and AI prescription drafts. Appointments with daily serials, dental charts, consent forms, local medicine brands, bKash billing and reminders that bring patients back.",
 };
 
 const NUMBERS = [
@@ -99,7 +102,7 @@ export default function HomePage() {
               </SecondaryButton>
             </div>
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-400">
-              {["Runs in any browser", "Every computer in step", "Bangla SMS & WhatsApp"].map((t) => (
+              {["AI copilot in the chair", "Runs in any browser", "Bangla SMS & WhatsApp"].map((t) => (
                 <li key={t} className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-teal-400" />
                   {t}
@@ -146,6 +149,62 @@ export default function HomePage() {
         </Reveal>
         <div className="mt-14">
           <VisitShowcase />
+        </div>
+      </Section>
+
+      {/* ─── AI ─── */}
+      <Section className="overflow-hidden bg-slate-950 text-white">
+        <div aria-hidden className="site-grid absolute inset-0 opacity-70" />
+        <div aria-hidden className="absolute -right-32 top-10 h-[28rem] w-[28rem] rounded-full bg-amber-400/15 blur-3xl" />
+        <div aria-hidden className="absolute -left-32 bottom-0 h-[24rem] w-[24rem] rounded-full bg-teal-500/20 blur-3xl" />
+        <div className="grid items-center gap-14 lg:grid-cols-[1fr_1.1fr]">
+          <Reveal>
+            <SectionHeading
+              light
+              eyebrow="AI assistant"
+              title={
+                <>
+                  A second opinion in the chair.{" "}
+                  <span className="bg-gradient-to-r from-amber-200 to-teal-300 bg-clip-text text-transparent">The decision stays yours.</span>
+                </>
+              }
+              intro="The AI reads the consultation you've just written and suggests what to consider. When you reach the prescription pad, it drafts the prescription from the same visit for you to check and sign."
+            />
+            <div className="mt-8 space-y-3">
+              {[
+                [Brain, "Clinical Copilot", "Differential diagnoses with ICD-10 codes, tests to order, procedures and allergy-checked medicines."],
+                [Sparkles, "Prescription drafts", "Built from the visit in your clinic's brands and 1+0+1 dosing, with the reasoning shown."],
+                [UserCheck, "Doctor in charge", "Nothing enters the record or the prescription until the doctor adds or signs it."],
+              ].map(([Icon, t, d]) => {
+                const I = Icon as typeof Brain;
+                return (
+                  <div key={t as string} className="flex gap-4 rounded-2xl bg-white/[0.04] p-4 ring-1 ring-white/10">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-300 to-amber-500 text-slate-950">
+                      <I className="h-5 w-5" />
+                    </span>
+                    <span>
+                      <span className="block font-semibold text-white">{t as string}</span>
+                      <span className="text-sm text-slate-400">{d as string}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-8">
+              <PrimaryButton href="/ai" light>
+                Explore the AI assistant
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </PrimaryButton>
+            </div>
+          </Reveal>
+          <Reveal delay={120}>
+            <div className="relative">
+              <div aria-hidden className="absolute inset-6 rounded-[2rem] bg-amber-300/20 blur-2xl" />
+              <MockWindow title="app · Visit · Clinical Copilot" className="relative">
+                <CopilotMock />
+              </MockWindow>
+            </div>
+          </Reveal>
         </div>
       </Section>
 

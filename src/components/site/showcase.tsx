@@ -38,7 +38,7 @@ const STEPS = [
     icon: Pill,
     label: "Prescription",
     title: "Prescriptions in local brands, with a safety net",
-    text: "Pick from over 1,500 medicines sold in Bangladesh, dosed the way you write them. Allergy clashes are flagged, and the follow-up visit is booked as you sign.",
+    text: "Pick from over 1,500 medicines sold in Bangladesh, dosed the way you write them. Or let the AI draft it from the visit. Allergy clashes are flagged, and the follow-up visit is booked as you sign.",
     mock: <PrescriptionMock />,
     url: "Prescription",
   },
