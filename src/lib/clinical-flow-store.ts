@@ -95,6 +95,9 @@ export interface ClinicalQueuePatient {
   invoice?: VisitInvoice;
   /** Consent forms printed and signed for this visit (newest last). */
   consents?: VisitConsent[];
+  /** Set by the server when this user may only see part of the visit (see lib/access-store). */
+  _view?: "desk" | "private" | "private_desk";
+  _owners?: string[];
 }
 
 /** A consent form printed for a visit and signed on paper before treatment. */

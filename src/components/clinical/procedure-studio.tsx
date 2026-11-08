@@ -59,7 +59,7 @@ function lineFromCatalog(item: CatalogItem, toothNumber = "", quantity = 1): Vis
 function todaysProcedureQueue(): ClinicalQueuePatient[] {
   const today = toISODate();
   return getStoredAppointments().filter(
-    (a) => (a.date || today) === today && (a.stage === "procedure" || (a.procedures?.length ?? 0) > 0)
+    (a) => !a._view && (a.date || today) === today && (a.stage === "procedure" || (a.procedures?.length ?? 0) > 0)
   );
 }
 

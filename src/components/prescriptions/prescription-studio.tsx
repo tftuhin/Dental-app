@@ -116,7 +116,8 @@ export function PrescriptionStudio() {
   const [activeTab, setActiveTab] = useState<"write" | "search">("write");
 
   // Today's completed patients queue from store
-  const [todayQueue, setTodayQueue] = useState<ClinicalQueuePatient[]>(() => getStoredAppointments());
+  // Visits this doctor may treat (another doctor's private patients are left out)
+  const [todayQueue, setTodayQueue] = useState<ClinicalQueuePatient[]>(() => getStoredAppointments().filter((a) => !a._view));
   const [selectedQueuePatientId, setSelectedQueuePatientId] = useState<string>("");
   // The visit this prescription belongs to (carries notes, procedures, vitals)
   const [visit, setVisit] = useState<ClinicalQueuePatient | undefined>();
@@ -317,7 +318,7 @@ export function PrescriptionStudio() {
       : undefined;
 
     const handleSync = () => {
-      setTodayQueue(getStoredAppointments());
+      setTodayQueue(getStoredAppointments().filter((a) => !a._view));
     };
     window.addEventListener("dentai-appointments-updated", handleSync);
     return () => {

@@ -2,6 +2,9 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { APP_URL, SITE_PATHS, SITE_URL } from "@/site/config";
 
+/** Pages the front desk may not open: everything between check-in and billing, plus settings and reports. */
+const DESK_BLOCKED = ["/procedures", "/prescriptions", "/lab-orders", "/certificates", "/analytics", "/settings", "/enquiries"];
+
 // Next.js 16 "proxy" (formerly middleware).
 //
 // One deployment serves two addresses (see src/site/config.ts):
@@ -57,6 +60,9 @@ export default auth((req) => {
   }
   if (isLoggedIn && path.startsWith("/auth/login")) {
     return NextResponse.redirect(new URL("/dashboard", nextUrl));
+  }
+  if (session?.user?.role === "receptionist" && DESK_BLOCKED.some((p) => path === p || path.startsWith(`${p}/`))) {
+    return NextResponse.redirect(new URL("/appointments", nextUrl));
   }
   return NextResponse.next();
 });

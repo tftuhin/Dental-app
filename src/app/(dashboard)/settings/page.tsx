@@ -4,7 +4,7 @@ import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Pill, Microscope, Layers, Receipt, LayoutGrid, FileSignature, MessageCircle } from "lucide-react";
+import { Building2, Pill, Microscope, Layers, Receipt, LayoutGrid, FileSignature, MessageCircle, ShieldCheck } from "lucide-react";
 import { ProceduresSettingsTab } from "@/components/settings/procedures-settings-tab";
 import { ClinicSetupTab } from "@/components/settings/clinic-setup-tab";
 import { MedicationsSettingsTab } from "@/components/settings/medications-settings-tab";
@@ -13,6 +13,7 @@ import { IntegrationsSettingsTab } from "@/components/settings/integrations-sett
 import { ClinicalModulesSettingsTab } from "@/components/settings/clinical-modules-settings-tab";
 import { ConsentSettingsTab } from "@/components/settings/consent-settings-tab";
 import { MessagesSettingsTab } from "@/components/settings/messages-settings-tab";
+import { PrivacySettingsTab } from "@/components/settings/privacy-settings-tab";
 
 function SettingsContent() {
   const searchParams = useSearchParams();
@@ -48,6 +49,11 @@ function SettingsContent() {
           <TabsTrigger value="consent" className="text-xs gap-1.5 py-1.5 font-semibold">
             <FileSignature className="h-3.5 w-3.5 text-primary" />
             Consent Forms
+          </TabsTrigger>
+
+          <TabsTrigger value="privacy" className="text-xs gap-1.5 py-1.5 font-semibold">
+            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+            Patient Privacy
           </TabsTrigger>
 
           <TabsTrigger value="messages" className="text-xs gap-1.5 py-1.5 font-semibold">
@@ -91,6 +97,10 @@ function SettingsContent() {
 
         <TabsContent value="consent" className="space-y-4">
           <ConsentSettingsTab />
+        </TabsContent>
+
+        <TabsContent value="privacy" className="space-y-4">
+          <PrivacySettingsTab />
         </TabsContent>
 
         <TabsContent value="messages" className="space-y-4">

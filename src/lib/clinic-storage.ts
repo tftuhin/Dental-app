@@ -37,6 +37,7 @@ const LIST_KEYS: Record<string, string> = {
   dentalos1_recalls_v1: "recalls",
   dentalos1_message_log_v1: "message_log",
   dentalos1_message_inbox_v1: "message_inbox",
+  dentalos1_access_requests_v1: "access_requests",
 };
 
 const DOC_KEYS: Record<string, string> = {
@@ -44,6 +45,7 @@ const DOC_KEYS: Record<string, string> = {
   "dentalos1-services-settings": "services",
   dentalos1_clinical_modules_v1: "clinical_modules",
   dentalos1_messaging_settings_v1: "messaging",
+  dentalos1_access_control_v1: "access_control",
 };
 
 /** Per-patient documents: key prefix → collection. The rest of the key is the record id. */
@@ -71,6 +73,7 @@ const COLLECTION_EVENTS: Record<string, string> = {
   recalls: "dentalos1-recalls-updated",
   message_log: "dentalos1-message-log-updated",
   message_inbox: "dentalos1-message-inbox-updated",
+  access_requests: "dentalos1-access-requests-updated",
 };
 
 const SETTINGS_EVENTS: Record<string, string> = {
@@ -78,6 +81,7 @@ const SETTINGS_EVENTS: Record<string, string> = {
   services: "dentalos1-services-updated",
   clinical_modules: "dentalos1-modules-updated",
   messaging: "dentalos1-messaging-settings-updated",
+  access_control: "dentalos1-access-control-updated",
 };
 
 function specFor(key: string): Spec | null {
@@ -373,6 +377,7 @@ let persistTimer: ReturnType<typeof setTimeout> | null = null;
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let flushing: Promise<boolean> | null = null;
 let retryDelay = 0;
+let needsResync = false;
 let channel: BroadcastChannel | null = null;
 const afterSyncedCallbacks: Array<() => void> = [];
 
@@ -462,7 +467,14 @@ export function flushClinicStorage(): Promise<boolean> {
           continue;
         }
         if (!res.ok) throw new Error(`Save failed (${res.status})`);
-        const body = (await res.json()) as { saved: Array<{ c: string; id: string; v: number }> };
+        const body = (await res.json()) as {
+          saved: Array<{ c: string; id: string; v: number }>;
+          rejected?: Array<{ c: string; id: string; error: string }>;
+        };
+        if (body.rejected && body.rejected.length > 0) {
+          window.dispatchEvent(new CustomEvent("dentalos1-sync-rejected", { detail: body.rejected[0].error }));
+          needsResync = true;
+        }
         for (const op of batch) {
           // Only clear it if it wasn't changed again while being sent
           if (pending.get(opKey(op.c, op.id)) === op) pending.delete(opKey(op.c, op.id));
@@ -475,6 +487,10 @@ export function flushClinicStorage(): Promise<boolean> {
       retryDelay = 0;
       persistPending();
       setStatus({ state: "idle", message: undefined });
+      if (needsResync) {
+        needsResync = false;
+        void resyncClinicStorage();
+      }
       channel?.postMessage("changed");
       while (afterSyncedCallbacks.length > 0) afterSyncedCallbacks.shift()?.();
       return true;
@@ -505,7 +521,7 @@ interface ServerRow {
 
 type PageResponse =
   | { mode: "local"; reason?: string }
-  | { mode: "server"; rows: ServerRow[]; cursor: number; more: boolean };
+  | { mode: "server"; rows: ServerRow[]; cursor: number; more: boolean; privacy?: boolean };
 
 async function fetchPage(since: number, overlap: boolean): Promise<PageResponse> {
   const res = await fetch(`/api/clinic-data?since=${since}${overlap ? "&overlap=1" : ""}`, { cache: "no-store" });
@@ -557,6 +573,51 @@ export function announceAllStores(): void {
 }
 
 let pulling = false;
+let lastPrivacy: boolean | undefined;
+let resyncing: Promise<void> | null = null;
+
+/**
+ * Reload every record from the server, replacing this browser's copy (unsent
+ * changes are kept on top). Used when what the user may see has changed, so
+ * records they lost access to disappear and newly allowed ones appear.
+ */
+export function resyncClinicStorage(): Promise<void> {
+  if (mode !== "server") return Promise.resolve();
+  if (resyncing) return resyncing;
+  resyncing = (async () => {
+    const fresh = new Map<string, Map<string, Entry>>();
+    let since = 0;
+    for (;;) {
+      const page = await fetchPage(since, false);
+      if (page.mode !== "server") return;
+      if (page.privacy !== undefined) lastPrivacy = page.privacy;
+      for (const r of page.rows) {
+        let m = fresh.get(r.c);
+        if (!m) fresh.set(r.c, (m = new Map()));
+        m.set(r.id, { json: r.deleted ? null : JSON.stringify(r.data ?? null), pos: r.pos, v: r.v });
+      }
+      since = Math.max(since, page.cursor);
+      if (!page.more) break;
+    }
+    // Keep edits that haven't reached the server yet
+    for (const op of pending.values()) {
+      let m = fresh.get(op.c);
+      if (!m) fresh.set(op.c, (m = new Map()));
+      const e = m.get(op.id);
+      m.set(op.id, op.deleted ? { json: null, pos: e?.pos ?? 0, v: e?.v ?? 0 } : { json: op.json ?? "null", pos: op.pos ?? 0, v: e?.v ?? 0 });
+    }
+    records.clear();
+    for (const [c, m] of fresh) records.set(c, m);
+    assembled.clear();
+    cursor = since;
+    announceAllStores();
+  })()
+    .catch((err) => console.warn("[clinic-storage] Reload failed:", err))
+    .finally(() => {
+      resyncing = null;
+    });
+  return resyncing;
+}
 
 /** Fetch changes made elsewhere since the last pull. */
 export async function pullClinicStorage(): Promise<void> {
@@ -566,9 +627,12 @@ export async function pullClinicStorage(): Promise<void> {
     const touched = new Set<string>();
     let since = cursor;
     let first = true;
+    let privacyChanged = false;
     for (;;) {
       const page = await fetchPage(since, first);
       if (page.mode !== "server") break;
+      if (page.privacy !== undefined && lastPrivacy !== undefined && page.privacy !== lastPrivacy) privacyChanged = true;
+      if (page.privacy !== undefined) lastPrivacy = page.privacy;
       applyRows(page.rows, touched);
       since = Math.max(since, page.cursor);
       first = false;
@@ -577,6 +641,10 @@ export async function pullClinicStorage(): Promise<void> {
     cursor = since;
     if (status.state === "offline" && pending.size === 0) setStatus({ state: "idle", message: undefined });
     announce(touched);
+    // What this user may see changed (privacy switched, access given or taken away): reload it all
+    if (privacyChanged || [...touched].some((k) => k.startsWith("access_requests\u0000"))) {
+      void resyncClinicStorage();
+    }
   } catch {
     // Offline: try again on the next tick
   } finally {
@@ -659,6 +727,7 @@ export function initClinicStorage(key: string): Promise<{ mode: StorageMode; rea
     assembled.clear();
     pending.clear();
     clinicKey = key;
+    lastPrivacy = first.privacy;
     const touched = new Set<string>();
     applyRows(first.rows, touched);
     let since = first.cursor;

@@ -18,6 +18,7 @@ import { GlobalSearch } from "./global-search";
 import { UserNav } from "./user-nav";
 import { NotificationBell } from "./notification-bell";
 import { useClinicName } from "@/hooks/use-clinic-name";
+import { useStaffRole } from "@/lib/access-store";
 import { SyncStatusBadge } from "./clinic-data-gate";
 
 const TITLES: Record<string, string> = {
@@ -38,6 +39,7 @@ const TITLES: Record<string, string> = {
 export function SiteHeader({ clinicName: serverClinicName }: { clinicName: string }) {
   const pathname = usePathname();
   const clinicName = useClinicName(serverClinicName);
+  const { isDesk } = useStaffRole();
   const section = pathname.split("/").filter(Boolean)[0] || "dashboard";
   const title = TITLES[section] || section.charAt(0).toUpperCase() + section.slice(1);
 
@@ -77,12 +79,14 @@ export function SiteHeader({ clinicName: serverClinicName }: { clinicName: strin
                 Register patient
               </Link>
             </DropdownMenuItem>
+            {!isDesk && (
             <DropdownMenuItem asChild>
               <Link href="/appointments?session=active" className="flex items-center gap-2">
                 <Stethoscope className="h-4 w-4" />
                 Start next session
               </Link>
             </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
         <NotificationBell />

@@ -35,6 +35,9 @@ export interface PatientProfile {
   tags: string[];
   occupation?: string;
   notes?: string;
+  /** Set by the server when this user may only see part of the record (see lib/access-store). */
+  _view?: "desk" | "private" | "private_desk";
+  _owners?: string[];
 }
 
 export const INITIAL_PATIENTS: PatientProfile[] = [

@@ -19,6 +19,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { DESK_BLOCKED_PATHS } from "@/lib/access-store";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
   Sidebar,
@@ -75,6 +76,8 @@ export function AppSidebar({
 }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  // Front desk: check-in and billing only
+  const isDesk = session?.user?.role === "receptionist";
   const clinicName = useClinicName(serverClinicName);
   const { isMobile, setOpenMobile } = useSidebar();
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
@@ -106,7 +109,9 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        {NAV.map((group, gi) => (
+        {NAV.map((g) => ({ ...g, items: isDesk ? g.items.filter((i) => !DESK_BLOCKED_PATHS.includes(i.href)) : g.items }))
+          .filter((g) => g.items.length > 0)
+          .map((group, gi) => (
           <SidebarGroup key={group.label || gi}>
             {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
             <SidebarGroupContent>
@@ -153,6 +158,7 @@ export function AppSidebar({
               <span>Public Booking</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          {!isDesk && (
           <SidebarMenuItem>
             <SidebarMenuButton
               isActive={isActive("/settings")}
@@ -163,6 +169,7 @@ export function AppSidebar({
               <span>Settings</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />

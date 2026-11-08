@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Odontogram, PeriodontalChart, OrthoChart, ProsthoChart } from "@/components/dental/lazy-charts";
 import { useClinicalModules } from "@/lib/clinical-modules-store";
+import { isPrivate } from "@/lib/access-store";
+import { PrivatePatientNotice } from "@/components/access/patient-access";
 import { PatientProfileTimeline } from "@/components/patients/patient-profile-timeline";
 import { EditPatientDialog } from "@/components/patients/edit-patient-dialog";
 import {
@@ -28,6 +30,10 @@ export function PatientProfileView({ initialPatientId }: PatientProfileViewProps
   const hasLoaded = true;
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const modules = useClinicalModules();
+  // Another doctor's private patient, or the front desk's limited view
+  const restricted = isPrivate(patient);
+  const deskView = patient?._view === "desk";
+  const showCharts = !restricted && !deskView;
 
   // Reload when the record changes here or on another computer
   useEffect(() => {
@@ -179,28 +185,36 @@ export function PatientProfileView({ initialPatientId }: PatientProfileViewProps
       </Card>
 
       {/* ─── Profile Navigation Tabs ─── */}
-      <Tabs defaultValue="timeline" className="w-full">
+      {restricted && (
+        <PrivatePatientNotice
+          patient={{ patientKey: patient.customId, patientRecordId: patient.id, patientName: patient.name, owners: patient._owners || [] }}
+        />
+      )}
+
+      <Tabs defaultValue={restricted ? "details" : "timeline"} className="w-full">
         <div className="overflow-x-auto pb-1">
           <TabsList className="w-full max-w-full justify-start overflow-x-auto sm:w-auto">
-            <TabsTrigger value="timeline" className="text-xs">
-              Unified Timeline
-            </TabsTrigger>
-            {modules.odontogram && (
+            {!restricted && (
+              <TabsTrigger value="timeline" className="text-xs">
+                {deskView ? "Payments" : "Unified Timeline"}
+              </TabsTrigger>
+            )}
+            {showCharts && modules.odontogram && (
               <TabsTrigger value="odontogram" className="text-xs">
                 Odontogram
               </TabsTrigger>
             )}
-            {modules.perioChart && (
+            {showCharts && modules.perioChart && (
               <TabsTrigger value="perio" className="text-xs">
                 Perio Chart
               </TabsTrigger>
             )}
-            {modules.orthodontics && (
+            {showCharts && modules.orthodontics && (
               <TabsTrigger value="ortho" className="text-xs">
                 Orthodontics
               </TabsTrigger>
             )}
-            {modules.prosthodontics && (
+            {showCharts && modules.prosthodontics && (
               <TabsTrigger value="prostho" className="text-xs">
                 Prosthodontics
               </TabsTrigger>
@@ -220,22 +234,22 @@ export function PatientProfileView({ initialPatientId }: PatientProfileViewProps
         </TabsContent>
 
         {/* Charting sections (each can be switched off in Settings → Clinical Modules) */}
-        {modules.odontogram && (
+        {showCharts && modules.odontogram && (
           <TabsContent value="odontogram" className="mt-4">
             <Odontogram patientId={patient.customId} />
           </TabsContent>
         )}
-        {modules.perioChart && (
+        {showCharts && modules.perioChart && (
           <TabsContent value="perio" className="mt-4">
             <PeriodontalChart patientId={patient.customId} />
           </TabsContent>
         )}
-        {modules.orthodontics && (
+        {showCharts && modules.orthodontics && (
           <TabsContent value="ortho" className="mt-4">
             <OrthoChart patientId={patient.customId} />
           </TabsContent>
         )}
-        {modules.prosthodontics && (
+        {showCharts && modules.prosthodontics && (
           <TabsContent value="prostho" className="mt-4">
             <ProsthoChart patientId={patient.customId} />
           </TabsContent>

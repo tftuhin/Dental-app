@@ -311,7 +311,7 @@ function ModalReceiptSlip({
 function todaysBillingQueue(): ClinicalQueuePatient[] {
   const today = toISODate();
   return getStoredAppointments()
-    .filter((a) => (a.date || today) === today && (a.stage === "billing" || a.stage === "done"))
+    .filter((a) => a._view !== "private" && (a.date || today) === today && (a.stage === "billing" || a.stage === "done"))
     .sort((a, b) => (a.fifoSerial || 0) - (b.fifoSerial || 0));
 }
 

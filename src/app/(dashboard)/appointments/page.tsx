@@ -55,6 +55,8 @@ import { VisitStepper } from "@/components/clinical/visit-stepper";
 import { PageHeader } from "@/components/layout/page-header";
 import { CheckInDialog } from "@/components/appointments/check-in-dialog";
 import { ConsentDialog } from "@/components/clinical/consent-dialog";
+import { isPrivate, useStaffRole } from "@/lib/access-store";
+import { PrivatePatientRef, RequestAccessDialog } from "@/components/access/patient-access";
 
 // AI SDK + its validation library only load when the AI Assistant tab is opened
 const AiAssistantPanel = dynamic(() => import("@/components/clinical/ai-assistant-panel"), {
@@ -225,6 +227,9 @@ export default function AppointmentsPage() {
   const [clinicDoctors] = useState<string[]>(activeDoctorNames);
   // Queue date filter (today by default; also shows upcoming follow-ups)
   const [queueDate, setQueueDate] = useState(toISODate());
+  const { isDesk } = useStaffRole();
+  // Another doctor's patient: ask for access instead of opening the session
+  const [accessFor, setAccessFor] = useState<PrivatePatientRef | null>(null);
   // Visit waiting for its consent form to be printed and signed
   const [consentFor, setConsentFor] = useState<ClinicalQueuePatient | null>(null);
   // Patient being checked in at reception
@@ -246,6 +251,14 @@ export default function AppointmentsPage() {
 
   // Open the Clinical Session & Notes modal
   const openSessionModal = (apt: ClinicalQueuePatient, autoStart = false) => {
+    if (isDesk) {
+      toast.info("The visit session is for doctors. Check the patient in and they'll appear in the doctor's queue.");
+      return;
+    }
+    if (isPrivate(apt)) {
+      setAccessFor({ patientKey: apt.patientId, patientRecordId: apt.patientRecordId, patientName: apt.patient, owners: apt._owners || [] });
+      return;
+    }
     let currentStatus = apt.status;
     if (autoStart && (apt.status === "scheduled" || apt.status === "checked_in")) {
       currentStatus = "in_progress";
@@ -1045,7 +1058,16 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                 <UserX className="h-4 w-4 mr-1" />
                 No show
               </Button>
-              {nextInQueue.status === "in_progress" ? (
+              {isDesk ? (
+                nextInQueue.status === "scheduled" ? (
+                  <Button className="gap-2" onClick={() => setCheckInFor(nextInQueue)}>
+                    <UserCheck className="h-4 w-4" />
+                    Check in
+                  </Button>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Waiting for the doctor</span>
+                )
+              ) : nextInQueue.status === "in_progress" ? (
                 <Button className="gap-2" onClick={() => openSessionModal(nextInQueue, false)}>
                   <FileEdit className="h-4 w-4" />
                   Continue session
@@ -1219,6 +1241,10 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                               <UserCheck className="h-3 w-3" />
                               Check in
                             </Button>
+                          ) : isDesk ? (
+                            <span className="px-2 text-[11px] text-muted-foreground">
+                              {apt.status === "in_progress" ? "With doctor" : "Waiting"}
+                            </span>
                           ) : (
                             <Button
                               size="sm"
@@ -1300,6 +1326,8 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
           </table>
         </div>
       </Card>
+
+      <RequestAccessDialog patient={accessFor} open={!!accessFor} onOpenChange={(o) => !o && setAccessFor(null)} />
 
       {consentFor && (
         <ConsentDialog

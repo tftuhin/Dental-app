@@ -10,6 +10,7 @@ import { LateNoShowWatch } from "./late-no-show-watch";
 import { ClinicDataGate } from "./clinic-data-gate";
 import { RecallWatch } from "@/components/messaging/recall-approvals";
 import { InboxWatch } from "@/components/messaging/inbox";
+import { AccessWatch } from "@/components/access/patient-access";
 import { setBookingSlug } from "@/lib/messaging-store";
 
 interface DashboardShellProps {
@@ -42,6 +43,7 @@ export function DashboardShell({ clinicName, clinicId, clinicSlug, children }: D
               <LateNoShowWatch />
               <RecallWatch />
               <InboxWatch />
+              <AccessWatch />
               {children}
             </ClinicDataGate>
           </div>
