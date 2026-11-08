@@ -67,7 +67,7 @@ export default function LoginPage() {
             </h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            Enterprise AI Dental Practice Management & Clinical EHR
+            AI-powered dental clinic operation software
           </p>
         </div>
 

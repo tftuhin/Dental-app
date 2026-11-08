@@ -153,7 +153,7 @@ export default function FeaturesPage() {
       <PageIntro
         eyebrow="Features"
         title="What DentalOS1 does, room by room"
-        intro="From the moment a patient books to the reminder that brings them back, here is what your front desk, your doctors and your accounts get."
+        intro="AI in the doctor's room, and everything around it: from the moment a patient books to the reminder that brings them back, here is what your front desk, your doctors and your accounts get."
       />
       <nav aria-label="On this page" className="sticky top-16 z-30 border-b border-slate-200 bg-white/90 backdrop-blur-xl lg:top-[72px]">
         <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 py-2.5 sm:px-6">

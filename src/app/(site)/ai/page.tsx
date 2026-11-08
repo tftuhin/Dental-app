@@ -116,7 +116,7 @@ export default function AiPage() {
         <div aria-hidden className="absolute -right-24 bottom-0 h-[26rem] w-[26rem] rounded-full bg-teal-500/25 blur-3xl" />
         <div className="relative mx-auto grid max-w-7xl items-center gap-16 lg:grid-cols-[1fr_1.05fr]">
           <div className="space-y-7">
-            <Eyebrow light>AI assistant</Eyebrow>
+            <Eyebrow light>Make your chamber AI-powered</Eyebrow>
             <h1 className="font-display text-5xl font-extrabold leading-[1.03] sm:text-6xl">
               A second opinion in the chair.{" "}
               <span className="bg-gradient-to-r from-amber-200 via-amber-300 to-teal-300 bg-clip-text text-transparent">The decision stays yours.</span>

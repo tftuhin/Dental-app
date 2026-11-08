@@ -7,11 +7,11 @@ import { COMPANY, SITE_URL } from "@/site/config";
 // indexed; these are.
 export const metadata: Metadata = {
   title: {
-    default: `${COMPANY.product}: dental practice management software for Bangladesh`,
+    default: `${COMPANY.product}: AI-powered dental clinic operation software`,
     template: `%s | ${COMPANY.product}`,
   },
   description:
-    "Appointments, clinical charts, prescriptions, billing and patient reminders for dental clinics, in one system that works in any browser.",
+    "Make your chamber AI-powered: an AI clinical copilot, AI prescription drafts, and appointments, charts, consent, billing and reminders for dental clinics in one system.",
   robots: { index: true, follow: true },
   ...(SITE_URL ? { metadataBase: new URL(SITE_URL) } : {}),
   openGraph: {

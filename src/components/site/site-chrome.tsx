@@ -36,9 +36,9 @@ export function SiteHeader() {
     <>
       <div className="bg-slate-950 px-4 py-2 text-center text-xs text-slate-300 sm:text-sm">
         <span className="mr-2 rounded-full bg-teal-500/15 px-2 py-0.5 text-[11px] font-semibold text-teal-300">New</span>
-        Consent forms that fill themselves, and reminders that bring patients back.{" "}
-        <Link href="/features#consent" className="font-semibold text-white underline-offset-4 hover:underline">
-          See what&apos;s new
+        AI prescription drafts, built from the visit and explained.{" "}
+        <Link href="/ai" className="font-semibold text-white underline-offset-4 hover:underline">
+          Meet the AI assistant
         </Link>
       </div>
       <header
@@ -115,8 +115,8 @@ export function SiteFooter() {
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex flex-col items-start justify-between gap-6 border-b border-white/10 py-14 md:flex-row md:items-center">
           <div>
-            <h2 className="font-display text-3xl font-extrabold text-white sm:text-4xl">Ready when your clinic is.</h2>
-            <p className="mt-2 max-w-lg text-slate-400">A 30-minute demo, with your doctors and front desk. Bring your questions.</p>
+            <h2 className="font-display text-3xl font-extrabold text-white sm:text-4xl">Ready to make your chamber AI-powered?</h2>
+            <p className="mt-2 max-w-lg text-slate-400">A 30-minute demo with your doctors and front desk. We&apos;ll run the AI on a real case.</p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link href="/contact" className="inline-flex items-center gap-2 rounded-full bg-teal-500 px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-teal-400">
@@ -137,7 +137,7 @@ export function SiteFooter() {
           <div className="space-y-4">
             <Logo light />
             <p className="max-w-xs text-sm leading-relaxed text-slate-400">
-              Practice management for dental clinics in Bangladesh. Appointments, charts, consent, prescriptions, billing and reminders, in one place.
+              AI-powered operation software for dental clinics in Bangladesh. An AI copilot in the chair, and the queue, charts, consent, prescriptions, billing and reminders in one place.
             </p>
           </div>
           <div>
@@ -188,7 +188,7 @@ export function SiteFooter() {
         </div>
         <div className="flex flex-col gap-2 border-t border-white/10 py-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <span>
-            © {new Date().getFullYear()} {COMPANY.legalName}. Made for dental clinics in Bangladesh.
+            © {new Date().getFullYear()} {COMPANY.legalName}. AI-powered dental clinic operation software.
           </span>
           <a href={appHref("/auth/login")} className="hover:text-white">
             Clinic sign in →

@@ -24,14 +24,14 @@ import {
 } from "lucide-react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import { CtaBand, Eyebrow, PrimaryButton, SecondaryButton, Section, SectionHeading } from "@/components/site/blocks";
-import { CollectionsMini, CopilotMock, MockWindow, PaidCard, PhoneMock, QueueMock, ReminderApprovalCard } from "@/components/site/mocks";
+import { CollectionsMini, CopilotMock, MockWindow, PaidCard, PhoneMock, ReminderApprovalCard, RxDraftMock } from "@/components/site/mocks";
 import { Reveal, VisitShowcase } from "@/components/site/showcase";
 import { COMPANY } from "@/site/config";
 
 export const metadata: Metadata = {
-  title: { absolute: `${COMPANY.product}: dental practice management software for Bangladesh` },
+  title: { absolute: `${COMPANY.product}: AI-powered dental clinic operation software` },
   description:
-    "One system for the front desk, the doctor's room and the cash counter, with an AI clinical copilot and AI prescription drafts. Appointments with daily serials, dental charts, consent forms, local medicine brands, bKash billing and reminders that bring patients back.",
+    "Make your chamber AI-powered. DentalOS1 is AI-powered operation software for dental clinics in Bangladesh: an AI copilot in the chair, prescriptions drafted from the visit, and the queue, consent forms, billing and patient reminders in one place.",
 };
 
 const NUMBERS = [
@@ -83,14 +83,14 @@ export default function HomePage() {
         <div aria-hidden className="absolute -right-32 bottom-0 h-[24rem] w-[24rem] rounded-full bg-cyan-400/15 blur-3xl" />
         <div className="relative mx-auto grid max-w-7xl items-center gap-16 lg:grid-cols-[1.05fr_1fr]">
           <div className="space-y-8">
-            <Eyebrow light>Dental practice software for Bangladesh</Eyebrow>
+            <Eyebrow light>AI-powered dental clinic operation software</Eyebrow>
             <h1 className="font-display text-5xl font-extrabold leading-[1.02] sm:text-6xl lg:text-7xl">
-              Your whole clinic,{" "}
-              <span className="bg-gradient-to-r from-teal-300 via-cyan-200 to-teal-400 bg-clip-text text-transparent">from booking to bill.</span>
+              Make your chamber{" "}
+              <span className="whitespace-nowrap bg-gradient-to-r from-amber-200 via-teal-200 to-teal-400 bg-clip-text text-transparent">AI-powered.</span>
             </h1>
             <p className="max-w-xl text-lg leading-relaxed text-slate-300 sm:text-xl">
-              The queue, the chart, the consent form, the prescription and the payment, in one place. Built around how clinics here really
-              work: walk-ins, serial numbers, bKash, and patients who need a nudge to come back for the second sitting.
+              An AI copilot that thinks through the case with you, prescriptions drafted from the visit, and the whole clinic running in one
+              place: queue, chart, consent, billing and reminders. Built for how chambers in Bangladesh really work.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <PrimaryButton href="/contact" light>
@@ -102,7 +102,7 @@ export default function HomePage() {
               </SecondaryButton>
             </div>
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-400">
-              {["AI copilot in the chair", "Runs in any browser", "Bangla SMS & WhatsApp"].map((t) => (
+              {["AI copilot in the chair", "Prescriptions drafted by AI", "Runs in any browser"].map((t) => (
                 <li key={t} className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-teal-400" />
                   {t}
@@ -113,10 +113,10 @@ export default function HomePage() {
 
           <div className="relative mx-auto w-full max-w-xl lg:mx-0">
             <div aria-hidden className="absolute inset-6 rounded-[2rem] bg-teal-400/20 blur-2xl" />
-            <MockWindow title="app · Appointments" className="relative">
-              <QueueMock />
+            <MockWindow title="app · Visit · Clinical Copilot" className="relative">
+              <CopilotMock />
             </MockWindow>
-            <div className="site-float absolute -bottom-10 -left-6 hidden sm:block" style={{ animationDelay: "1.5s" }}>
+            <div className="site-float absolute -bottom-24 -left-8 hidden sm:block" style={{ animationDelay: "1.5s" }}>
               <ReminderApprovalCard />
             </div>
             <div className="site-float absolute -right-6 -top-8 hidden sm:block">
@@ -200,8 +200,8 @@ export default function HomePage() {
           <Reveal delay={120}>
             <div className="relative">
               <div aria-hidden className="absolute inset-6 rounded-[2rem] bg-amber-300/20 blur-2xl" />
-              <MockWindow title="app · Visit · Clinical Copilot" className="relative">
-                <CopilotMock />
+              <MockWindow title="app · Prescription" className="relative">
+                <RxDraftMock />
               </MockWindow>
             </div>
           </Reveal>
@@ -324,7 +324,7 @@ export default function HomePage() {
               light
               eyebrow="Made for clinics here"
               title="The small details foreign software gets wrong"
-              intro="Most practice software is written for clinics in other countries and then translated. DentalOS1 starts from how a chamber in Dhaka, Chattogram or Sylhet runs its day."
+              intro="Most clinic software is written for clinics in other countries and then translated. DentalOS1 starts from how a chamber in Dhaka, Chattogram or Sylhet runs its day."
             />
           </Reveal>
           <div className="grid gap-4 sm:grid-cols-2">
