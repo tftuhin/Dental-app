@@ -21,6 +21,7 @@ const AREAS = [
       "Book walk-ins, phone calls and online requests from one form, with returning patients found by name, ID or phone number",
       "The next free slot for the chosen doctor is suggested, respecting opening hours and the lunch break",
       "A public booking page for your clinic: patients pick a date and time, and the request drops into your queue",
+      "Add it to your Facebook page's Book now button, your Google Business Profile, or embed it on your own website",
       "Check patients in when they arrive and, if you prefer, collect the consultation fee at the desk",
       "Patients who haven't checked in three hours after their slot are marked as no-shows and can be rebooked in one step",
       "Move between days with the arrow keys to see who is coming tomorrow or who was missed yesterday",
@@ -38,7 +39,7 @@ const AREAS = [
       "A 32-tooth odontogram with surface-level conditions, and a six-point periodontal chart with bleeding, mobility and furcation",
       "Orthodontic records: molar and canine class, overjet, overbite, crowding, appliance plan and a log of adjustment visits",
       "Prosthodontic records: crowns, bridges, dentures and implants, each tracked from preparation through the lab to fitting, with shade and material",
-      "An AI Clinical Copilot that reads your notes and suggests differential diagnoses with ICD-10 codes, tests, procedures and allergy-checked medicines, for you to accept or ignore",
+      "An AI Assistant that reads your notes and suggests differential diagnoses with ICD-10 codes, tests, procedures and allergy-checked medicines, for you to accept or ignore",
     ],
   },
   {

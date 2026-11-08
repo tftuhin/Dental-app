@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: "%s | DentalOS1",
   },
   description:
-    "AI-powered operation software for dental clinics: AI clinical copilot, AI prescription drafts, appointments, charts, consent, billing and patient reminders.",
+    "AI-powered operation software for dental clinics: AI clinical assistant, AI prescription drafts, appointments, charts, consent, billing and patient reminders.",
   keywords: ["AI dental software", "dental clinic software Bangladesh", "dental AI", "odontogram", "DentalOS1"],
   robots: "noindex, nofollow",
 };

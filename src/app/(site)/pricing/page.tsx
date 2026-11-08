@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 const INCLUDED = [
-  "Appointments, queue and the public booking page",
+  "Appointments, queue and an online booking page for Facebook, Google and your website",
   "Clinical notes, odontogram and periodontal chart",
   "Orthodontic and prosthodontic records",
   "Consent forms you can edit",

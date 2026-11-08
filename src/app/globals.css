@@ -241,7 +241,7 @@ body {
   @apply shadow-md;
 }
 
-/* ─── AI Copilot Streaming ────────────────────────────────────────────────── */
+/* ─── AI Assistant Streaming ────────────────────────────────────────────────── */
 .ai-streaming-text::after {
   content: "▋";
   animation: blink 1s step-end infinite;

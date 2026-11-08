@@ -206,7 +206,7 @@ export default function NewPatientPage() {
                   3. Medical Alerts & Contraindications
                 </h3>
                 <span className="text-[11px] text-muted-foreground">
-                  Triggers clinical warnings in Copilot & Prescriptions
+                  Triggers clinical warnings in the AI Assistant & Prescriptions
                 </span>
               </div>
 

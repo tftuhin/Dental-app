@@ -117,7 +117,7 @@ export function IntegrationsSettingsTab() {
             <div className="space-y-0.5">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
-                1. Dental AI Clinical Copilot & Intelligence
+                1. Dental AI Assistant & Intelligence
               </CardTitle>
               <CardDescription className="text-xs">
                 Real-time evidence-based chairside guidance, drug interaction alerts, and clinical note synthesis
@@ -145,7 +145,7 @@ export function IntegrationsSettingsTab() {
         <CardContent className="p-4 sm:p-6 space-y-4 text-xs">
           {!settings.aiEnabled ? (
             <div className="p-3.5 rounded-lg border border-dashed text-center text-muted-foreground bg-muted/10">
-              <p className="text-xs font-medium">Dental AI Copilot is currently disabled for your clinic.</p>
+              <p className="text-xs font-medium">The AI Assistant is currently disabled for your clinic.</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 Toggle the switch above to enable real-time chairside CDS, drug interaction warnings, and voice charting.
               </p>

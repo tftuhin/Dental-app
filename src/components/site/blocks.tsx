@@ -105,7 +105,7 @@ export function SecondaryButton({ href, children, light = false }: { href: strin
 /** Closing call to action used at the bottom of most pages. */
 export function CtaBand({
   title = "See it with your own clinic's day in mind",
-  text = "Book a 30-minute demo. We'll walk through a patient visit from booking to receipt, AI copilot included, and answer questions from your doctors and front desk.",
+  text = "Book a 30-minute demo. We'll walk through a patient visit from booking to receipt, AI Assistant included, and answer questions from your doctors and front desk.",
 }: {
   title?: string;
   text?: string;

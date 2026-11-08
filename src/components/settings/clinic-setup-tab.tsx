@@ -1,5 +1,6 @@
 "use client";
 
+import { BookingLinkCard } from "./booking-link-card";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -267,6 +268,9 @@ export function ClinicSetupTab() {
 
   return (
     <div className="space-y-6">
+      {/* Booking link for Facebook, Google Business Profile and the clinic's website */}
+      <BookingLinkCard />
+
       {/* Clinic Setup Header Banner */}
       <Card className="border shadow-xs bg-gradient-to-r from-primary/10 via-primary/5 to-background p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

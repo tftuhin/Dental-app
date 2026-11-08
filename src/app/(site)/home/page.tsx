@@ -24,14 +24,14 @@ import {
 } from "lucide-react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import { CtaBand, Eyebrow, PrimaryButton, SecondaryButton, Section, SectionHeading } from "@/components/site/blocks";
-import { AiDraftCard, CollectionsMini, CopilotMock, MockWindow, PaidCard, PhoneMock, QueueMock, ReminderApprovalCard } from "@/components/site/mocks";
+import { AiDraftCard, BookingSourcesMock, CollectionsMini, AssistantMock, MockWindow, PaidCard, PhoneMock, QueueMock, ReminderApprovalCard } from "@/components/site/mocks";
 import { Reveal, VisitShowcase } from "@/components/site/showcase";
 import { COMPANY } from "@/site/config";
 
 export const metadata: Metadata = {
   title: { absolute: `${COMPANY.product}: AI-powered dental clinic operation software` },
   description:
-    "Operation software for dental clinics in Bangladesh: the queue, charts, consent forms, prescriptions, billing and patient reminders in one place, with an AI copilot and AI prescription drafts built in.",
+    "Operation software for dental clinics in Bangladesh: the queue, charts, consent forms, prescriptions, billing and patient reminders in one place, with an AI Assistant and AI prescription drafts built in.",
 };
 
 const NUMBERS = [
@@ -102,7 +102,7 @@ export default function HomePage() {
               </SecondaryButton>
             </div>
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-400">
-              {["Booking to receipt in one place", "AI copilot built in", "Runs in any browser"].map((t) => (
+              {["Booking to receipt in one place", "AI Assistant built in", "Runs in any browser"].map((t) => (
                 <li key={t} className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-teal-400" />
                   {t}
@@ -176,6 +176,34 @@ export default function HomePage() {
               </div>
             </Reveal>
           ))}
+        </div>
+      </Section>
+
+      {/* ─── Booking from Facebook, Google and the website ─── */}
+      <Section className="bg-gradient-to-b from-white to-teal-50/50">
+        <div className="space-y-14">
+          <Reveal className="grid gap-10 lg:grid-cols-2 lg:items-end">
+            <SectionHeading
+              eyebrow="Online booking"
+              title="Bookings from wherever patients find you"
+              intro="Put your DentalOS1 booking page on your Facebook page's Book now button, your Google Business Profile and your own website. Patients pick a date and time, and the booking drops straight into your queue."
+            />
+            <ul className="space-y-3 text-[15px] text-slate-700">
+              {[
+                "One link works on Facebook, Google Search and Maps, WhatsApp and your website",
+                "Embed the booking form on your website with a single line of code",
+                "Returning patients are matched by phone number; new ones are registered for you",
+              ].map((t) => (
+                <li key={t} className="flex gap-3">
+                  <Check className="mt-0.5 h-5 w-5 shrink-0 text-teal-600" />
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+          <Reveal delay={120} className="mx-auto max-w-5xl">
+            <BookingSourcesMock />
+          </Reveal>
         </div>
       </Section>
 
@@ -276,7 +304,7 @@ export default function HomePage() {
             />
             <div className="mt-8 space-y-3">
               {[
-                [Brain, "Clinical Copilot", "Differential diagnoses with ICD-10 codes, tests to order, procedures and allergy-checked medicines."],
+                [Brain, "AI Assistant", "Differential diagnoses with ICD-10 codes, tests to order, procedures and allergy-checked medicines."],
                 [Sparkles, "Prescription drafts", "Built from the visit in your clinic's brands and 1+0+1 dosing, with the reasoning shown."],
                 [UserCheck, "Doctor in charge", "Nothing enters the record or the prescription until the doctor adds or signs it."],
               ].map(([Icon, t, d]) => {
@@ -304,8 +332,8 @@ export default function HomePage() {
           <Reveal delay={120}>
             <div className="relative">
               <div aria-hidden className="absolute inset-6 rounded-[2rem] bg-amber-300/20 blur-2xl" />
-              <MockWindow title="app · Visit · Clinical Copilot" className="relative">
-                <CopilotMock />
+              <MockWindow title="app · Visit · AI Assistant" className="relative">
+                <AssistantMock />
               </MockWindow>
             </div>
           </Reveal>

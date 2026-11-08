@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { getClinicalModel } from "@/lib/ai-model";
 
 
-interface CopilotContext {
+interface AssistantContext {
   patient: {
     age: number;
     gender: string;
@@ -18,7 +18,7 @@ interface CopilotContext {
   odontogramSummary?: string;
 }
 
-function buildDentalCopilotPrompt(ctx: CopilotContext): string {
+function buildDentalAssistantPrompt(ctx: AssistantContext): string {
   const allergyList = ctx.patient.medicalAlerts
     .filter(
       (a) => a.toLowerCase().includes("allergy") || a.toLowerCase().includes("allergic")
@@ -33,7 +33,7 @@ function buildDentalCopilotPrompt(ctx: CopilotContext): string {
 
   const allSymptoms = [...(ctx.symptoms || []), ...(ctx.customSymptoms || [])];
 
-  return `You are DentAI Copilot, an expert dental clinical decision support system. You provide evidence-based recommendations to dentists at the chairside.
+  return `You are the DentalOS1 AI Assistant, an expert dental clinical decision support system. You provide evidence-based recommendations to dentists at the chairside.
 
 ## PATIENT CONTEXT
 - Age: ${ctx.patient.age} years
@@ -91,19 +91,19 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const ctx = body as CopilotContext;
+  const ctx = body as AssistantContext;
 
   const model = getClinicalModel();
 
   const result = streamText({
     model,
-    system: `You are DentAI Copilot, a specialized dental clinical decision support AI assistant. 
+    system: `You are the DentalOS1 AI Assistant, a specialized dental clinical decision support assistant. 
 You provide evidence-based, safety-first recommendations. You NEVER suggest medications that contraindicate a patient's known allergies. 
 You communicate clearly and concisely for busy clinicians.`,
     messages: [
       {
         role: "user",
-        content: buildDentalCopilotPrompt(ctx),
+        content: buildDentalAssistantPrompt(ctx),
       },
     ],
     temperature: 0.3,

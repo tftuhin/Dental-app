@@ -1024,7 +1024,7 @@ export function PrescriptionStudio() {
                   reached={visit.stage}
                   skippedProcedure={(visit.procedures?.length ?? 0) === 0}
                 />
-                {modules.aiCopilot && (
+                {modules.aiAssistant && (
                 <Button
                   type="button"
                   size="sm"

@@ -56,8 +56,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { CheckInDialog } from "@/components/appointments/check-in-dialog";
 import { ConsentDialog } from "@/components/clinical/consent-dialog";
 
-// AI SDK + its validation library only load when the copilot tab is opened
-const CopilotPanel = dynamic(() => import("@/components/clinical/copilot-panel"), {
+// AI SDK + its validation library only load when the AI Assistant tab is opened
+const AiAssistantPanel = dynamic(() => import("@/components/clinical/ai-assistant-panel"), {
   ssr: false,
   loading: () => <div className="h-64 animate-pulse rounded-xl bg-muted" />,
 });
@@ -143,7 +143,7 @@ function from24h(value: string): string {
   return `${String(h12).padStart(2, "0")}:${mStr} ${ap}`;
 }
 
-type SessionTab = "briefing" | "odontogram" | "ortho" | "prostho" | "copilot";
+type SessionTab = "briefing" | "odontogram" | "ortho" | "prostho" | "assistant";
 
 /** Session studio sections, in order. Each charting section can be switched off in Settings. */
 const SESSION_TABS: Array<{
@@ -161,7 +161,7 @@ const SESSION_TABS: Array<{
   },
   { key: "ortho", icon: Ruler, label: () => "Orthodontics", enabled: (m) => m.orthodontics },
   { key: "prostho", icon: Crown, label: () => "Prosthodontics", enabled: (m) => m.prosthodontics },
-  { key: "copilot", icon: Sparkles, label: () => "DentAI Clinical Copilot", enabled: (m) => m.aiCopilot },
+  { key: "assistant", icon: Sparkles, label: () => "AI Assistant", enabled: (m) => m.aiAssistant },
 ];
 
 function activeDoctorNames(): string[] {
@@ -230,16 +230,16 @@ export default function AppointmentsPage() {
   // Patient being checked in at reception
   const [checkInFor, setCheckInFor] = useState<ClinicalQueuePatient | null>(null);
 
-  // Clinical Briefing & Session Tabs ("briefing" | "odontogram" | "copilot")
+  // Clinical Briefing & Session Tabs ("briefing" | "odontogram" | "ortho" | "prostho" | "assistant")
   const [sessionTab, setSessionTab] = useState<SessionTab>("briefing");
   const modules = useClinicalModules();
   // Sections switched off in Settings → Clinical Modules are hidden
   const sessionTabs = SESSION_TABS.filter((t) => t.enabled(modules));
   const activeTab: SessionTab = sessionTabs.some((t) => t.key === sessionTab) ? sessionTab : "briefing";
 
-  // The AI copilot tab loads on first open and then stays mounted so its output isn't lost
-  const [copilotOpened, setCopilotOpened] = useState(false);
-  if (activeTab === "copilot" && !copilotOpened) setCopilotOpened(true);
+  // The AI Assistant tab loads on first open and then stays mounted so its output isn't lost
+  const [assistantOpened, setAssistantOpened] = useState(false);
+  if (activeTab === "assistant" && !assistantOpened) setAssistantOpened(true);
 
   // Completed Handover Banner in modal
   const [isJustCompleted, setIsJustCompleted] = useState(false);
@@ -1397,7 +1397,7 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
                               : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
                           }`}
                         >
-                          <Icon className={`h-3.5 w-3.5 ${t.key === "copilot" ? "text-amber-500 fill-amber-500" : ""}`} />
+                          <Icon className={`h-3.5 w-3.5 ${t.key === "assistant" ? "text-amber-500 fill-amber-500" : ""}`} />
                           {i + 1}. {t.label(modules)}
                           {t.key === "odontogram" && sessionTargetTooth && (
                             <Badge variant="secondary" className="ml-1 text-[10px] py-0 px-1.5 bg-primary/10 text-primary font-mono">
@@ -2168,9 +2168,9 @@ Operatory procedure: Inferior alveolar nerve block and long buccal nerve block a
               {activeTab === "prostho" && <ProsthoChart patientId={selectedAppointment.patientId} />}
 
               {/* ─── TAB 3: AI COPILOT (loaded on demand) ─── */}
-              {copilotOpened && (
-                <div className={activeTab === "copilot" ? "" : "hidden"}>
-                  <CopilotPanel
+              {assistantOpened && (
+                <div className={activeTab === "assistant" ? "" : "hidden"}>
+                  <AiAssistantPanel
                     patient={{
                       name: selectedAppointment.patient,
                       age: selectedAppointment.age,

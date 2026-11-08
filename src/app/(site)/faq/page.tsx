@@ -36,6 +36,10 @@ const GROUPS: Array<{ title: string; items: Array<{ q: string; a: string }> }> =
         a: "Yes. Every computer in the clinic works on the same records. A patient checked in at the desk shows up in the doctor's room shortly after, without anyone refreshing.",
       },
       {
+        q: "Can patients book from our Facebook page or Google listing?",
+        a: "Yes. Every clinic gets an online booking page. Add its link to your Facebook page's Book now button and to the appointment link in your Google Business Profile, or embed the booking form on your website. Settings shows the link, the embed code and the steps for each.",
+      },
+      {
         q: "What happens if the internet goes down?",
         a: "Pages already open keep working, and anything you change is kept on that computer and sent as soon as the connection is back. You need the internet to sign in and to open the app in the first place.",
       },
@@ -45,7 +49,7 @@ const GROUPS: Array<{ title: string; items: Array<{ q: string; a: string }> }> =
       },
       {
         q: "What does the AI do?",
-        a: "Two things, both on request. In the consultation, the Clinical Copilot suggests likely diagnoses, tests, procedures and allergy-checked medicines from your notes. On the prescription pad, it drafts the prescription from the visit, explaining its choices. The doctor reviews everything, and the assistant can be switched off in settings.",
+        a: "Two things, both on request. In the consultation, the AI Assistant suggests likely diagnoses, tests, procedures and allergy-checked medicines from your notes. On the prescription pad, it drafts the prescription from the visit, explaining its choices. The doctor reviews everything, and the assistant can be switched off in settings.",
       },
       {
         q: "Will the prescription look like ours?",

@@ -14,7 +14,7 @@ export interface ClinicalModules {
   perioChart: boolean;
   orthodontics: boolean;
   prosthodontics: boolean;
-  aiCopilot: boolean;
+  aiAssistant: boolean;
   /** Ask for a signed consent form before a procedure or surgery. */
   consentForms: boolean;
 }
@@ -24,7 +24,7 @@ export const DEFAULT_CLINICAL_MODULES: ClinicalModules = {
   perioChart: true,
   orthodontics: true,
   prosthodontics: true,
-  aiCopilot: true,
+  aiAssistant: true,
   consentForms: true,
 };
 
@@ -34,9 +34,9 @@ export const CLINICAL_MODULE_INFO: Array<{ key: keyof ClinicalModules; label: st
   { key: "orthodontics", label: "Orthodontics", description: "Malocclusion assessment, treatment plan, appliance and adjustment visits." },
   { key: "prosthodontics", label: "Prosthodontics", description: "Crowns, bridges, dentures and implants with lab stages, shade and material." },
   {
-    key: "aiCopilot",
+    key: "aiAssistant",
     label: "AI assistant",
-    description: "AI Clinical Copilot during the consultation, and AI prescription drafts. Visit details are sent to the AI provider only when a doctor asks.",
+    description: "AI Assistant suggestions during the consultation, and AI prescription drafts. Visit details are sent to the AI provider only when a doctor asks.",
   },
   {
     key: "consentForms",
@@ -57,7 +57,11 @@ export function getClinicalModules(): ClinicalModules {
   if (raw === cachedRaw) return cached;
   cachedRaw = raw;
   try {
-    cached = { ...DEFAULT_CLINICAL_MODULES, ...(raw ? JSON.parse(raw) : {}) };
+    const saved = raw ? JSON.parse(raw) : {};
+    // Saved before the setting was renamed (old key "aiCopilot")
+    if (saved.aiAssistant === undefined && typeof saved.aiCopilot === "boolean") saved.aiAssistant = saved.aiCopilot;
+    delete saved.aiCopilot;
+    cached = { ...DEFAULT_CLINICAL_MODULES, ...saved };
   } catch {
     cached = DEFAULT_CLINICAL_MODULES;
   }

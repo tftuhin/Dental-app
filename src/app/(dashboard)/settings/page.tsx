@@ -111,7 +111,7 @@ function SettingsContent() {
           <InvestigationsSettingsTab />
         </TabsContent>
 
-        {/* Tab 4 Content: Merged Integrations (Patient ID, AI Copilot, SMS Gateway) */}
+        {/* Tab 4 Content: Merged Integrations (Patient ID, AI Assistant, SMS Gateway) */}
         <TabsContent value="integrations" className="space-y-4">
           <IntegrationsSettingsTab />
         </TabsContent>

@@ -19,13 +19,13 @@ import {
   Brain,
 } from "lucide-react";
 import { CheckList, CtaBand, Eyebrow, PrimaryButton, SecondaryButton, Section, SectionHeading } from "@/components/site/blocks";
-import { CopilotMock, MockWindow, RxDraftMock } from "@/components/site/mocks";
+import { AssistantMock, MockWindow, RxDraftMock } from "@/components/site/mocks";
 import { Reveal } from "@/components/site/showcase";
 
 export const metadata: Metadata = {
   title: "AI assistant for dentists",
   description:
-    "DentalOS1's AI Clinical Copilot suggests differential diagnoses, tests, procedures and allergy-checked medicines from your consultation notes, and drafts the prescription from the visit for you to review and sign.",
+    "DentalOS1's AI Assistant suggests differential diagnoses, tests, procedures and allergy-checked medicines from your consultation notes, and drafts the prescription from the visit for you to review and sign.",
 };
 
 const COPILOT_READS = [
@@ -102,7 +102,7 @@ const AI_FAQ = [
   },
   {
     q: "Can we use DentalOS1 without AI?",
-    a: "Yes. Switch the AI assistant off in Settings → Clinical Modules. The copilot tab and the draft button disappear; everything else is unchanged.",
+    a: "Yes. Switch the AI assistant off in Settings → Clinical Modules. The AI Assistant tab and the draft button disappear; everything else is unchanged.",
   },
 ];
 
@@ -131,15 +131,15 @@ export default function AiPage() {
                 See the AI in a demo
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </PrimaryButton>
-              <SecondaryButton href="#copilot" light>
+              <SecondaryButton href="#assistant" light>
                 How it works
               </SecondaryButton>
             </div>
           </div>
           <div className="relative">
             <div aria-hidden className="absolute inset-6 rounded-[2rem] bg-amber-300/20 blur-2xl" />
-            <MockWindow title="app · Visit · Clinical Copilot" className="relative">
-              <CopilotMock />
+            <MockWindow title="app · Visit · AI Assistant" className="relative">
+              <AssistantMock />
             </MockWindow>
           </div>
         </div>
@@ -149,7 +149,7 @@ export default function AiPage() {
       <section className="border-b border-slate-200 bg-white px-4 sm:px-6">
         <div className="mx-auto grid max-w-7xl gap-4 py-10 md:grid-cols-2">
           {[
-            { icon: Stethoscope, href: "#copilot", title: "Clinical Copilot", text: "Differential diagnoses, tests, procedures and medicines, from your notes." },
+            { icon: Stethoscope, href: "#assistant", title: "AI Assistant", text: "Differential diagnoses, tests, procedures and medicines, from your notes." },
             { icon: FileText, href: "#prescription", title: "Prescription drafts", text: "A complete prescription from today's visit, in your brands and your dosing." },
           ].map((t) => (
             <a key={t.title} href={t.href} className="group flex items-start gap-4 rounded-2xl border border-slate-200 p-5 transition hover:border-teal-300 hover:shadow-md">
@@ -168,14 +168,14 @@ export default function AiPage() {
         </div>
       </section>
 
-      {/* ─── Copilot ─── */}
-      <Section id="copilot">
+      {/* ─── AI Assistant ─── */}
+      <Section id="assistant">
         <div className="grid items-start gap-14 lg:grid-cols-2">
           <Reveal>
             <SectionHeading
-              eyebrow="Clinical Copilot"
+              eyebrow="AI Assistant"
               title="Think through the case before you pick up the handpiece"
-              intro="Open the Copilot tab in the consultation and ask. It works from what you've already recorded, so there's nothing extra to type."
+              intro="Open the AI Assistant tab in the consultation and ask. It works from what you've already recorded, so there's nothing extra to type."
             />
             <div className="mt-8 rounded-2xl bg-slate-50 p-6 ring-1 ring-slate-200">
               <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">What it reads</p>
@@ -321,7 +321,7 @@ export default function AiPage() {
         </div>
       </Section>
 
-      <CtaBand title="Watch the AI work on a real case" text="In a demo, we'll run the Copilot and a prescription draft on the kind of patient your clinic sees every day." />
+      <CtaBand title="Watch the AI work on a real case" text="In a demo, we'll run the AI Assistant and a prescription draft on the kind of patient your clinic sees every day." />
     </>
   );
 }

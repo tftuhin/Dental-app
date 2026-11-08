@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: `%s | ${COMPANY.product}`,
   },
   description:
-    "Make your chamber AI-powered: an AI clinical copilot, AI prescription drafts, and appointments, charts, consent, billing and reminders for dental clinics in one system.",
+    "Make your chamber AI-powered: an AI clinical assistant, AI prescription drafts, and appointments, charts, consent, billing and reminders for dental clinics in one system.",
   robots: { index: true, follow: true },
   ...(SITE_URL ? { metadataBase: new URL(SITE_URL) } : {}),
   openGraph: {

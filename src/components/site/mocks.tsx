@@ -310,14 +310,14 @@ export function CollectionsMini() {
 
 // ─── AI ─────────────────────────────────────────────────────
 
-/** The Clinical Copilot panel: the doctor's notes in, structured suggestions out. */
-export function CopilotMock() {
+/** The AI Assistant panel: the doctor's notes in, structured suggestions out. */
+export function AssistantMock() {
   return (
     <div className="space-y-3 p-5">
       <div className="flex items-center justify-between">
         <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
           <Sparkles className="h-4 w-4 text-amber-500" />
-          Clinical Copilot
+          AI Assistant
         </p>
         <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">Suggestions · doctor decides</span>
       </div>
@@ -423,6 +423,81 @@ export function AiDraftCard({ className = "" }: { className?: string }) {
         <span className="block text-[12px] font-semibold text-slate-900">Prescription drafted by AI</span>
         <span className="text-[10px] text-slate-500">Allergy-checked · ready for the doctor</span>
       </span>
+    </div>
+  );
+}
+
+// ─── Booking from Facebook, Google and the clinic's website ──
+
+function SourceBadge({ letter, className }: { letter: string; className: string }) {
+  return <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base font-extrabold text-white ${className}`}>{letter}</span>;
+}
+
+/** Facebook page, Google listing and website, each with a booking button, feeding one queue. */
+export function BookingSourcesMock() {
+  return (
+    <div className="grid items-center gap-6 lg:grid-cols-[1fr_auto_1fr]">
+      <div className="space-y-3">
+        <div className="rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200">
+          <div className="flex items-center gap-3">
+            <SourceBadge letter="f" className="bg-[#1877f2]" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-semibold text-slate-900">Smile Care Dental · Facebook page</p>
+              <p className="text-[11px] text-slate-500">2.4K followers · Dentist</p>
+            </div>
+            <span className="rounded-lg bg-[#1877f2] px-3 py-1.5 text-[11px] font-semibold text-white">Book now</span>
+          </div>
+        </div>
+        <div className="rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200">
+          <div className="flex items-center gap-3">
+            <SourceBadge letter="G" className="bg-gradient-to-br from-[#4285f4] via-[#34a853] to-[#fbbc05]" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-semibold text-slate-900">Smile Care Dental · Google</p>
+              <p className="text-[11px] text-slate-500">★ 4.8 · Dental clinic · Dhanmondi</p>
+            </div>
+            <span className="rounded-full border border-slate-300 px-3 py-1.5 text-[11px] font-semibold text-[#1a73e8]">Book online</span>
+          </div>
+        </div>
+        <div className="rounded-2xl bg-white p-4 shadow-lg ring-1 ring-slate-200">
+          <div className="flex items-center gap-3">
+            <SourceBadge letter="www" className="bg-slate-800 text-[10px]" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-semibold text-slate-900">smilecaredental.com.bd</p>
+              <p className="text-[11px] text-slate-500">Booking form on your own website</p>
+            </div>
+            <span className="rounded-lg bg-teal-700 px-3 py-1.5 text-[11px] font-semibold text-white">Book</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-center" aria-hidden>
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-600 text-white shadow-lg shadow-teal-600/30 lg:rotate-0">
+          <svg viewBox="0 0 24 24" className="h-6 w-6 rotate-90 lg:rotate-0" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </div>
+      </div>
+
+      <MockWindow title="app · Appointments">
+        <div className="space-y-2 p-4">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+            <CalendarDays className="h-4 w-4 text-teal-700" />
+            Today&apos;s queue
+          </p>
+          {[
+            ["06", "Tania Rahman", "via Facebook", "bg-blue-100 text-blue-800"],
+            ["07", "Mahmud Hasan", "via Google", "bg-emerald-100 text-emerald-800"],
+            ["08", "Shirin Akhter", "via website", "bg-slate-100 text-slate-700"],
+          ].map(([n, name, via, c]) => (
+            <div key={n} className="flex items-center gap-3 rounded-xl border border-slate-100 px-3 py-2">
+              <span className="font-mono text-xs font-bold text-teal-700">#{n}</span>
+              <span className="flex-1 truncate text-[13px] font-semibold text-slate-900">{name}</span>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${c}`}>{via}</span>
+            </div>
+          ))}
+          <p className="pt-1 text-[11px] text-slate-500">Matched to existing patients by phone, or registered as new.</p>
+        </div>
+      </MockWindow>
     </div>
   );
 }

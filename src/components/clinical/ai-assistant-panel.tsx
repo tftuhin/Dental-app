@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Copy, Loader2, ShieldAlert, Sparkles, Stethoscope } from "lucide-react";
 import { toast } from "sonner";
 
-export interface CopilotPanelProps {
+export interface AiAssistantPanelProps {
   patient: { name: string; age: number; gender: string; alerts: string[] };
   complaint: string;
   symptoms: string[];
@@ -24,7 +24,7 @@ export interface CopilotPanelProps {
  * AI clinical decision support for the notes screen. Kept in its own module
  * (loaded on demand) so the AI SDK isn't part of the Appointments page bundle.
  */
-export default function CopilotPanel({
+export default function AiAssistantPanel({
   patient,
   complaint,
   symptoms,
@@ -33,9 +33,9 @@ export default function CopilotPanel({
   vitals,
   findings,
   onAppendToNotes,
-}: CopilotPanelProps) {
+}: AiAssistantPanelProps) {
   const { completion, complete, isLoading } = useCompletion({
-    api: "/api/ai/copilot",
+    api: "/api/ai/assistant",
     onError: (err) => toast.error("AI recommendations failed: " + err.message),
     onFinish: () => toast.success("AI recommendations ready."),
   });

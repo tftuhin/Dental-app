@@ -13,7 +13,7 @@ import { clinicStorage } from "@/lib/clinic-storage";
  */
 
 export interface ClinicServicesSettings {
-  // 1. AI Clinical Copilot & Intelligence
+  // 1. AI Assistant & Intelligence
   aiEnabled: boolean;
   aiDrugAllergyAlerts: boolean;
   aiDiffDiagnosis: boolean;
