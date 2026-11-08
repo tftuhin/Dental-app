@@ -395,6 +395,32 @@ export const bookingRequests = pgTable(
   ]
 );
 
+// ─── DEMO REQUESTS (from the public website's contact form) ─
+
+export const demoRequests = pgTable(
+  "demo_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 150 }).notNull(),
+    clinicName: varchar("clinic_name", { length: 200 }),
+    phone: varchar("phone", { length: 30 }).notNull(),
+    email: varchar("email", { length: 150 }),
+    city: varchar("city", { length: 100 }),
+    chairs: varchar("chairs", { length: 20 }),
+    interest: varchar("interest", { length: 30 }), // demo | quote | question
+    preferredContact: varchar("preferred_contact", { length: 20 }), // phone | whatsapp | email
+    message: text("message"),
+    status: varchar("status", { length: 20 }).default("new").notNull(), // new | contacted | closed
+    /** SHA-256 of the sender's IP (never the IP itself), for rate limiting. */
+    ipHash: varchar("ip_hash", { length: 64 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("demo_requests_status_idx").on(table.status, table.createdAt),
+    index("demo_requests_ip_idx").on(table.ipHash, table.createdAt),
+  ]
+);
+
 // ─── CLINIC RECORDS (the app's working data) ────────────────
 // Every record the clinic works with day to day (patients, visits, bills,
 // timelines, charts, price lists, settings) is one row here, scoped by clinic.

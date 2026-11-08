@@ -16,7 +16,9 @@ import {
   BarChart3,
   Settings,
   Globe,
+  Inbox,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import {
   Sidebar,
@@ -72,6 +74,7 @@ export function AppSidebar({
   clinicSlug?: string;
 }) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const clinicName = useClinicName(serverClinicName);
   const { isMobile, setOpenMobile } = useSidebar();
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
@@ -128,6 +131,19 @@ export function AppSidebar({
 
       <SidebarFooter>
         <SidebarMenu>
+          {/* For the DentalOS1 team only: requests from the public website */}
+          {session?.user?.role === "super_admin" && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={isActive("/enquiries")}
+                tooltip="Website enquiries"
+                render={<Link href="/enquiries" onClick={onNavigate} />}
+              >
+                <Inbox />
+                <span>Website enquiries</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Public booking page"
