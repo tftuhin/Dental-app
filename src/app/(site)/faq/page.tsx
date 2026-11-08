@@ -12,7 +12,7 @@ const GROUPS: Array<{ title: string; items: Array<{ q: string; a: string }> }> =
     items: [
       {
         q: "Do we need to install anything?",
-        a: "No. DentalOS1 runs in a web browser such as Chrome or Edge. Any reasonably recent computer at the clinic will do, and so will a tablet or phone for checking the queue.",
+        a: "No. DentalOS1 runs in a web browser such as Chrome, Edge or Safari, so it works on laptops, desktops, tablets and phones. Any reasonably recent device at the clinic will do.",
       },
       {
         q: "How long does it take to set up?",

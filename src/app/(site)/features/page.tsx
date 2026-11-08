@@ -129,7 +129,7 @@ const AREAS = [
     title: "Behind the scenes",
     lead: "The parts you shouldn't have to think about.",
     points: [
-      "Runs in the browser on Windows, Mac, tablets and phones; nothing to install or update",
+      "Works on any device with a web browser: Windows or Mac laptops and desktops, Android tablets and iPads, and phones. Nothing to install or update",
       "Every computer in the clinic works on the same records at the same time",
       "If the internet drops, your changes are kept on the computer and sent as soon as it reconnects",
       "Each staff member has their own sign-in, and reminders can only be approved by doctors",

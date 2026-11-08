@@ -21,10 +21,12 @@ import {
   Brain,
   Sparkles,
   UserCheck,
+  Laptop,
+  Tablet,
 } from "lucide-react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import { CtaBand, Eyebrow, PrimaryButton, SecondaryButton, Section, SectionHeading } from "@/components/site/blocks";
-import { AiDraftCard, BookingSourcesMock, CollectionsMini, AssistantMock, MockWindow, PaidCard, PhoneMock, QueueMock, ReminderApprovalCard } from "@/components/site/mocks";
+import { AiDraftCard, BookingSourcesMock, CollectionsMini, DevicesMock, AssistantMock, MockWindow, PaidCard, PhoneMock, QueueMock, ReminderApprovalCard } from "@/components/site/mocks";
 import { Reveal, VisitShowcase } from "@/components/site/showcase";
 import { COMPANY } from "@/site/config";
 
@@ -58,10 +60,16 @@ const LOCAL = [
   { icon: WifiOff, title: "When the line drops", text: "Changes are kept on the computer and sent the moment the internet is back." },
 ];
 
+const DEVICE_USES = [
+  { icon: Laptop, title: "Front desk", text: "Bookings, check-in, the queue and billing on the reception computer." },
+  { icon: Tablet, title: "Doctor's room", text: "Notes, the tooth chart and the AI Assistant on a tablet beside the chair." },
+  { icon: Smartphone, title: "Away from the clinic", text: "Check tomorrow's list, today's takings or approve a reminder from your phone." },
+];
+
 const FAQ_TEASER = [
   {
     q: "Do we need to install anything?",
-    a: "No. DentalOS1 runs in Chrome, Edge or any modern browser, on the computers you already have. Each staff member signs in with their own account.",
+    a: "No. DentalOS1 runs in Chrome, Edge, Safari or any modern browser, on the laptops, desktops, tablets and phones you already have. Each staff member signs in with their own account.",
   },
   {
     q: "Can reception and the doctors use it at the same time?",
@@ -102,7 +110,7 @@ export default function HomePage() {
               </SecondaryButton>
             </div>
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-400">
-              {["Booking to receipt in one place", "AI Assistant built in", "Runs in any browser"].map((t) => (
+              {["Booking to receipt in one place", "AI Assistant built in", "Laptop, tablet or phone"].map((t) => (
                 <li key={t} className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-teal-400" />
                   {t}
@@ -374,6 +382,30 @@ export default function HomePage() {
               </div>
             </div>
           </Reveal>
+        </div>
+      </Section>
+
+      {/* ─── Any device ─── */}
+      <Section className="bg-gradient-to-b from-white to-slate-50">
+        <Reveal>
+          <SectionHeading
+            center
+            eyebrow="Any device"
+            title="Laptop at the desk. Tablet in the chair. Phone on the go."
+            intro="DentalOS1 runs in the web browser, so it works on whatever your clinic already has: a Windows or Mac laptop, a desktop at reception, an Android tablet or iPad, or a phone. Nothing to install, and every device sees the same records."
+          />
+        </Reveal>
+        <Reveal delay={120} className="mt-14">
+          <DevicesMock />
+        </Reveal>
+        <div className="mx-auto mt-14 grid max-w-5xl gap-4 sm:grid-cols-3">
+          {DEVICE_USES.map((d) => (
+            <div key={d.title} className="rounded-3xl border border-slate-200 bg-white p-6">
+              <d.icon className="h-6 w-6 text-teal-700" />
+              <h3 className="font-display mt-3 text-lg font-bold text-slate-900">{d.title}</h3>
+              <p className="mt-1 text-[15px] leading-relaxed text-slate-600">{d.text}</p>
+            </div>
+          ))}
         </div>
       </Section>
 

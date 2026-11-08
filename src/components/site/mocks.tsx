@@ -1,6 +1,93 @@
 // Illustrations of DentalOS1 screens for the website (drawn in HTML, not screenshots).
 // Names and numbers are made up.
 
+// ─── Any device ─────────────────────────────────────────────
+
+function MiniRows({ rows }: { rows: Array<[string, string, string]> }) {
+  return (
+    <div className="space-y-1">
+      {rows.map(([n, name, tag]) => (
+        <div key={n} className="flex items-center gap-1.5 rounded-md border border-slate-100 bg-white px-1.5 py-1">
+          <span className="font-mono text-[8px] font-bold text-teal-700">{n}</span>
+          <span className="flex-1 truncate text-[8px] font-semibold text-slate-800">{name}</span>
+          <span className="rounded-full bg-teal-50 px-1 text-[7px] font-semibold text-teal-800">{tag}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Laptop at the desk, tablet in the chair, phone on the go: the same app on each. */
+export function DevicesMock() {
+  return (
+    <div className="flex flex-wrap items-end justify-center gap-6 sm:gap-10">
+      {/* Laptop */}
+      <div className="w-80 sm:w-[30rem]">
+        <div className="rounded-t-xl border-[6px] border-b-0 border-slate-800 bg-slate-50 p-2.5">
+          <p className="mb-1.5 flex items-center gap-1 text-[9px] font-semibold text-slate-800">
+            <CalendarDays className="h-3 w-3 text-teal-700" />
+            Today&apos;s queue
+          </p>
+          <MiniRows
+            rows={[
+              ["01", "Farzana Akter", "With doctor"],
+              ["02", "Imran Hossain", "Checked in"],
+              ["03", "Nusrat Jahan", "11:30"],
+              ["04", "Rafiq Ahmed", "Online"],
+            ]}
+          />
+        </div>
+        <div className="h-3 rounded-b-xl bg-gradient-to-b from-slate-300 to-slate-400" />
+        <div className="mx-auto h-1 w-24 rounded-b bg-slate-400" />
+        <p className="mt-3 text-center text-xs font-semibold text-slate-600">Laptop or desktop · front desk</p>
+      </div>
+
+      {/* Tablet */}
+      <div className="w-52 sm:w-64">
+        <div className="rounded-2xl border-[7px] border-slate-800 bg-slate-50 p-2">
+          <p className="mb-1.5 flex items-center gap-1 text-[9px] font-semibold text-slate-800">
+            <ToothIcon className="h-3 w-3 text-teal-700" />
+            Chart · #36
+          </p>
+          <div className="grid grid-cols-8 gap-0.5">
+            {Array.from({ length: 16 }).map((_, i) => (
+              <span
+                key={i}
+                className={`h-3 rounded-sm border ${i === 13 ? "border-amber-300 bg-amber-200" : i === 2 ? "border-red-300 bg-red-200" : "border-slate-200 bg-white"}`}
+              />
+            ))}
+          </div>
+          <div className="mt-2 space-y-1">
+            <div className="h-1.5 w-full rounded bg-slate-200" />
+            <div className="h-1.5 w-4/5 rounded bg-slate-200" />
+            <div className="h-1.5 w-3/5 rounded bg-slate-200" />
+          </div>
+          <div className="mt-2 rounded-md bg-amber-100 px-1.5 py-1 text-[7px] font-semibold text-amber-900">AI Assistant: 2 suggestions</div>
+        </div>
+        <p className="mt-3 text-center text-xs font-semibold text-slate-600">Tablet · in the chair</p>
+      </div>
+
+      {/* Phone */}
+      <div className="w-32 sm:w-40">
+        <div className="rounded-[1.4rem] border-[5px] border-slate-800 bg-slate-50 p-1.5 pt-3">
+          <p className="mb-1 text-[8px] font-semibold text-slate-800">Reminders</p>
+          <div className="rounded-md bg-white p-1.5 ring-1 ring-slate-200">
+            <p className="text-[7px] font-semibold text-slate-800">Nusrat · crown fitting</p>
+            <p className="text-[6px] text-slate-500">Not booked yet</p>
+            <span className="mt-1 block rounded bg-teal-700 py-0.5 text-center text-[6px] font-semibold text-white">Approve & send</span>
+          </div>
+          <div className="mt-1 rounded-md bg-white p-1.5 ring-1 ring-slate-200">
+            <p className="text-[7px] font-semibold text-slate-800">Today · ৳18,400</p>
+            <p className="text-[6px] text-slate-500">collected</p>
+          </div>
+          <div className="mx-auto mt-2 h-0.5 w-8 rounded bg-slate-300" />
+        </div>
+        <p className="mt-3 text-center text-xs font-semibold text-slate-600">Phone · on the go</p>
+      </div>
+    </div>
+  );
+}
+
 import { Check, CalendarDays, Receipt, FileSignature, Pill, MessageSquare, ShieldCheck, Signal, Wifi, BatteryFull, Sparkles } from "lucide-react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 
