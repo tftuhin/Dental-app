@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { BellRing, Megaphone, History, CalendarClock, Search } from "lucide-react";
+import { BellRing, Megaphone, History, CalendarClock, Search, Inbox } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecallApprovalList } from "@/components/messaging/recall-approvals";
 import { CampaignBuilder } from "@/components/messaging/campaign-builder";
+import { SmsInbox, useUnreadInbox } from "@/components/messaging/inbox";
 import {
   CHANNEL_LABELS,
   MESSAGE_LOG_EVENT,
@@ -44,6 +45,7 @@ export default function SmsPage() {
   const user = session?.user;
   const canApprove = !!user?.role && user.role !== "receptionist";
   const recalls = useRecalls();
+  const unread = useUnreadInbox();
 
   // Make sure overdue plans have their reminders drafted before showing the list
   useEffect(() => {
@@ -51,6 +53,12 @@ export default function SmsPage() {
   }, []);
 
   const awaiting = recalls.filter((r) => r.status === "awaiting_approval");
+  // A link can open a tab (?tab=inbox); otherwise reminders first when some are waiting
+  const [tab, setTab] = useState(() => {
+    const asked = new URLSearchParams(window.location.search).get("tab");
+    if (asked && ["approvals", "inbox", "campaign", "log"].includes(asked)) return asked;
+    return getRecalls().some((r) => r.status === "awaiting_approval") ? "approvals" : unread > 0 ? "inbox" : "campaign";
+  });
   const mine = user ? recallsAwaitingFor(user) : [];
   const others = awaiting.filter((r) => !mine.some((m) => m.id === r.id));
   const upcoming = recalls.filter((r) => r.status === "planned").sort((a, b) => a.dueDate.localeCompare(b.dueDate));
@@ -74,12 +82,17 @@ export default function SmsPage() {
         description="Reminders for patients who missed their planned treatment, campaigns to chosen patients, and every message sent."
       />
 
-      <Tabs defaultValue={awaiting.length > 0 ? "approvals" : "campaign"} className="space-y-4">
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList className="w-full max-w-full justify-start overflow-x-auto sm:w-auto">
           <TabsTrigger value="approvals" className="gap-1.5 text-xs">
             <BellRing className="h-3.5 w-3.5" />
             Reminders
             {awaiting.length > 0 && <Badge className="ml-1 h-4 bg-amber-500 px-1.5 text-[10px] text-white">{awaiting.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="inbox" className="gap-1.5 text-xs">
+            <Inbox className="h-3.5 w-3.5" />
+            Inbox
+            {unread > 0 && <Badge className="ml-1 h-4 bg-primary px-1.5 text-[10px]">{unread}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="campaign" className="gap-1.5 text-xs">
             <Megaphone className="h-3.5 w-3.5" />
@@ -168,6 +181,10 @@ export default function SmsPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="inbox">
+          <SmsInbox />
         </TabsContent>
 
         <TabsContent value="campaign">

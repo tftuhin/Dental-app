@@ -24,7 +24,7 @@ import {
   logMessages,
   smsSegments,
 } from "@/lib/messaging-store";
-import { getSmsGatewayStatus, isValidPhone, openSmsApp, openWhatsApp, sendSmsViaGateway } from "@/lib/message-sender";
+import { automaticSmsRoute, isValidPhone, openSmsApp, openWhatsApp, sendSmsViaGateway } from "@/lib/message-sender";
 
 const LAST_VISIT_OPTIONS: Array<{ value: AudienceFilter["lastVisit"]; label: string }> = [
   { value: "any", label: "Any time" },
@@ -66,14 +66,15 @@ export function CampaignBuilder() {
   const [body, setBody] = useState(templates[0]?.body || "");
   const [campaign, setCampaign] = useState(templates[0]?.name || "Campaign");
   const [channel, setChannel] = useState<MessageChannel>(() => getMessagingSettings().defaultChannel);
-  const [gateway, setGateway] = useState<boolean | null>(null);
+  // Automatic SMS route (the clinic's Android phone or a gateway service), or null for the device's SMS app
+  const [route, setRoute] = useState<"android" | "provider" | null | undefined>(undefined);
   const [sending, setSending] = useState(false);
   // One-by-one sending (WhatsApp, or SMS without a gateway)
   const [queue, setQueue] = useState<AudienceRow[] | null>(null);
   const [pos, setPos] = useState(0);
 
   useEffect(() => {
-    getSmsGatewayStatus().then((s) => setGateway(s.configured));
+    automaticSmsRoute().then(setRoute);
   }, []);
 
   const set = (patch: Partial<AudienceFilter>) => {
@@ -102,14 +103,17 @@ export function CampaignBuilder() {
       toast.error("No patients with a phone number match these filters.");
       return;
     }
-    if (channel === "sms" && gateway) {
+    if (channel === "sms" && route) {
       if (!confirm(`Send this SMS to ${recipients.length} patient${recipients.length === 1 ? "" : "s"} now?`)) return;
       setSending(true);
       try {
         let sent = 0;
         for (let i = 0; i < recipients.length; i += 200) {
           const chunk = recipients.slice(i, i + 200);
-          const results = await sendSmsViaGateway(chunk.map((r) => ({ to: r.patient.phone, body: fillMessage(body, valuesFor(r)) })));
+          const results = await sendSmsViaGateway(
+            chunk.map((r) => ({ to: r.patient.phone, body: fillMessage(body, valuesFor(r)) })),
+            route
+          );
           logMessages(
             chunk.map((r, j) => ({
               patientId: r.patient.customId,
@@ -466,10 +470,12 @@ export function CampaignBuilder() {
               <p className="text-[11px] text-muted-foreground">
                 {channel === "whatsapp"
                   ? "Opens each chat in your clinic's WhatsApp with the message filled in; press Send in WhatsApp, then come back for the next one."
-                  : gateway
+                  : route === "android"
+                  ? "Sent automatically from the clinic's Android phone. Large campaigns go out gradually."
+                  : route === "provider"
                   ? "Sent automatically through your SMS gateway."
-                  : gateway === false
-                  ? "No SMS gateway is set up, so each message opens in this device's SMS app one by one."
+                  : route === null
+                  ? "Each message opens in this computer's SMS app (e.g. Phone Link) one by one; press Send there. Change this in Settings → Messages."
                   : ""}
               </p>
               <Button size="sm" className="gap-1.5 text-xs" onClick={start} disabled={sending || recipients.length === 0}>

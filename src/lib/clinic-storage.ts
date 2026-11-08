@@ -36,6 +36,7 @@ const LIST_KEYS: Record<string, string> = {
   dentalos1_message_templates_v1: "message_templates",
   dentalos1_recalls_v1: "recalls",
   dentalos1_message_log_v1: "message_log",
+  dentalos1_message_inbox_v1: "message_inbox",
 };
 
 const DOC_KEYS: Record<string, string> = {
@@ -69,6 +70,7 @@ const COLLECTION_EVENTS: Record<string, string> = {
   message_templates: "dentalos1-message-templates-updated",
   recalls: "dentalos1-recalls-updated",
   message_log: "dentalos1-message-log-updated",
+  message_inbox: "dentalos1-message-inbox-updated",
 };
 
 const SETTINGS_EVENTS: Record<string, string> = {

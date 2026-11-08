@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { MessageCircle, MessageSquare, Save, Plus, Trash2, RotateCcw, BellRing, ExternalLink, Send, CheckCircle2, AlertTriangle } from "lucide-react";
+import { useRef, useState } from "react";
+import { MessageCircle, Save, Plus, Trash2, RotateCcw, BellRing, ExternalLink, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,8 @@ import {
   saveMessagingSettings,
   smsSegments,
 } from "@/lib/messaging-store";
-import { getSmsGatewayStatus, isValidPhone, normalisePhone } from "@/lib/message-sender";
+import { isValidPhone, normalisePhone } from "@/lib/message-sender";
+import { SmsSendingCard } from "./sms-sending-card";
 
 const SAMPLE = {
   patient_name: "Rahima Begum",
@@ -44,12 +45,7 @@ export function MessagesSettingsTab() {
   const [templates, setTemplates] = useState<MessageTemplate[]>(getMessageTemplates);
   const [selectedId, setSelectedId] = useState(() => getMessageTemplates()[0]?.id || "");
   const [dirty, setDirty] = useState(false);
-  const [gateway, setGateway] = useState<{ configured: boolean; provider?: string } | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    getSmsGatewayStatus().then(setGateway);
-  }, []);
 
   const change = (patch: Partial<MessagingSettings>) => {
     setSettings((s) => ({ ...s, ...patch }));
@@ -197,33 +193,7 @@ export function MessagesSettingsTab() {
 
         {/* SMS + recall rules */}
         <div className="space-y-4">
-          <Card className="shadow-xs">
-            <CardHeader className="border-b bg-muted/20 px-4 py-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <MessageSquare className="h-4 w-4 text-primary" />
-                SMS gateway
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 p-4 text-xs">
-              {gateway?.configured ? (
-                <p className="flex items-center gap-1.5 font-medium text-emerald-700">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Connected ({gateway.provider}). SMS are sent automatically.
-                </p>
-              ) : (
-                <>
-                  <p className="flex items-center gap-1.5 font-medium text-amber-700">
-                    <AlertTriangle className="h-4 w-4" />
-                    No SMS gateway set up. SMS open in this device&apos;s messaging app one at a time.
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    To send automatically, add your gateway&apos;s details to the server settings: <code className="font-mono">SMS_PROVIDER=bulksmsbd</code>,{" "}
-                    <code className="font-mono">SMS_API_KEY</code> and <code className="font-mono">SMS_SENDER_ID</code>.
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          <SmsSendingCard mode={settings.smsMode} onModeChange={(m) => change({ smsMode: m })} />
 
           <Card className="shadow-xs">
             <CardHeader className="border-b bg-muted/20 px-4 py-3">

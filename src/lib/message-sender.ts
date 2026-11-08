@@ -6,9 +6,9 @@
 //    in on this computer, in WhatsApp Web or the desktop app) with the text
 //    filled in; staff press Send. WhatsApp doesn't allow apps to send from a
 //    personal number on their own.
-//  • SMS: sent through the clinic's SMS gateway (/api/messages/sms) when one
-//    is configured on the server; otherwise the phone/computer's SMS app opens
-//    with the text filled in.
+//  • SMS, by the clinic's choice in Settings → Messages: this computer's SMS
+//    app (Windows Phone Link / phone) with the text filled in; the clinic's
+//    Android phone (automatic); or a bulk SMS gateway set on the server.
 // ============================================================
 
 import { getMessagingSettings, MessageChannel } from "@/lib/messaging-store";
@@ -54,20 +54,34 @@ export function openSmsApp(phone: string, text: string) {
 }
 
 export interface GatewayStatus {
+  /** Bulk SMS gateway set on the server. */
   configured: boolean;
   provider?: string;
+  /** The clinic's Android phone (SMS Gateway for Android). */
+  android: { connected: boolean; phone: string };
 }
 
 let statusCache: Promise<GatewayStatus> | null = null;
+const NO_GATEWAY: GatewayStatus = { configured: false, android: { connected: false, phone: "" } };
 
-/** Whether the server has an SMS gateway set up. */
-export function getSmsGatewayStatus(): Promise<GatewayStatus> {
-  if (!statusCache) {
-    statusCache = fetch("/api/messages/sms")
-      .then((r) => (r.ok ? r.json() : { configured: false }))
-      .catch(() => ({ configured: false }));
+/** Which automatic SMS routes are available. */
+export function getSmsGatewayStatus(refresh = false): Promise<GatewayStatus> {
+  if (!statusCache || refresh) {
+    statusCache = fetch("/api/messages/sms", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : NO_GATEWAY))
+      .then((s) => ({ ...NO_GATEWAY, ...s, android: { ...NO_GATEWAY.android, ...(s.android || {}) } }))
+      .catch(() => NO_GATEWAY);
   }
   return statusCache;
+}
+
+/** The automatic route to use for SMS right now, or null to open the device's SMS app. */
+export async function automaticSmsRoute(): Promise<"android" | "provider" | null> {
+  const mode = getMessagingSettings().smsMode;
+  if (mode === "device") return null;
+  const status = await getSmsGatewayStatus();
+  if (mode === "android") return status.android.connected ? "android" : null;
+  return status.configured ? "provider" : null;
 }
 
 export interface SmsResult {
@@ -76,22 +90,22 @@ export interface SmsResult {
   error?: string;
 }
 
-/** Send SMS through the gateway. Throws "not-configured" when there is none. */
-export async function sendSmsViaGateway(messages: Array<{ to: string; body: string }>): Promise<SmsResult[]> {
+/** Send SMS through `via` (the phone or the gateway service). Throws "not-configured" when it isn't set up. */
+export async function sendSmsViaGateway(messages: Array<{ to: string; body: string }>, via: "android" | "provider"): Promise<SmsResult[]> {
   const res = await fetch("/api/messages/sms", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages: messages.map((m) => ({ to: normalisePhone(m.to), body: m.body })) }),
+    body: JSON.stringify({ via, messages: messages.map((m) => ({ to: normalisePhone(m.to), body: m.body })) }),
   });
   if (res.status === 501) throw new Error("not-configured");
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `SMS gateway error (${res.status})`);
+  if (!res.ok) throw new Error(data.error || `SMS error (${res.status})`);
   return data.results as SmsResult[];
 }
 
 export type SendOutcome = { status: "sent" | "handed_over" | "failed"; error?: string };
 
-/** Send one message on `channel`, falling back to the device's SMS app when there is no gateway. */
+/** Send one message on `channel`, using the clinic's SMS mode (Settings → Messages). */
 export async function sendOne(phone: string, body: string, channel: MessageChannel): Promise<SendOutcome> {
   if (!isValidPhone(phone)) return { status: "failed", error: "No valid phone number" };
   if (channel === "whatsapp") {
@@ -99,8 +113,13 @@ export async function sendOne(phone: string, body: string, channel: MessageChann
       ? { status: "handed_over" }
       : { status: "failed", error: "The browser blocked the WhatsApp window. Allow pop-ups for this site." };
   }
+  const via = await automaticSmsRoute();
+  if (!via) {
+    openSmsApp(phone, body);
+    return { status: "handed_over" };
+  }
   try {
-    const [r] = await sendSmsViaGateway([{ to: phone, body }]);
+    const [r] = await sendSmsViaGateway([{ to: phone, body }], via);
     return r?.ok ? { status: "sent" } : { status: "failed", error: r?.error || "Not sent" };
   } catch (err) {
     if ((err as Error).message === "not-configured") {

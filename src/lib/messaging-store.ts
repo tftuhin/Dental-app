@@ -126,7 +126,22 @@ export interface MessagingSettings {
   whatsappNumber: string;
   /** Where WhatsApp messages open: the WhatsApp desktop/phone app, or WhatsApp Web in the browser. */
   whatsappOpenWith: "app" | "web";
+  /**
+   * How SMS are sent:
+   *  "device": open this computer's SMS app (Windows Phone Link / phone) with the text filled in; staff press Send.
+   *  "android": automatically, from the clinic's Android phone (SMS Gateway for Android). Replies come into the Inbox.
+   *  "provider": automatically, through a bulk SMS gateway set on the server.
+   */
+  smsMode: SmsMode;
 }
+
+export type SmsMode = "device" | "android" | "provider";
+
+export const SMS_MODE_LABELS: Record<SmsMode, string> = {
+  device: "This computer's SMS app (Phone Link)",
+  android: "Android phone, automatic",
+  provider: "SMS gateway service",
+};
 
 export const DEFAULT_MESSAGING_SETTINGS: MessagingSettings = {
   recallGraceDays: 3,
@@ -135,6 +150,7 @@ export const DEFAULT_MESSAGING_SETTINGS: MessagingSettings = {
   bookingLink: "",
   whatsappNumber: "",
   whatsappOpenWith: "web",
+  smsMode: "device",
 };
 
 const SETTINGS_KEY = "dentalos1_messaging_settings_v1";
@@ -473,4 +489,42 @@ export function logMessages(entries: Array<Omit<MessageLogEntry, "id" | "sentAt"
   const stamped = entries.map((e, i) => ({ ...e, id: `msg-${Date.now()}-${i}`, sentAt: now }));
   clinicStorage.setItem(LOG_KEY, JSON.stringify([...stamped, ...getMessageLog()].slice(0, LOG_MAX)));
   window.dispatchEvent(new Event(MESSAGE_LOG_EVENT));
+}
+
+// ─── Inbox (SMS received by the clinic's Android phone) ─────
+
+export interface InboxMessage {
+  id: string;
+  /** Sender's number as the phone reported it, e.g. "+8801711234891". */
+  from: string;
+  body: string;
+  receivedAt: string;
+  read: boolean;
+  sim?: string;
+}
+
+const INBOX_KEY = "dentalos1_message_inbox_v1";
+export const INBOX_EVENT = "dentalos1-message-inbox-updated";
+
+export function getInbox(): InboxMessage[] {
+  try {
+    const parsed = JSON.parse(clinicStorage.getItem(INBOX_KEY) || "[]");
+    return (Array.isArray(parsed) ? (parsed as InboxMessage[]) : []).sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
+  } catch {
+    return [];
+  }
+}
+
+export function markInboxRead(ids: string[]) {
+  if (ids.length === 0) return;
+  const set = new Set(ids);
+  const list = getInbox();
+  if (!list.some((m) => set.has(m.id) && !m.read)) return;
+  clinicStorage.setItem(INBOX_KEY, JSON.stringify(list.map((m) => (set.has(m.id) ? { ...m, read: true } : m))));
+  window.dispatchEvent(new Event(INBOX_EVENT));
+}
+
+/** Last 10 digits, to match "+8801711234891", "01711-234891" and "1711234891" as the same number. */
+export function phoneKey(phone: string): string {
+  return (phone || "").replace(/\D/g, "").slice(-10);
 }

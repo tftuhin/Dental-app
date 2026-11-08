@@ -9,6 +9,7 @@ import { CrossTabSync } from "./cross-tab-sync";
 import { LateNoShowWatch } from "./late-no-show-watch";
 import { ClinicDataGate } from "./clinic-data-gate";
 import { RecallWatch } from "@/components/messaging/recall-approvals";
+import { InboxWatch } from "@/components/messaging/inbox";
 import { setBookingSlug } from "@/lib/messaging-store";
 
 interface DashboardShellProps {
@@ -40,6 +41,7 @@ export function DashboardShell({ clinicName, clinicId, clinicSlug, children }: D
               <OnlineBookingSync />
               <LateNoShowWatch />
               <RecallWatch />
+              <InboxWatch />
               {children}
             </ClinicDataGate>
           </div>
