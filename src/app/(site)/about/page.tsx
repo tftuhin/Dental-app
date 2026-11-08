@@ -31,8 +31,8 @@ export default function AboutPage() {
     <>
       <PageIntro
         eyebrow="About us"
-        title="AI-powered software for the way dental chambers here actually work"
-        intro={`${COMPANY.product} is AI-powered operation software for dental clinics in Bangladesh, from single-chair chambers to busy practices with several doctors.`}
+        title="Clinic software that fits the way dental chambers here actually work"
+        intro={`${COMPANY.product} runs the day-to-day of dental clinics in Bangladesh, from single-chair chambers to busy practices with several doctors, with AI built in for the doctor.`}
       />
       <Section>
         <div className="mx-auto max-w-3xl space-y-5 text-lg leading-relaxed text-slate-700">
@@ -49,8 +49,8 @@ export default function AboutPage() {
           </p>
           <p>
             {COMPANY.product} sits in between. It covers what a dental clinic does in a day, from the booking to the reminder that brings the
-            patient back, and adds an AI assistant that helps the doctor think through the case and write the prescription. The aim is
-            simple: make every chamber AI-powered, without taking the decisions away from the dentist.
+            patient back, with an AI assistant built in to help the doctor think through the case and write the prescription, without
+            taking the decisions away from the dentist.
           </p>
         </div>
       </Section>

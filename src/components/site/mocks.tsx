@@ -411,3 +411,18 @@ export function RxDraftMock() {
     </div>
   );
 }
+
+/** Small floating card: the AI has drafted the prescription. */
+export function AiDraftCard({ className = "" }: { className?: string }) {
+  return (
+    <div className={`flex w-60 items-center gap-3 rounded-2xl bg-white p-3 shadow-xl ring-1 ring-slate-200 ${className}`}>
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-300 to-amber-500 text-slate-950">
+        <Sparkles className="h-5 w-5" />
+      </span>
+      <span>
+        <span className="block text-[12px] font-semibold text-slate-900">Prescription drafted by AI</span>
+        <span className="text-[10px] text-slate-500">Allergy-checked · ready for the doctor</span>
+      </span>
+    </div>
+  );
+}

@@ -24,14 +24,14 @@ import {
 } from "lucide-react";
 import { ToothIcon } from "@/components/icons/dental-icons";
 import { CtaBand, Eyebrow, PrimaryButton, SecondaryButton, Section, SectionHeading } from "@/components/site/blocks";
-import { CollectionsMini, CopilotMock, MockWindow, PaidCard, PhoneMock, ReminderApprovalCard, RxDraftMock } from "@/components/site/mocks";
+import { AiDraftCard, CollectionsMini, CopilotMock, MockWindow, PaidCard, PhoneMock, QueueMock, ReminderApprovalCard } from "@/components/site/mocks";
 import { Reveal, VisitShowcase } from "@/components/site/showcase";
 import { COMPANY } from "@/site/config";
 
 export const metadata: Metadata = {
   title: { absolute: `${COMPANY.product}: AI-powered dental clinic operation software` },
   description:
-    "Make your chamber AI-powered. DentalOS1 is AI-powered operation software for dental clinics in Bangladesh: an AI copilot in the chair, prescriptions drafted from the visit, and the queue, consent forms, billing and patient reminders in one place.",
+    "Operation software for dental clinics in Bangladesh: the queue, charts, consent forms, prescriptions, billing and patient reminders in one place, with an AI copilot and AI prescription drafts built in.",
 };
 
 const NUMBERS = [
@@ -85,12 +85,12 @@ export default function HomePage() {
           <div className="space-y-8">
             <Eyebrow light>AI-powered dental clinic operation software</Eyebrow>
             <h1 className="font-display text-5xl font-extrabold leading-[1.02] sm:text-6xl lg:text-7xl">
-              Make your chamber{" "}
-              <span className="whitespace-nowrap bg-gradient-to-r from-amber-200 via-teal-200 to-teal-400 bg-clip-text text-transparent">AI-powered.</span>
+              Your whole chamber,{" "}
+              <span className="bg-gradient-to-r from-teal-300 via-cyan-200 to-teal-400 bg-clip-text text-transparent">from booking to bill.</span>
             </h1>
             <p className="max-w-xl text-lg leading-relaxed text-slate-300 sm:text-xl">
-              An AI copilot that thinks through the case with you, prescriptions drafted from the visit, and the whole clinic running in one
-              place: queue, chart, consent, billing and reminders. Built for how chambers in Bangladesh really work.
+              The queue, the chart, the consent form, the prescription, the bill and the reminder that brings the patient back, all in one
+              place, with AI built in where it helps the doctor most. Made for how chambers in Bangladesh really work.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <PrimaryButton href="/contact" light>
@@ -102,7 +102,7 @@ export default function HomePage() {
               </SecondaryButton>
             </div>
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-400">
-              {["AI copilot in the chair", "Prescriptions drafted by AI", "Runs in any browser"].map((t) => (
+              {["Booking to receipt in one place", "AI copilot built in", "Runs in any browser"].map((t) => (
                 <li key={t} className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-teal-400" />
                   {t}
@@ -113,11 +113,11 @@ export default function HomePage() {
 
           <div className="relative mx-auto w-full max-w-xl lg:mx-0">
             <div aria-hidden className="absolute inset-6 rounded-[2rem] bg-teal-400/20 blur-2xl" />
-            <MockWindow title="app · Visit · Clinical Copilot" className="relative">
-              <CopilotMock />
+            <MockWindow title="app · Appointments" className="relative">
+              <QueueMock />
             </MockWindow>
-            <div className="site-float absolute -bottom-24 -left-8 hidden sm:block" style={{ animationDelay: "1.5s" }}>
-              <ReminderApprovalCard />
+            <div className="site-float absolute -bottom-10 -left-6 hidden sm:block" style={{ animationDelay: "1.5s" }}>
+              <AiDraftCard />
             </div>
             <div className="site-float absolute -right-6 -top-8 hidden sm:block">
               <PaidCard />
@@ -149,62 +149,6 @@ export default function HomePage() {
         </Reveal>
         <div className="mt-14">
           <VisitShowcase />
-        </div>
-      </Section>
-
-      {/* ─── AI ─── */}
-      <Section className="overflow-hidden bg-slate-950 text-white">
-        <div aria-hidden className="site-grid absolute inset-0 opacity-70" />
-        <div aria-hidden className="absolute -right-32 top-10 h-[28rem] w-[28rem] rounded-full bg-amber-400/15 blur-3xl" />
-        <div aria-hidden className="absolute -left-32 bottom-0 h-[24rem] w-[24rem] rounded-full bg-teal-500/20 blur-3xl" />
-        <div className="grid items-center gap-14 lg:grid-cols-[1fr_1.1fr]">
-          <Reveal>
-            <SectionHeading
-              light
-              eyebrow="AI assistant"
-              title={
-                <>
-                  A second opinion in the chair.{" "}
-                  <span className="bg-gradient-to-r from-amber-200 to-teal-300 bg-clip-text text-transparent">The decision stays yours.</span>
-                </>
-              }
-              intro="The AI reads the consultation you've just written and suggests what to consider. When you reach the prescription pad, it drafts the prescription from the same visit for you to check and sign."
-            />
-            <div className="mt-8 space-y-3">
-              {[
-                [Brain, "Clinical Copilot", "Differential diagnoses with ICD-10 codes, tests to order, procedures and allergy-checked medicines."],
-                [Sparkles, "Prescription drafts", "Built from the visit in your clinic's brands and 1+0+1 dosing, with the reasoning shown."],
-                [UserCheck, "Doctor in charge", "Nothing enters the record or the prescription until the doctor adds or signs it."],
-              ].map(([Icon, t, d]) => {
-                const I = Icon as typeof Brain;
-                return (
-                  <div key={t as string} className="flex gap-4 rounded-2xl bg-white/[0.04] p-4 ring-1 ring-white/10">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-300 to-amber-500 text-slate-950">
-                      <I className="h-5 w-5" />
-                    </span>
-                    <span>
-                      <span className="block font-semibold text-white">{t as string}</span>
-                      <span className="text-sm text-slate-400">{d as string}</span>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-8">
-              <PrimaryButton href="/ai" light>
-                Explore the AI assistant
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </PrimaryButton>
-            </div>
-          </Reveal>
-          <Reveal delay={120}>
-            <div className="relative">
-              <div aria-hidden className="absolute inset-6 rounded-[2rem] bg-amber-300/20 blur-2xl" />
-              <MockWindow title="app · Prescription" className="relative">
-                <RxDraftMock />
-              </MockWindow>
-            </div>
-          </Reveal>
         </div>
       </Section>
 
@@ -312,32 +256,59 @@ export default function HomePage() {
         </Link>
       </Section>
 
-      {/* ─── Local ─── */}
+      {/* ─── AI ─── */}
       <Section className="overflow-hidden bg-slate-950 text-white">
         <div aria-hidden className="site-grid absolute inset-0 opacity-70" />
-        <div aria-hidden className="absolute -right-10 top-1/2 -translate-y-1/2 select-none font-display text-[22rem] font-extrabold leading-none text-white/[0.03]">
-          ৳
-        </div>
-        <div className="grid gap-14 lg:grid-cols-[1fr_1.4fr]">
+        <div aria-hidden className="absolute -right-32 top-10 h-[28rem] w-[28rem] rounded-full bg-amber-400/15 blur-3xl" />
+        <div aria-hidden className="absolute -left-32 bottom-0 h-[24rem] w-[24rem] rounded-full bg-teal-500/20 blur-3xl" />
+        <div className="grid items-center gap-14 lg:grid-cols-[1fr_1.1fr]">
           <Reveal>
             <SectionHeading
               light
-              eyebrow="Made for clinics here"
-              title="The small details foreign software gets wrong"
-              intro="Most clinic software is written for clinics in other countries and then translated. DentalOS1 starts from how a chamber in Dhaka, Chattogram or Sylhet runs its day."
+              eyebrow="AI assistant"
+              title={
+                <>
+                  Make your chamber{" "}
+                  <span className="whitespace-nowrap bg-gradient-to-r from-amber-200 to-teal-300 bg-clip-text text-transparent">AI-powered.</span>
+                </>
+              }
+              intro="AI is built into the doctor's side of DentalOS1. It reads the consultation you've just written and suggests what to consider, then drafts the prescription from the same visit. You check it, change it and sign it. The decision stays yours."
             />
+            <div className="mt-8 space-y-3">
+              {[
+                [Brain, "Clinical Copilot", "Differential diagnoses with ICD-10 codes, tests to order, procedures and allergy-checked medicines."],
+                [Sparkles, "Prescription drafts", "Built from the visit in your clinic's brands and 1+0+1 dosing, with the reasoning shown."],
+                [UserCheck, "Doctor in charge", "Nothing enters the record or the prescription until the doctor adds or signs it."],
+              ].map(([Icon, t, d]) => {
+                const I = Icon as typeof Brain;
+                return (
+                  <div key={t as string} className="flex gap-4 rounded-2xl bg-white/[0.04] p-4 ring-1 ring-white/10">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-300 to-amber-500 text-slate-950">
+                      <I className="h-5 w-5" />
+                    </span>
+                    <span>
+                      <span className="block font-semibold text-white">{t as string}</span>
+                      <span className="text-sm text-slate-400">{d as string}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-8">
+              <PrimaryButton href="/ai" light>
+                Explore the AI assistant
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </PrimaryButton>
+            </div>
           </Reveal>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {LOCAL.map((l, i) => (
-              <Reveal key={l.title} delay={i * 70}>
-                <div className="h-full rounded-2xl bg-white/[0.04] p-6 ring-1 ring-white/10 transition hover:bg-white/[0.07]">
-                  <l.icon className="h-6 w-6 text-teal-300" />
-                  <h3 className="mt-3 font-semibold text-white">{l.title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-400">{l.text}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
+          <Reveal delay={120}>
+            <div className="relative">
+              <div aria-hidden className="absolute inset-6 rounded-[2rem] bg-amber-300/20 blur-2xl" />
+              <MockWindow title="app · Visit · Clinical Copilot" className="relative">
+                <CopilotMock />
+              </MockWindow>
+            </div>
+          </Reveal>
         </div>
       </Section>
 
@@ -375,6 +346,35 @@ export default function HomePage() {
               </div>
             </div>
           </Reveal>
+        </div>
+      </Section>
+
+      {/* ─── Local ─── */}
+      <Section className="overflow-hidden bg-slate-950 text-white">
+        <div aria-hidden className="site-grid absolute inset-0 opacity-70" />
+        <div aria-hidden className="absolute -right-10 top-1/2 -translate-y-1/2 select-none font-display text-[22rem] font-extrabold leading-none text-white/[0.03]">
+          ৳
+        </div>
+        <div className="grid gap-14 lg:grid-cols-[1fr_1.4fr]">
+          <Reveal>
+            <SectionHeading
+              light
+              eyebrow="Made for clinics here"
+              title="The small details foreign software gets wrong"
+              intro="Most clinic software is written for clinics in other countries and then translated. DentalOS1 starts from how a chamber in Dhaka, Chattogram or Sylhet runs its day."
+            />
+          </Reveal>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {LOCAL.map((l, i) => (
+              <Reveal key={l.title} delay={i * 70}>
+                <div className="h-full rounded-2xl bg-white/[0.04] p-6 ring-1 ring-white/10 transition hover:bg-white/[0.07]">
+                  <l.icon className="h-6 w-6 text-teal-300" />
+                  <h3 className="mt-3 font-semibold text-white">{l.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-400">{l.text}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </Section>
 
