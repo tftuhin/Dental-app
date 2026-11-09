@@ -1,4 +1,4 @@
-// Extra fields DentalOS1 keeps on the signed-in user (set in src/auth.ts callbacks).
+// Extra fields DentalOSbd keeps on the signed-in user (set in src/auth.ts callbacks).
 import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {

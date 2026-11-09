@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// DENTALOS1 — Staff access (browser side)
+// DENTALOSBD — Staff access (browser side)
 // The server decides what each person receives (see
 // src/lib/server/access-control.ts). Records a user may only partly see
 // arrive with a "_view" marker:

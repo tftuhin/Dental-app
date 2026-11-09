@@ -100,7 +100,7 @@ export function isValidInboundToken(clinicId: string, token: string): boolean {
 
 const INBOUND_PATH = "/api/messages/inbound";
 
-/** Point the gateway's "SMS received" events at this clinic's inbox (replacing earlier DentalOS1 hooks). */
+/** Point the gateway's "SMS received" events at this clinic's inbox (replacing earlier DentalOSbd hooks). */
 export async function registerInboundWebhook(g: AndroidGateway, origin: string, clinicId: string): Promise<{ ok: boolean; error?: string }> {
   try {
     await removeInboundWebhooks(g);

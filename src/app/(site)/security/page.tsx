@@ -6,7 +6,7 @@ import { COMPANY } from "@/site/config";
 
 export const metadata: Metadata = {
   title: "Security and data",
-  description: "How DentalOS1 keeps each clinic's patient records separate, private and available.",
+  description: "How DentalOSbd keeps each clinic's patient records separate, private and available.",
 };
 
 const POINTS = [
@@ -58,7 +58,7 @@ export default function SecurityPage() {
       <PageIntro
         eyebrow="Security and data"
         title="Your patients trust you with their records. We take that seriously."
-        intro="Here is, in plain words, how DentalOS1 looks after the information your clinic keeps."
+        intro="Here is, in plain words, how DentalOSbd looks after the information your clinic keeps."
       />
       <Section>
         <div className="grid gap-5 sm:grid-cols-2">
@@ -75,8 +75,8 @@ export default function SecurityPage() {
         <div className="mx-auto max-w-3xl space-y-4">
           <h2 className="font-display text-3xl font-extrabold text-slate-900">Who owns the data?</h2>
           <p className="leading-relaxed text-slate-600">
-            Your clinic does. We store and process patient records on your behalf, only to run DentalOS1 for you. We don&apos;t sell them, we
-            don&apos;t use them for advertising, and we don&apos;t share them except where the law requires it. If you stop using DentalOS1, you
+            Your clinic does. We store and process patient records on your behalf, only to run DentalOSbd for you. We don&apos;t sell them, we
+            don&apos;t use them for advertising, and we don&apos;t share them except where the law requires it. If you stop using DentalOSbd, you
             can ask us for a copy of your records.
           </p>
           <p className="leading-relaxed text-slate-600">

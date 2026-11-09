@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { importOnlineBookings } from "@/lib/online-bookings";
-import { toastWithLink } from "@/lib/notifications-store";
+import { announceOnce, toastWithLink } from "@/lib/notifications-store";
 
 const POLL_MS = 60_000;
 
@@ -23,6 +23,8 @@ export function OnlineBookingSync() {
       const added = await importOnlineBookings();
       if (cancelled) return;
       for (const { appointment, isNewPatient, movedFromRequested, request } of added) {
+        // Another tab or computer may have announced it already
+        if (!announceOnce(`booking:${request.id}`)) continue;
         const when = `${appointment.date} at ${appointment.time}`;
         toastWithLink(`/appointments?date=${appointment.date}`, () => toast.success(`New online booking: ${appointment.patient}`, {
           description: [

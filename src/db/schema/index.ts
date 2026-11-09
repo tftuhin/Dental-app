@@ -1,5 +1,5 @@
 // ============================================================
-// DENTALOS1 — COMPLETE DATABASE SCHEMA
+// DENTALOSBD — COMPLETE DATABASE SCHEMA
 // Phase 1: Full Neon PostgreSQL + Drizzle ORM Schema
 // ============================================================
 

@@ -7,7 +7,7 @@ import { demoRequests } from "@/db/schema";
 import { PageHeader } from "@/components/layout/page-header";
 
 // Demo, quote and question requests sent from the public website's contact
-// form. Only for the DentalOS1 team (super_admin), not for clinics.
+// form. Only for the DentalOSbd team (super_admin), not for clinics.
 
 export const dynamic = "force-dynamic";
 

@@ -23,7 +23,7 @@ const DEMO_USERS = [
 
 if (DEMO_MODE) {
   console.warn(
-    "⚠️ [DentalOS1 Auth] No DATABASE_URL: local demo login enabled (dr.smith@dentai.com, dr.tanvir@dentai.com, reception@dentai.com)."
+    "⚠️ [DentalOSbd Auth] No DATABASE_URL: local demo login enabled (dr.smith@dentai.com, dr.tanvir@dentai.com, reception@dentai.com)."
   );
 }
 
@@ -41,7 +41,7 @@ const AUTH_SECRET =
   (process.env.NODE_ENV !== "production" || isBuildStep ? "dentalos1-local-development-only-secret-0000" : undefined);
 
 if (!AUTH_SECRET) {
-  console.error("[DentalOS1 Auth] AUTH_SECRET is not set. Logins are disabled until it is configured.");
+  console.error("[DentalOSbd Auth] AUTH_SECRET is not set. Logins are disabled until it is configured.");
 }
 
 /** Google sign-in is offered only when its credentials are configured. */

@@ -58,7 +58,7 @@ export function IntegrationsSettingsTab() {
     setTimeout(() => {
       setIsSendingTestSms(false);
       toast.success(
-        `Test SMS dispatched to ${testPhoneNumber} via DentalOS1 Cloud Gateway! Sender Name: [${settings.smsSenderName || "DHAKA-DENTAL"}]`
+        `Test SMS dispatched to ${testPhoneNumber} via DentalOSbd Cloud Gateway! Sender Name: [${settings.smsSenderName || "DHAKA-DENTAL"}]`
       );
     }, 900);
   };
@@ -76,7 +76,7 @@ export function IntegrationsSettingsTab() {
     setTimeout(() => {
       setIsSendingTestEmail(false);
       toast.success(
-        `Test email dispatched to ${testEmailAddress} via DentalOS1 High-Deliverability Mail Server!`
+        `Test email dispatched to ${testEmailAddress} via DentalOSbd High-Deliverability Mail Server!`
       );
     }, 900);
   };
@@ -97,7 +97,7 @@ export function IntegrationsSettingsTab() {
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Turn clinic automation on or off. All messaging carriers, email pipelines, and clinical AI models are managed automatically by DentalOS1.
+            Turn clinic automation on or off. All messaging carriers, email pipelines, and clinical AI models are managed automatically by DentalOSbd.
           </p>
         </div>
         <Button
@@ -132,7 +132,7 @@ export function IntegrationsSettingsTab() {
                     : "bg-slate-100 text-slate-500 border-slate-300 dark:bg-slate-900"
                 }`}
               >
-                {settings.aiEnabled ? "Active · DentalOS1 Neural Engine" : "Service Disabled"}
+                {settings.aiEnabled ? "Active · DentalOSbd Neural Engine" : "Service Disabled"}
               </Badge>
               <Switch
                 checked={settings.aiEnabled}

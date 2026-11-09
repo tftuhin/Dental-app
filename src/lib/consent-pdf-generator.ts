@@ -1,5 +1,5 @@
 // ============================================================
-// DENTALOS1 — Printable consent form (A4)
+// DENTALOSBD — Printable consent form (A4)
 // Clinic letterhead, patient details, the filled consent text, and
 // signature blocks for the patient (or guardian) and the doctor.
 // ============================================================

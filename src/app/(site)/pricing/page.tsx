@@ -6,7 +6,7 @@ import { Reveal } from "@/components/site/showcase";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Tell us about your clinic and we'll send a quote for DentalOS1, based on your doctors, chairs and what you need.",
+  description: "Tell us about your clinic and we'll send a quote for DentalOSbd, based on your doctors, chairs and what you need.",
 };
 
 const INCLUDED = [
@@ -85,7 +85,7 @@ export default function PricingPage() {
         <div aria-hidden className="site-grid absolute inset-0 opacity-70" />
         <div className="grid gap-14 lg:grid-cols-2">
           <Reveal>
-            <SectionHeading light eyebrow="Included" title="What DentalOS1 includes" intro="Every part of the system described on the features page." />
+            <SectionHeading light eyebrow="Included" title="What DentalOSbd includes" intro="Every part of the system described on the features page." />
             <CheckList items={INCLUDED} light className="mt-8" />
           </Reveal>
           <Reveal delay={100}>

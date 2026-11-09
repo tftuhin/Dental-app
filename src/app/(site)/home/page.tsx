@@ -69,7 +69,7 @@ const DEVICE_USES = [
 const FAQ_TEASER = [
   {
     q: "Do we need to install anything?",
-    a: "No. DentalOS1 runs in Chrome, Edge, Safari or any modern browser, on the laptops, desktops, tablets and phones you already have. Each staff member signs in with their own account.",
+    a: "No. DentalOSbd runs in Chrome, Edge, Safari or any modern browser, on the laptops, desktops, tablets and phones you already have. Each staff member signs in with their own account.",
   },
   {
     q: "Can reception and the doctors use it at the same time?",
@@ -169,11 +169,11 @@ export default function HomePage() {
           <div className="grid grid-cols-2 bg-slate-50 text-sm font-semibold">
             <div className="flex items-center gap-2 px-6 py-4 text-slate-500">
               <X className="h-4 w-4 text-red-400" />
-              Without DentalOS1
+              Without DentalOSbd
             </div>
             <div className="flex items-center gap-2 bg-teal-700 px-6 py-4 text-white">
               <Check className="h-4 w-4" />
-              With DentalOS1
+              With DentalOSbd
             </div>
           </div>
           {BEFORE_AFTER.map(([before, after], i) => (
@@ -194,7 +194,7 @@ export default function HomePage() {
             <SectionHeading
               eyebrow="Online booking"
               title="Bookings from wherever patients find you"
-              intro="Put your DentalOS1 booking page on your Facebook page's Book now button, your Google Business Profile and your own website. Patients pick a date and time, and the booking drops straight into your queue."
+              intro="Put your DentalOSbd booking page on your Facebook page's Book now button, your Google Business Profile and your own website. Patients pick a date and time, and the booking drops straight into your queue."
             />
             <ul className="space-y-3 text-[15px] text-slate-700">
               {[
@@ -308,7 +308,7 @@ export default function HomePage() {
                   <span className="whitespace-nowrap bg-gradient-to-r from-amber-200 to-teal-300 bg-clip-text text-transparent">AI-powered.</span>
                 </>
               }
-              intro="AI is built into the doctor's side of DentalOS1. It reads the consultation you've just written and suggests what to consider, then drafts the prescription from the same visit. You check it, change it and sign it. The decision stays yours."
+              intro="AI is built into the doctor's side of DentalOSbd. It reads the consultation you've just written and suggests what to consider, then drafts the prescription from the same visit. You check it, change it and sign it. The decision stays yours."
             />
             <div className="mt-8 space-y-3">
               {[
@@ -355,7 +355,7 @@ export default function HomePage() {
             <SectionHeading
               eyebrow="Patients who come back"
               title="The second sitting is where treatment gets lost"
-              intro="When the prescription is done, the doctor notes what comes next and roughly when: the crown after the root canal, scaling in six months. If the patient hasn't returned by then, DentalOS1 drafts a reminder and asks the doctor to check it before it goes out."
+              intro="When the prescription is done, the doctor notes what comes next and roughly when: the crown after the root canal, scaling in six months. If the patient hasn't returned by then, DentalOSbd drafts a reminder and asks the doctor to check it before it goes out."
             />
             <ol className="mt-8 space-y-3">
               {[
@@ -392,7 +392,7 @@ export default function HomePage() {
             center
             eyebrow="Any device"
             title="Laptop at the desk. Tablet in the chair. Phone on the go."
-            intro="DentalOS1 runs in the web browser, so it works on whatever your clinic already has: a Windows or Mac laptop, a desktop at reception, an Android tablet or iPad, or a phone. Nothing to install, and every device sees the same records."
+            intro="DentalOSbd runs in the web browser, so it works on whatever your clinic already has: a Windows or Mac laptop, a desktop at reception, an Android tablet or iPad, or a phone. Nothing to install, and every device sees the same records."
           />
         </Reveal>
         <Reveal delay={120} className="mt-14">
@@ -421,7 +421,7 @@ export default function HomePage() {
               light
               eyebrow="Made for clinics here"
               title="The small details foreign software gets wrong"
-              intro="Most clinic software is written for clinics in other countries and then translated. DentalOS1 starts from how a chamber in Dhaka, Chattogram or Sylhet runs its day."
+              intro="Most clinic software is written for clinics in other countries and then translated. DentalOSbd starts from how a chamber in Dhaka, Chattogram or Sylhet runs its day."
             />
           </Reveal>
           <div className="grid gap-4 sm:grid-cols-2">

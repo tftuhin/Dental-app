@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// DENTALOS1 — Choosing patients for a campaign
+// DENTALOSBD — Choosing patients for a campaign
 // Filters patients by last visit, health issues, treatment received,
 // demographics, dues, birthdays and pending recalls.
 // ============================================================

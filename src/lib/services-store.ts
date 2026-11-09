@@ -3,11 +3,11 @@
 import { clinicStorage } from "@/lib/clinic-storage";
 
 /**
- * DentalOS1 Commercial Cloud Services & Automation Settings Store
+ * DentalOSbd Commercial Cloud Services & Automation Settings Store
  * 
  * Manages user-facing toggles for cloud-managed clinic services (SMS, Mail, AI, Backup).
  * In a commercial deployment, all third-party vendors (AI LLM gateways, SMS carriers,
- * SMTP mail pipelines) are managed seamlessly by DentalOS1 infrastructure.
+ * SMTP mail pipelines) are managed seamlessly by DentalOSbd infrastructure.
  * 
  * The clinic user simply turns features ON or OFF without needing API keys or vendor configurations.
  */

@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// DENTALOS1 — Clinic data storage
+// DENTALOSBD — Clinic data storage
 //
 // Every store reads and writes through `clinicStorage`, which has the same
 // synchronous getItem/setItem shape as localStorage. Where it keeps the data

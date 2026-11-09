@@ -3,7 +3,7 @@ import { CtaBand, PageIntro, Section } from "@/components/site/blocks";
 
 export const metadata: Metadata = {
   title: "Questions and answers",
-  description: "Answers to the questions dental clinics ask about DentalOS1: setup, computers, internet, SMS, WhatsApp, Bangla, payments and patient records.",
+  description: "Answers to the questions dental clinics ask about DentalOSbd: setup, computers, internet, SMS, WhatsApp, Bangla, payments and patient records.",
 };
 
 const GROUPS: Array<{ title: string; items: Array<{ q: string; a: string }> }> = [
@@ -12,7 +12,7 @@ const GROUPS: Array<{ title: string; items: Array<{ q: string; a: string }> }> =
     items: [
       {
         q: "Do we need to install anything?",
-        a: "No. DentalOS1 runs in a web browser such as Chrome, Edge or Safari, so it works on laptops, desktops, tablets and phones. Any reasonably recent device at the clinic will do.",
+        a: "No. DentalOSbd runs in a web browser such as Chrome, Edge or Safari, so it works on laptops, desktops, tablets and phones. Any reasonably recent device at the clinic will do.",
       },
       {
         q: "How long does it take to set up?",
@@ -24,7 +24,7 @@ const GROUPS: Array<{ title: string; items: Array<{ q: string; a: string }> }> =
       },
       {
         q: "Is there a mobile app?",
-        a: "Not a separate one. DentalOS1 works in the phone's browser, which is enough for checking the day's queue or a patient's file away from the desk.",
+        a: "Not a separate one. DentalOSbd works in the phone's browser, which is enough for checking the day's queue or a patient's file away from the desk.",
       },
     ],
   },
@@ -66,7 +66,7 @@ const GROUPS: Array<{ title: string; items: Array<{ q: string; a: string }> }> =
     items: [
       {
         q: "Can we send SMS from the clinic's own number?",
-        a: "Yes, two ways. Pair the clinic's phone with the computer through Windows Phone Link, and DentalOS1 opens each message there ready to send. Or keep a spare Android phone at the clinic with an SMS gateway app installed, and messages go out automatically from its SIM. Replies to that phone come into DentalOS1.",
+        a: "Yes, two ways. Pair the clinic's phone with the computer through Windows Phone Link, and DentalOSbd opens each message there ready to send. Or keep a spare Android phone at the clinic with an SMS gateway app installed, and messages go out automatically from its SIM. Replies to that phone come into DentalOSbd.",
       },
       {
         q: "Does it work with WhatsApp?",
@@ -74,11 +74,11 @@ const GROUPS: Array<{ title: string; items: Array<{ q: string; a: string }> }> =
       },
       {
         q: "Can messages be in Bangla?",
-        a: "Yes. Write templates in Bangla or English. DentalOS1 counts the characters so you know how many SMS a Bangla message will use, since Bangla SMS hold fewer characters.",
+        a: "Yes. Write templates in Bangla or English. DentalOSbd counts the characters so you know how many SMS a Bangla message will use, since Bangla SMS hold fewer characters.",
       },
       {
         q: "Will patients get messages we haven't checked?",
-        a: "Not reminders. When a patient misses a planned treatment, DentalOS1 drafts the message and waits for the doctor to read and approve it. Campaigns go out only when someone at the clinic sends them.",
+        a: "Not reminders. When a patient misses a planned treatment, DentalOSbd drafts the message and waits for the doctor to read and approve it. Campaigns go out only when someone at the clinic sends them.",
       },
     ],
   },
@@ -87,7 +87,7 @@ const GROUPS: Array<{ title: string; items: Array<{ q: string; a: string }> }> =
     items: [
       {
         q: "Who can see our patients' records?",
-        a: "Only people with a sign-in for your clinic. Each clinic's records are kept apart, and staff at other clinics using DentalOS1 can't see yours.",
+        a: "Only people with a sign-in for your clinic. Each clinic's records are kept apart, and staff at other clinics using DentalOSbd can't see yours.",
       },
       {
         q: "What if a computer breaks or is stolen?",

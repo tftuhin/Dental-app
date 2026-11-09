@@ -1,4 +1,4 @@
-// Illustrations of DentalOS1 screens for the website (drawn in HTML, not screenshots).
+// Illustrations of DentalOSbd screens for the website (drawn in HTML, not screenshots).
 // Names and numbers are made up.
 
 // ─── Any device ─────────────────────────────────────────────

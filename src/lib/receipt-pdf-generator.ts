@@ -1,5 +1,5 @@
 /**
- * Money Receipt / Cash Memo PDF & Print Generator for DentalOS1
+ * Money Receipt / Cash Memo PDF & Print Generator for DentalOSbd
  * 
  * Generates an official 2-copy Money Receipt on one A4 landscape sheet:
  * - Left half: PATIENT COPY
@@ -259,7 +259,7 @@ function renderReceiptSlip(
 
       <!-- Micro Notice -->
       <div class="slip-notice">
-        Computer-generated official money receipt under DentalOS1. Dental restorations carry standard clinic warranty. Keep this receipt for corporate insurance & tax filing.
+        Computer-generated official money receipt under DentalOSbd. Dental restorations carry standard clinic warranty. Keep this receipt for corporate insurance & tax filing.
       </div>
     </div>
   `;

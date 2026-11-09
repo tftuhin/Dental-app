@@ -6,7 +6,7 @@ import { getClinicSetup } from "@/lib/clinic-setup-store";
 import { clinicCodeOf, nextPatientId, validatePattern } from "@/lib/patient-id";
 
 /**
- * DentalOS1 Centralized Patient Demographics & EHR Store
+ * DentalOSbd Centralized Patient Demographics & EHR Store
  * 
  * Manages full patient demographics, contact details, medical alerts,
  * and clinical tags with browser localStorage persistence and cross-component reactivity.

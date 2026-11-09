@@ -1,5 +1,5 @@
 // ============================================================
-// DENTALOS1 — Patient ID formats
+// DENTALOSBD — Patient ID formats
 // A format is a pattern of fixed text and tokens, e.g. "DENT-{YYYY}-{SEQ:5}".
 // The clinic picks a ready-made method or writes its own pattern in
 // Settings → Services & Patient ID.

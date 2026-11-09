@@ -1,5 +1,5 @@
 // ============================================================
-// DENTALOS1 — Medicine catalog (browser side)
+// DENTALOSBD — Medicine catalog (browser side)
 // The ~1,500-brand catalog is NOT bundled into pages (it was ~800 KB of
 // JavaScript). It is fetched once from /api/medicines and cached in this
 // browser's localStorage; it is the same for every clinic.

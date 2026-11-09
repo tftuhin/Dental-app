@@ -128,7 +128,7 @@ export function SmsSendingCard({ mode, onModeChange }: { mode: SmsMode; onModeCh
           <ol className="list-decimal space-y-1 rounded-lg border bg-muted/30 p-3 pl-6 text-[11px]">
             <li>On the clinic computer, open the Windows <b>Phone Link</b> app and pair the clinic&apos;s phone (Android works best).</li>
             <li>Allow Phone Link to send messages when asked.</li>
-            <li>DentalOS1 will then open each SMS in Phone Link, ready to send from your phone&apos;s SIM.</li>
+            <li>DentalOSbd will then open each SMS in Phone Link, ready to send from your phone&apos;s SIM.</li>
           </ol>
         )}
 
@@ -143,7 +143,7 @@ export function SmsSendingCard({ mode, onModeChange }: { mode: SmsMode; onModeCh
                 .
               </li>
               <li>In the app, turn on <b>Cloud server</b> and allow SMS permissions. It shows a username and password.</li>
-              <li>Enter them below. Keep the phone charged and online. Use a SIM only for the clinic: every SMS it receives comes into DentalOS1.</li>
+              <li>Enter them below. Keep the phone charged and online. Use a SIM only for the clinic: every SMS it receives comes into DentalOSbd.</li>
             </ol>
             {isOwner ? (
               <div className="grid gap-2 sm:grid-cols-3">

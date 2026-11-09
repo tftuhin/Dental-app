@@ -3,7 +3,7 @@
 import { clinicStorage } from "@/lib/clinic-storage";
 
 // ============================================================
-// DENTALOS1 — Procedure, Examination & Fee Catalog
+// DENTALOSBD — Procedure, Examination & Fee Catalog
 // The single price list used by the Examination & Procedure
 // stage and by Billing. Edited from Settings → Procedures & Fees.
 // Mirrors the `dental_procedures_catalog` table for a later DB move.

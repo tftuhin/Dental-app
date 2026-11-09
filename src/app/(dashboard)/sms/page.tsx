@@ -49,8 +49,8 @@ export default function SmsPage() {
 
   // Make sure overdue plans have their reminders drafted before showing the list
   useEffect(() => {
-    refreshRecalls();
-  }, []);
+    if (canApprove) refreshRecalls();
+  }, [canApprove]);
 
   const awaiting = recalls.filter((r) => r.status === "awaiting_approval");
   // A link can open a tab (?tab=inbox); otherwise reminders first when some are waiting

@@ -132,7 +132,7 @@ export function BookingPortal({ clinic, minDate, defaultDate, maxDate }: Booking
             <div className="flex h-4 w-4 items-center justify-center rounded bg-primary text-white">
               <ToothIcon className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />
             </div>
-            <span>DentalOS1</span>
+            <span>DentalOSbd</span>
             <span className="text-muted-foreground font-normal">· Patient Appointment Portal</span>
           </div>
         </div>

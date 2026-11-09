@@ -100,7 +100,7 @@ export function MessagesSettingsTab() {
       toast.error("Enter your WhatsApp number first.");
       return;
     }
-    const text = encodeURIComponent(`Test from DentalOS1: WhatsApp messages to patients will open in this account (${clinicMessageValues().clinic_name}).`);
+    const text = encodeURIComponent(`Test from DentalOSbd: WhatsApp messages to patients will open in this account (${clinicMessageValues().clinic_name}).`);
     const url = settings.whatsappOpenWith === "app" ? `whatsapp://send?phone=${n}&text=${text}` : `https://web.whatsapp.com/send?phone=${n}&text=${text}`;
     if (url.startsWith("whatsapp:")) window.location.href = url;
     else window.open(url, "dentalos1-whatsapp");

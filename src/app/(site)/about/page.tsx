@@ -65,7 +65,7 @@ export default function AboutPage() {
           ))}
         </div>
       </Section>
-      <CtaBand title="We'd like to hear how your clinic works" text="Tell us what slows your team down. Even if DentalOS1 isn't right for you yet, it helps us build the next part." />
+      <CtaBand title="We'd like to hear how your clinic works" text="Tell us what slows your team down. Even if DentalOSbd isn't right for you yet, it helps us build the next part." />
     </>
   );
 }

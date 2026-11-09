@@ -56,7 +56,7 @@ export function PrivacySettingsTab() {
           {local && (
             <p className="flex items-start gap-1.5 text-amber-700">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              This copy of DentalOS1 has no database, so these rules can&apos;t be enforced here. They apply on the clinic&apos;s live system.
+              This copy of DentalOSbd has no database, so these rules can&apos;t be enforced here. They apply on the clinic&apos;s live system.
             </p>
           )}
           <div className="rounded-lg bg-muted/40 p-3">

@@ -24,6 +24,7 @@ import {
   setRequestStatus,
   useStaffRole,
 } from "@/lib/access-store";
+import { announceOnce } from "@/lib/notifications-store";
 
 export interface PrivatePatientRef {
   patientKey: string;
@@ -217,7 +218,6 @@ export function AccessWatch() {
 
   useEffect(() => {
     if (!me.isDoctor || !me.email) return;
-    const promptKey = `dentalos1-access-prompted:${me.email}`;
     const check = (initial: boolean) => {
       const mine = requestsForMe(me).filter((r) => r.status === "pending");
       setWaiting(mine);
@@ -227,7 +227,7 @@ export function AccessWatch() {
         for (const r of all) {
           if (r.requesterEmail.toLowerCase() !== me.email) continue;
           const before = known.current.get(r.id);
-          if (before && before !== r.status) {
+          if (before && before !== r.status && announceOnce(`access:${r.id}:${r.status}`)) {
             if (r.status === "approved") toast.success(`${r.decidedBy || "The doctor"} gave you access to ${r.patientName}.`);
             if (r.status === "denied") toast.info(`${r.decidedBy || "The doctor"} declined access to ${r.patientName}.`);
             if (r.status === "revoked") toast.info(`Your access to ${r.patientName} was withdrawn.`);
@@ -235,20 +235,9 @@ export function AccessWatch() {
         }
       }
       known.current = new Map(all.map((r) => [r.id, r.status]));
-      let prompted = false;
-      try {
-        prompted = !!sessionStorage.getItem(promptKey);
-      } catch {
-        // ignore
-      }
-      if (mine.length > 0 && !prompted) {
-        setOpen(true);
-        try {
-          sessionStorage.setItem(promptKey, "1");
-        } catch {
-          // ignore
-        }
-      }
+      // Open only when there's a request this doctor hasn't been shown yet
+      const fresh = mine.filter((r) => announceOnce(`access-prompt:${me.email}:${r.id}`));
+      if (fresh.length > 0) setOpen(true);
     };
     const t = setTimeout(() => check(true), 2000);
     const onChange = () => check(false);

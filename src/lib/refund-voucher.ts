@@ -1,5 +1,5 @@
 // ============================================================
-// DENTALOS1 — Refund voucher: patient copy and office copy on one landscape A4,
+// DENTALOSBD — Refund voucher: patient copy and office copy on one landscape A4,
 // signed by the patient on receipt of the money
 // ============================================================
 

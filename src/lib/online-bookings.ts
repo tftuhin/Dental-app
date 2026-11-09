@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// DENTALOS1 — Online bookings → appointment queue
+// DENTALOSBD — Online bookings → appointment queue
 // Bookings from the public /book page are saved in the database.
 // Every signed-in staff browser fetches them and adds the ones the
 // clinic's queue doesn't have yet, like a phone booking: linked to

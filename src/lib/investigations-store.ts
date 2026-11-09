@@ -1,7 +1,7 @@
 import { clinicStorage } from "@/lib/clinic-storage";
 
 // ============================================================
-// DENTALOS1 — INVESTIGATIONS & DIAGNOSTIC TESTS STORE
+// DENTALOSBD — INVESTIGATIONS & DIAGNOSTIC TESTS STORE
 // Standard Dental Diagnostic & Laboratory Formulary (Bangladesh)
 // Provides:
 // 1. Full schema & typed definitions for dental tests & investigations

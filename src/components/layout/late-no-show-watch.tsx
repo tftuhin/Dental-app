@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { toastWithLink } from "@/lib/notifications-store";
+import { announceOnce, toastWithLink } from "@/lib/notifications-store";
 import { markLateNoShows, NO_SHOW_AFTER_MINUTES } from "@/lib/clinical-flow-store";
 
 const CHECK_MS = 60_000;
@@ -18,7 +18,9 @@ export function LateNoShowWatch() {
       if (marked.length === 0) return;
       // Only announce today's; older days are just tidied up
       const today = new Date().toDateString();
-      const recent = marked.filter((a) => a.date && new Date(`${a.date}T00:00:00`).toDateString() === today);
+      const recent = marked.filter(
+        (a) => a.date && new Date(`${a.date}T00:00:00`).toDateString() === today && announceOnce(`noshow:${a.id}`)
+      );
       if (recent.length === 0) return;
       toastWithLink("/appointments", () => toast.warning(
         recent.length === 1

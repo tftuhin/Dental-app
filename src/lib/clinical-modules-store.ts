@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// DENTALOS1 — Clinical sections on/off (Settings → Clinical Modules)
+// DENTALOSBD — Clinical sections on/off (Settings → Clinical Modules)
 // Each charting section of the visit and the patient profile can be
 // switched off for clinics that don't use it.
 // ============================================================

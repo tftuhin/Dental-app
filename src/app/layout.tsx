@@ -21,12 +21,12 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "DentalOS1: AI-powered dental clinic operation software",
-    template: "%s | DentalOS1",
+    default: "DentalOSbd: AI-powered dental clinic operation software",
+    template: "%s | DentalOSbd",
   },
   description:
     "AI-powered operation software for dental clinics: AI clinical assistant, AI prescription drafts, appointments, charts, consent, billing and patient reminders.",
-  keywords: ["AI dental software", "dental clinic software Bangladesh", "dental AI", "odontogram", "DentalOS1"],
+  keywords: ["AI dental software", "dental clinic software Bangladesh", "dental AI", "odontogram", "DentalOSbd"],
   robots: "noindex, nofollow",
 };
 

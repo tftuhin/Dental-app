@@ -14,7 +14,7 @@ export function Logo({ light = false, className = "" }: { light?: boolean; class
         <ToothIcon className="h-5 w-5" />
       </span>
       <span className={`font-display text-xl font-extrabold ${light ? "text-white" : "text-slate-900"}`}>
-        Dental<span className="text-teal-500">OS1</span>
+        Dental<span className="text-teal-500">OSbd</span>
       </span>
     </Link>
   );

@@ -22,7 +22,7 @@ import {
 } from "@/lib/messaging-store";
 import { getAllPatients, PatientProfile } from "@/lib/patients-store";
 import { sendOne } from "@/lib/message-sender";
-import { toastWithLink } from "@/lib/notifications-store";
+import { announceOnce, toastWithLink } from "@/lib/notifications-store";
 
 interface ThreadItem {
   id: string;
@@ -276,7 +276,7 @@ export function InboxWatch() {
   useEffect(() => {
     seen.current = new Set(getInbox().map((m) => m.id));
     const onChange = () => {
-      const fresh: InboxMessage[] = getInbox().filter((m) => !m.read && !seen.current!.has(m.id));
+      const fresh: InboxMessage[] = getInbox().filter((m) => !m.read && !seen.current!.has(m.id) && announceOnce(`sms:${m.id}`));
       for (const m of getInbox()) seen.current!.add(m.id);
       if (fresh.length === 0) return;
       const patients = getAllPatients();

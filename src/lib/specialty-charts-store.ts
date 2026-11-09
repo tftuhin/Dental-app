@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// DENTALOS1 — Orthodontic and prosthodontic records
+// DENTALOSBD — Orthodontic and prosthodontic records
 // One record of each per patient (keyed by the patient ID, like the
 // odontogram), saved with the rest of the clinic's data.
 // ============================================================

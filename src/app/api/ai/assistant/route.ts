@@ -33,7 +33,7 @@ function buildDentalAssistantPrompt(ctx: AssistantContext): string {
 
   const allSymptoms = [...(ctx.symptoms || []), ...(ctx.customSymptoms || [])];
 
-  return `You are the DentalOS1 AI Assistant, an expert dental clinical decision support system. You provide evidence-based recommendations to dentists at the chairside.
+  return `You are the DentalOSbd AI Assistant, an expert dental clinical decision support system. You provide evidence-based recommendations to dentists at the chairside.
 
 ## PATIENT CONTEXT
 - Age: ${ctx.patient.age} years
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model,
-    system: `You are the DentalOS1 AI Assistant, a specialized dental clinical decision support assistant. 
+    system: `You are the DentalOSbd AI Assistant, a specialized dental clinical decision support assistant. 
 You provide evidence-based, safety-first recommendations. You NEVER suggest medications that contraindicate a patient's known allergies. 
 You communicate clearly and concisely for busy clinicians.`,
     messages: [

@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// DENTALOS1 — Dues & payments
+// DENTALOSBD — Dues & payments
 // A bill can be paid in parts. Each visit's invoice keeps every
 // payment; the balance due is carried until it is collected from
 // the billing page. The patient's outstanding balance is always

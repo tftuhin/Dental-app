@@ -100,7 +100,7 @@ export function AppSidebar({
                 <ToothIcon className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">DentalOS1</span>
+                <span className="truncate font-semibold">DentalOSbd</span>
                 <span className="truncate text-xs text-muted-foreground">{clinicName}</span>
               </div>
             </SidebarMenuButton>
@@ -136,7 +136,7 @@ export function AppSidebar({
 
       <SidebarFooter>
         <SidebarMenu>
-          {/* For the DentalOS1 team only: requests from the public website */}
+          {/* For the DentalOSbd team only: requests from the public website */}
           {session?.user?.role === "super_admin" && (
             <SidebarMenuItem>
               <SidebarMenuButton

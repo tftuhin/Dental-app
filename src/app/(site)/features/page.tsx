@@ -8,7 +8,7 @@ import { SectionTabs } from "@/components/site/section-tabs";
 export const metadata: Metadata = {
   title: "Features",
   description:
-    "What DentalOS1 does at the front desk, in the doctor's room and at the cash counter: queue and serials, dental charts, consent forms, prescriptions, billing with dues and refunds, and patient reminders.",
+    "What DentalOSbd does at the front desk, in the doctor's room and at the cash counter: queue and serials, dental charts, consent forms, prescriptions, billing with dues and refunds, and patient reminders.",
 };
 
 const AREAS = [
@@ -17,7 +17,7 @@ const AREAS = [
     icon: CalendarDays,
     title: "Front desk and appointments",
     lead:
-      "The queue is the heart of a busy chamber. DentalOS1 gives each day its own serial numbers and keeps every computer in the clinic looking at the same list.",
+      "The queue is the heart of a busy chamber. DentalOSbd gives each day its own serial numbers and keeps every computer in the clinic looking at the same list.",
     points: [
       "Book walk-ins, phone calls and online requests from one form, with returning patients found by name, ID or phone number",
       "The next free slot for the chosen doctor is suggested, respecting opening hours and the lunch break",
@@ -48,7 +48,7 @@ const AREAS = [
     icon: FileSignature,
     title: "Consent before treatment",
     lead:
-      "When the doctor sends a patient on for a procedure or surgery, DentalOS1 asks for consent first. The form is filled in for you and fits on a single A4 page.",
+      "When the doctor sends a patient on for a procedure or surgery, DentalOSbd asks for consent first. The form is filled in for you and fits on a single A4 page.",
     points: [
       "Patient, doctor and clinic details, the planned treatment, tooth, anaesthesia and estimated cost are filled in automatically",
       "Separate forms for general procedures, oral surgery, orthodontics and prosthodontics, each with its own wording",
@@ -96,7 +96,7 @@ const AREAS = [
       "Campaigns to patients you choose by last visit, medical condition, treatment received, age, dues or birthday month",
       "SMS from a paired phone through Windows Phone Link, automatically from an Android phone in the clinic, or through a bulk SMS company",
       "WhatsApp messages opened in your clinic's own WhatsApp with the text already written",
-      "Replies to SMS arrive in an inbox inside DentalOS1, matched to the patient",
+      "Replies to SMS arrive in an inbox inside DentalOSbd, matched to the patient",
       "Editable templates in English and Bangla, with a character count so you know how many SMS a message will take",
     ],
   },
@@ -116,7 +116,7 @@ const AREAS = [
     id: "settings",
     icon: SlidersHorizontal,
     title: "Set it up your way",
-    lead: "Clinics work differently. The settings let DentalOS1 follow your routine rather than the other way round.",
+    lead: "Clinics work differently. The settings let DentalOSbd follow your routine rather than the other way round.",
     points: [
       "Doctors, chairs, opening days and hours, and the break",
       "Your own fee list, medicine list and investigations",
@@ -167,7 +167,7 @@ export default function FeaturesPage() {
     <>
       <PageIntro
         eyebrow="Features"
-        title="What DentalOS1 does, room by room"
+        title="What DentalOSbd does, room by room"
         intro="From the moment a patient books to the reminder that brings them back, here is what your front desk, your doctors and your accounts get, with AI built in for the doctor."
       />
       <SectionTabs items={TABS} />

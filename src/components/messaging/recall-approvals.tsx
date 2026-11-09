@@ -28,6 +28,7 @@ import {
   updateRecall,
 } from "@/lib/messaging-store";
 import { sendOne } from "@/lib/message-sender";
+import { announceOnce } from "@/lib/notifications-store";
 import { toISODate } from "@/lib/clinical-flow-store";
 
 function daysOverdue(due: string): number {
@@ -178,26 +179,16 @@ export function RecallWatch() {
   const [mine, setMine] = useState<Recall[]>([]);
 
   useEffect(() => {
-    if (!user) return;
-    const promptKey = `dentalos1-recall-prompted:${user.id || user.email}`;
+    // Front desk neither drafts nor approves reminders
+    if (!user || user.role === "receptionist") return;
+    const who = user.id || user.email;
     const check = () => {
       refreshRecalls();
       const waiting = recallsAwaitingFor(user);
       setMine(waiting);
-      let prompted = false;
-      try {
-        prompted = !!sessionStorage.getItem(promptKey);
-      } catch {
-        // ignore
-      }
-      if (waiting.length > 0 && !prompted) {
-        setOpen(true);
-        try {
-          sessionStorage.setItem(promptKey, "1");
-        } catch {
-          // ignore
-        }
-      }
+      // Open only when there's a reminder this doctor hasn't been shown yet
+      const fresh = waiting.filter((r) => announceOnce(`recall-prompt:${who}:${r.id}`));
+      if (fresh.length > 0) setOpen(true);
     };
     const t = setTimeout(check, 1500);
     const iv = setInterval(check, 10 * 60_000);

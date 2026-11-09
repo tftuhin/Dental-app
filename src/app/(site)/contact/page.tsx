@@ -6,7 +6,7 @@ import { COMPANY } from "@/site/config";
 
 export const metadata: Metadata = {
   title: "Contact and demo",
-  description: "Book a demo of DentalOS1, ask for a price quote, or send us a question.",
+  description: "Book a demo of DentalOSbd, ask for a price quote, or send us a question.",
 };
 
 const digits = (s: string) => s.replace(/\D/g, "");

@@ -1,5 +1,5 @@
 /**
- * Medical & Dental Certificate PDF & Print Generator for DentalOS1
+ * Medical & Dental Certificate PDF & Print Generator for DentalOSbd
  * 
  * Generates an authentic, executive clinic letterhead printed certificate:
  * - Exact same clinic letterhead and patient demographics bar as the official prescription
@@ -101,7 +101,7 @@ export function generateCertificateHtml(data: CertificatePdfData): string {
   }
 
   // Verification QR & Security Hash
-  const qrHash = `DENTALOS1-AUTH-${certNo.replace(/[^a-zA-Z0-9]/g, "")}-${String(data.patientId).slice(-4)}`;
+  const qrHash = `DENTALOSBD-AUTH-${certNo.replace(/[^a-zA-Z0-9]/g, "")}-${String(data.patientId).slice(-4)}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=4&data=${encodeURIComponent(
     `https://dentalos1.health/verify/cert?id=${certNo}&patient=${encodeURIComponent(data.patientName)}&hash=${qrHash}`
   )}`;
@@ -557,7 +557,7 @@ export function generateCertificateHtml(data: CertificatePdfData): string {
 </head>
 <body>
   <div class="sheet-wrapper">
-    <div class="watermark">DENTALOS1 CERTIFICATE</div>
+    <div class="watermark">DENTALOSBD CERTIFICATE</div>
 
     ${
       isPreprinted
@@ -742,7 +742,7 @@ export function generateCertificateHtml(data: CertificatePdfData): string {
 
     <!-- Hospital Bottom Notice -->
     <div class="hospital-bottom-bar">
-      <span>DentalOS1 · Secure Electronic Health Record # EHR-${data.patientId}</span>
+      <span>DentalOSbd · Secure Electronic Health Record # EHR-${data.patientId}</span>
       <span>Issued: ${data.issueDate} · Certified Dental Practitioner Attestation</span>
       <span>Page 1 of 1</span>
     </div>

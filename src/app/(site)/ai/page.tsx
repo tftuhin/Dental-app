@@ -25,7 +25,7 @@ import { Reveal } from "@/components/site/showcase";
 export const metadata: Metadata = {
   title: "AI assistant for dentists",
   description:
-    "DentalOS1's AI Assistant suggests differential diagnoses, tests, procedures and allergy-checked medicines from your consultation notes, and drafts the prescription from the visit for you to review and sign.",
+    "DentalOSbd's AI Assistant suggests differential diagnoses, tests, procedures and allergy-checked medicines from your consultation notes, and drafts the prescription from the visit for you to review and sign.",
 };
 
 const COPILOT_READS = [
@@ -67,12 +67,12 @@ const GUARDRAILS = [
   {
     icon: ShieldCheck,
     title: "A second allergy check",
-    text: "Separately from the AI, DentalOS1 checks every medicine you add against the allergies on file and warns you before you sign.",
+    text: "Separately from the AI, DentalOSbd checks every medicine you add against the allergies on file and warns you before you sign.",
   },
   {
     icon: ToggleRight,
     title: "Off with one switch",
-    text: "If your clinic would rather not use AI, turn the assistant off in settings. Every other part of DentalOS1 works the same without it.",
+    text: "If your clinic would rather not use AI, turn the assistant off in settings. Every other part of DentalOSbd works the same without it.",
   },
 ];
 
@@ -90,7 +90,7 @@ const AI_FAQ = [
   },
   {
     q: "Which AI does it use?",
-    a: "A large language model from an established provider (Anthropic, OpenAI or Groq), chosen when DentalOS1 is set up. The prompts are written for dental practice in Bangladesh.",
+    a: "A large language model from an established provider (Anthropic, OpenAI or Groq), chosen when DentalOSbd is set up. The prompts are written for dental practice in Bangladesh.",
   },
   {
     q: "What patient information is sent, and when?",
@@ -101,7 +101,7 @@ const AI_FAQ = [
     a: "The prescription draft is given your clinic's medicine list and prefers those brands, so the draft usually matches what your patients can buy downstairs.",
   },
   {
-    q: "Can we use DentalOS1 without AI?",
+    q: "Can we use DentalOSbd without AI?",
     a: "Yes. Switch the AI assistant off in Settings → Clinical Modules. The AI Assistant tab and the draft button disappear; everything else is unchanged.",
   },
 ];
@@ -122,7 +122,7 @@ export default function AiPage() {
               <span className="bg-gradient-to-r from-amber-200 via-amber-300 to-teal-300 bg-clip-text text-transparent">The decision stays yours.</span>
             </h1>
             <p className="max-w-xl text-lg leading-relaxed text-slate-300 sm:text-xl">
-              DentalOS1&apos;s AI reads the consultation you&apos;ve just written and suggests what to consider: likely diagnoses, tests,
+              DentalOSbd&apos;s AI reads the consultation you&apos;ve just written and suggests what to consider: likely diagnoses, tests,
               treatment and allergy-safe medicines. When you move on to the prescription, it drafts that too, from the same visit, for you to
               check and sign.
             </p>

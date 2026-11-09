@@ -275,7 +275,7 @@ export default function MedicalCertificatePage() {
   // Certificate Type specific labels
   const isSickLeave = certType === "sick_leave";
   const isFitness = certType === "fitness";
-  const qrHash = `DENTALOS1-AUTH-${certNumber}-${customId.slice(-5)}`;
+  const qrHash = `DENTALOSBD-AUTH-${certNumber}-${customId.slice(-5)}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=4&data=${encodeURIComponent(
     `https://dentalos1.health/verify/cert?id=${certNumber}&patient=${encodeURIComponent(patientName)}&hash=${qrHash}`
   )}`;
@@ -723,7 +723,7 @@ export default function MedicalCertificatePage() {
                 
                 {/* Subtle Watermark Crest (Matching Prescription) */}
                 <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[30deg] text-[70px] font-black text-sky-500/[0.035] tracking-[12px] uppercase select-none pointer-events-none whitespace-nowrap font-serif z-0">
-                  DENTALOS1 CERTIFICATE
+                  DENTALOSBD CERTIFICATE
                 </div>
 
                 <div className="relative z-10 flex-1 flex flex-col">
@@ -980,7 +980,7 @@ export default function MedicalCertificatePage() {
 
                   {/* ── 5. HOSPITAL ARCHIVE MICRO-FOOTPRINT ── */}
                   <div className="border-t border-dotted border-slate-300 pt-1.5 mt-2 flex items-center justify-between text-[8px] font-mono text-slate-400 relative z-10">
-                    <span>DentalOS1 · Secure Electronic Health Record # EHR-{customId}</span>
+                    <span>DentalOSbd · Secure Electronic Health Record # EHR-{customId}</span>
                     <span>Issued: {issueDate} · Certified Dental Practitioner Attestation</span>
                     <span>Page 1 of 1</span>
                   </div>

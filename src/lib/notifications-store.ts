@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// DENTALOS1 — Notification centre
+// DENTALOSBD — Notification centre
 // Every pop-up notification (success, info, warning, error) is also
 // kept here so staff can read it later from the bell in the header.
 // Kept per browser in localStorage, newest first, up to 100.
@@ -128,5 +128,28 @@ export function toastWithLink<T>(href: string, show: () => T): T {
     return show();
   } finally {
     nextHref = undefined;
+  }
+}
+
+// ─── Announce each thing once ────────────────────────────────
+
+const ANNOUNCED_KEY = "dentalos1_announced_v1";
+const ANNOUNCED_MAX = 1000;
+
+/**
+ * True the first time it's called with `key` on this computer (in any tab),
+ * false after that. Used so the same booking, no-show, reply or request is
+ * announced once, not on every check, reload or open tab.
+ */
+export function announceOnce(key: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const list: string[] = JSON.parse(localStorage.getItem(ANNOUNCED_KEY) || "[]");
+    if (list.includes(key)) return false;
+    list.push(key);
+    localStorage.setItem(ANNOUNCED_KEY, JSON.stringify(list.slice(-ANNOUNCED_MAX)));
+    return true;
+  } catch {
+    return true;
   }
 }

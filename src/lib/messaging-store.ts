@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// DENTALOS1 — Patient messages: recalls, templates, campaigns, log
+// DENTALOSBD — Patient messages: recalls, templates, campaigns, log
 //
 // Recall: when the doctor releases a prescription they can note the next
 // procedure the patient should have and a tentative date. If the patient

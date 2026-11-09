@@ -63,7 +63,7 @@ export default function LoginPage() {
               <ToothIcon className="h-6 w-6 text-white" strokeWidth={2.5} />
             </div>
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-              DentalOS1
+              DentalOSbd
             </h1>
           </div>
           <p className="text-sm text-muted-foreground">

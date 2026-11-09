@@ -1,6 +1,6 @@
-# DentalOS1
+# DentalOSbd
 
-**DentalOS1** is an enterprise AI-powered Dental Practice Management & Clinical EHR Platform designed for dental surgeons, periodontists, and orthodontists.
+**DentalOSbd** is an enterprise AI-powered Dental Practice Management & Clinical EHR Platform designed for dental surgeons, periodontists, and orthodontists.
 
 ## Getting Started
 

@@ -8,7 +8,7 @@ const databaseUrl =
 
 if (!process.env.DATABASE_URL) {
   console.warn(
-    "⚠️ [DentalOS1 Database] DATABASE_URL environment variable is not defined. Using build-time placeholder connection string."
+    "⚠️ [DentalOSbd Database] DATABASE_URL environment variable is not defined. Using build-time placeholder connection string."
   );
 }
 

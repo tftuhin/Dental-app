@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// DENTALOS1 — Consent forms
+// DENTALOSBD — Consent forms
 // Before a patient goes on to a procedure or surgery, a consent form is
 // filled from the visit, printed, and signed on paper by the patient (or
 // guardian) and the doctor. The wording is edited in Settings → Consent

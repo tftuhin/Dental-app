@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// DENTALOS1 — Sending a message
+// DENTALOSBD — Sending a message
 //  • WhatsApp: opens the chat in the clinic's own WhatsApp (the number signed
 //    in on this computer, in WhatsApp Web or the desktop app) with the text
 //    filled in; staff press Send. WhatsApp doesn't allow apps to send from a
